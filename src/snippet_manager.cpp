@@ -4,6 +4,8 @@
 #include <QStandardPaths>
 #include <QUuid>
 #include <QJsonDocument>
+#include <QSet>
+#include <algorithm>
 
 SnippetManager::SnippetManager(QObject *parent)
     : QObject(parent)
@@ -43,6 +45,7 @@ QString SnippetManager::createSnippet(const QString &name, const QString &catego
     s.category = category;
     s.code = QStringLiteral("\\begin{tikzpicture}\n\n\\end{tikzpicture}");
     saveSnippet(s);
+    emit snippetCreated(s.id);
     return s.id;
 }
 
@@ -66,6 +69,7 @@ bool SnippetManager::saveSnippet(const Snippet &s)
     if (texFile.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate)) {
         texFile.write(s.code.toUtf8());
         texFile.close();
+        emit snippetModified(s.id);
         return true;
     }
     return false;
@@ -104,6 +108,7 @@ bool SnippetManager::deleteSnippet(const QString &id)
     if (!dir.exists())
         return false;
     dir.removeRecursively();
+    emit snippetDeleted(id);
     return true;
 }
 
@@ -162,4 +167,63 @@ Snippet SnippetManager::jsonToSnippet(const QJsonObject &obj) const
     for (const QJsonValue &v : tagsArr)
         s.tags.append(v.toString());
     return s;
+}
+
+int SnippetManager::fuzzyMatchScore(const QString &query, const QString &target)
+{
+    if (query.isEmpty()) return 100;
+
+    int score = 0;
+    int qi = 0;
+    int consecutive = 0;
+
+    for (int ti = 0; ti < target.length() && qi < query.length(); ++ti) {
+        if (query[qi].toLower() == target[ti].toLower()) {
+            score += 10 + consecutive * 5;
+            consecutive++;
+            qi++;
+        } else {
+            consecutive = 0;
+        }
+    }
+
+    return (qi == query.length()) ? score : 0;
+}
+
+QList<SearchResult> SnippetManager::searchSnippets(const QString &query) const
+{
+    QList<SearchResult> results;
+    QList<Snippet> all = getAllSnippets();
+
+    for (const Snippet &s : all) {
+        int nameScore = fuzzyMatchScore(query, s.name);
+        int descScore = fuzzyMatchScore(query, s.description) / 3;
+        int totalScore = nameScore * 2 + descScore;
+
+        if (totalScore > 0) {
+            SearchResult r;
+            r.snippet = s;
+            r.score = totalScore;
+            results.append(r);
+        }
+    }
+
+    std::sort(results.begin(), results.end(),
+        [](const SearchResult &a, const SearchResult &b) {
+            return a.score > b.score;
+        });
+
+    return results;
+}
+
+QStringList SnippetManager::getAllCategories() const
+{
+    QSet<QString> cats;
+    QList<Snippet> all = getAllSnippets();
+    for (const Snippet &s : all) {
+        if (!s.category.isEmpty()) {
+            cats.insert(s.category);
+        }
+    }
+    return cats.values();
 }

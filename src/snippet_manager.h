@@ -16,6 +16,11 @@ struct Snippet {
     QString code;
 };
 
+struct SearchResult {
+    Snippet snippet;
+    int score;
+};
+
 class SnippetManager : public QObject {
     Q_OBJECT
 public:
@@ -29,6 +34,15 @@ public:
     QList<Snippet> getAllSnippets() const;
     QString createSnippet(const QString &name, const QString &category);
     bool snippetExists(const QString &id) const;
+
+    static int fuzzyMatchScore(const QString &query, const QString &target);
+    QList<SearchResult> searchSnippets(const QString &query) const;
+    QStringList getAllCategories() const;
+
+signals:
+    void snippetCreated(const QString &id);
+    void snippetDeleted(const QString &id);
+    void snippetModified(const QString &id);
 
 private:
     QString basePath;
