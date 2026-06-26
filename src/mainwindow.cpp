@@ -25,6 +25,8 @@
 #include <QMenu>
 #include <QCloseEvent>
 #include <QStandardPaths>
+#include <QEventLoop>
+#include <QTimer>
 
 #define STRINGIFY(x) STRINGIFY_IMPL(x)
 #define STRINGIFY_IMPL(x) #x
@@ -127,6 +129,8 @@ void MainWindow::setupUI()
     QAction *copySvgAct = toolBar->addAction(QStringLiteral("复制SVG (Ctrl+Shift+S)"));
     toolBar->addSeparator();
     QAction *settingsAct = toolBar->addAction(QStringLiteral("设置"));
+    toolBar->addSeparator();
+    QAction *genPreviewAct = toolBar->addAction(QStringLiteral("生成所有预览"));
 
     QSplitter *mainSplitter = new QSplitter(Qt::Horizontal);
 
@@ -179,10 +183,22 @@ void MainWindow::setupUI()
     QVBoxLayout *rightLayout = new QVBoxLayout(rightPanel);
     rightLayout->setContentsMargins(4, 4, 4, 4);
 
+    previewStack = new QStackedWidget;
+
     pdfDoc = new QPdfDocument(this);
-    pdfView = new QPdfView(this);
+    pdfView = new QPdfView;
     pdfView->setDocument(pdfDoc);
     pdfView->setMinimumSize(250, 250);
+
+    previewImageLabel = new QLabel(QStringLiteral("预览区"));
+    previewImageLabel->setAlignment(Qt::AlignCenter);
+    previewImageLabel->setMinimumSize(250, 250);
+    previewImageLabel->setFrameStyle(QFrame::StyledPanel | QFrame::Sunken);
+    previewImageLabel->setScaledContents(false);
+
+    previewStack->addWidget(previewImageLabel);
+    previewStack->addWidget(pdfView);
+    previewStack->setCurrentIndex(0);
 
     nameEdit = new QLineEdit;
     nameEdit->setPlaceholderText(QStringLiteral("名称"));
@@ -193,7 +209,7 @@ void MainWindow::setupUI()
     compileBtn = new QPushButton(QStringLiteral("编译预览"));
     saveBtn = new QPushButton(QStringLiteral("保存"));
 
-    rightLayout->addWidget(pdfView, 3);
+    rightLayout->addWidget(previewStack, 3);
     rightLayout->addWidget(new QLabel(QStringLiteral("名称:")));
     rightLayout->addWidget(nameEdit);
     rightLayout->addWidget(new QLabel(QStringLiteral("简介:")));
@@ -241,7 +257,7 @@ void MainWindow::setupUI()
             codeEditor->clear();
             nameEdit->clear();
             descEdit->clear();
-            pdfDoc->close();
+            previewStack->setCurrentIndex(0);
             refreshSearch();
             refreshCategoryTree();
         }
@@ -317,6 +333,8 @@ void MainWindow::setupUI()
             statusBar()->showMessage(QStringLiteral("设置已保存"), 3000);
         }
     });
+
+    connect(genPreviewAct, &QAction::triggered, this, &MainWindow::generateAllPreviews);
 
     QShortcut *copyCodeShortcut = new QShortcut(QKeySequence("Ctrl+Shift+C"), this);
     connect(copyCodeShortcut, &QShortcut::activated, this, [this]() {
@@ -447,9 +465,11 @@ void MainWindow::setupConnections()
             logPanel->setPlainText(log);
             if (success) {
                 pdfDoc->load(QFileInfo(pdfPath).absoluteFilePath());
+                previewStack->setCurrentIndex(1);
+                savePreviewPng(pdfPath, currentSnippetId);
                 statusBar()->showMessage(QStringLiteral("编译成功"), 3000);
             } else {
-                pdfDoc->close();
+                previewStack->setCurrentIndex(0);
                 jumpToErrorLine(log);
                 statusBar()->showMessage(QStringLiteral("编译失败，详见日志"), 3000);
             }
@@ -490,6 +510,8 @@ void MainWindow::loadSnippetIntoEditor(const QString &id)
     codeEditor->blockSignals(false);
     nameEdit->setText(s.name);
     descEdit->setPlainText(s.description);
+
+    loadPreviewForSnippet(id);
 
     bool isPreset = s.isPreset || snippetMgr->isPresetId(id);
     codeEditor->setReadOnly(isPreset);
@@ -596,7 +618,100 @@ QString MainWindow::applyParams(const QString &code)
 {
     QString result = code;
     for (const ParamInfo &param : currentParams) {
-        result.replace("@@@" + param.name + "@@@", param.edit->text());
+        result.replace("@@" + param.name + "@@", param.edit->text());
     }
     return result;
+}
+
+void MainWindow::clearPreview()
+{
+    pdfDoc->close();
+    previewImageLabel->setText(QStringLiteral("预览区\n请编译以生成预览"));
+    previewStack->setCurrentIndex(0);
+}
+
+void MainWindow::savePreviewPng(const QString &pdfPath, const QString &snippetId)
+{
+    if (snippetId.isEmpty()) return;
+
+    QString basePath;
+    if (snippetMgr->isPresetId(snippetId))
+        basePath = snippetMgr->getPresetPath() + snippetId;
+    else
+        basePath = snippetMgr->getBasePath() + snippetId;
+
+    QProcess pngProc;
+    QString previewPng = basePath + "/preview.png";
+    QStringList args;
+    args << "-png" << "-r" << "150" << "-singlefile" << pdfPath << previewPng;
+    pngProc.start("pdftocairo", args);
+    pngProc.waitForFinished(5000);
+}
+
+void MainWindow::loadPreviewForSnippet(const QString &id)
+{
+    if (id.isEmpty()) {
+        clearPreview();
+        return;
+    }
+
+    QString basePath;
+    if (snippetMgr->isPresetId(id))
+        basePath = snippetMgr->getPresetPath() + id;
+    else
+        basePath = snippetMgr->getBasePath() + id;
+
+    QString previewPng = basePath + "/preview.png";
+    if (QFile::exists(previewPng)) {
+        QPixmap pix(previewPng);
+        if (!pix.isNull()) {
+            previewImageLabel->setPixmap(pix.scaled(
+                previewImageLabel->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
+            previewStack->setCurrentIndex(0);
+            return;
+        }
+    }
+
+    clearPreview();
+}
+
+void MainWindow::generateAllPreviews()
+{
+    QList<Snippet> all = snippetMgr->getAllSnippets();
+    all.append(snippetMgr->getAllPresets());
+
+    if (all.isEmpty()) {
+        statusBar()->showMessage(QStringLiteral("没有可生成预览的条目"), 3000);
+        return;
+    }
+
+    statusBar()->showMessage(QStringLiteral("正在生成所有预览..."), 0);
+
+    int done = 0;
+    int total = all.size();
+
+    for (const Snippet &s : all) {
+        QEventLoop loop;
+        QTimer::singleShot(30000, &loop, &QEventLoop::quit);
+
+        QString snippetId = s.id;
+        QString code = s.code;
+
+        QObject::connect(compiler, &LatexCompiler::compilationFinished,
+            &loop, [&](bool success, const QString &pdfPath, const QString &) {
+                if (success) {
+                    savePreviewPng(pdfPath, snippetId);
+                }
+                done++;
+                statusBar()->showMessage(
+                    QStringLiteral("生成预览: %1/%2").arg(done).arg(total), 0);
+                loop.quit();
+            });
+
+        compiler->compile(code, s.templateId, snippetId);
+        loop.exec();
+    }
+
+    statusBar()->showMessage(QStringLiteral("预览生成完毕: %1 个条目").arg(total), 5000);
+    refreshSearch();
 }

@@ -1,14 +1,22 @@
 % @param: angle=30
-\begin{tikzpicture}
+\begin{tikzpicture}[scale=0.8]
   \coordinate (A) at (0,0);
-  \coordinate (B) at (5,0);
-  \coordinate (C) at (2,{2*tan(@@angle@@)});
+  \coordinate (B) at (6,0);
+  \pgfmathsetmacro\ang{@@angle@@}
+  \pgfmathsetmacro\rad{\ang*3.14159/180}
+  \pgfmathsetmacro\cx{6-4*cos(\rad)}
+  \pgfmathsetmacro\cy{4*sin(\rad)}
+  \coordinate (C) at (\cx,\cy);
   \draw[thick] (A) -- (B) -- (C) -- cycle;
-  \draw[thick,pattern=north east lines] (A) -- (B);
-  \node[below left] at (B) {地面};
-  \draw (2.5,0) arc (0:@@angle@@:0.6);
-  \node at (2.5+0.8*cos(@@angle@@/2),0.8*sin(@@angle@@/2)) {$\theta$};
-  \fill[red] (1.5,{1.5*tan(@@angle@@)+0.1}) rectangle ++(0.6,0.6);
-  \draw[->,thick] (1.8,{1.5*tan(@@angle@@)+0.7}) -- (1.8,{1.5*tan(@@angle@@)+1.5}) node[right] {$N$};
-  \draw[->,thick] (1.8,{1.5*tan(@@angle@@)+0.4}) -- (2.8,{1.5*tan(@@angle@@)+0.4}) node[right] {$mg\sin\theta$};
+  \pattern[pattern=north east lines] (A) rectangle ($(B)+(0,-0.3)$);
+  \node[below] at ($(B)!0.5!(A)$) {地面};
+  \draw (5,0) arc (0:\ang:0.8);
+  \node at (4.5,0.4) {$\theta$};
+  \pgfmathsetmacro\bx{\cx-1.0*cos(\rad)}
+  \pgfmathsetmacro\by{\cy-1.0*sin(\rad)}
+  \pgfmathsetmacro\sx{\bx+0.4*sin(\rad)}
+  \pgfmathsetmacro\sy{\by-0.4*cos(\rad)}
+  \fill[red] (\bx,\by) rectangle ++(0.8,0.8);
+  \draw[->,thick] (\bx+0.4,\by+0.9) -- (\bx+0.4,\by+1.8) node[right] {$N$};
+  \draw[->,thick] (\bx+0.4,\by+0.3) -- (\bx+1.5,\by+0.3) node[right] {$mg\sin\theta$};
 \end{tikzpicture}
