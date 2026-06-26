@@ -18,6 +18,9 @@
 #include <QRegularExpression>
 #include <QTextCursor>
 #include <QFileInfo>
+#include <QClipboard>
+#include <QImage>
+#include <QShortcut>
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), currentSnippetId("")
 {
@@ -43,6 +46,10 @@ void MainWindow::setupUI()
     QAction *deleteAct = toolBar->addAction(QStringLiteral("删除片段"));
     QAction *importAct = toolBar->addAction(QStringLiteral("导入ZIP"));
     QAction *exportAct = toolBar->addAction(QStringLiteral("导出ZIP"));
+    toolBar->addSeparator();
+    QAction *copyCodeAct = toolBar->addAction(QStringLiteral("复制代码 (Ctrl+Shift+C)"));
+    QAction *copyPngAct = toolBar->addAction(QStringLiteral("复制PNG (Ctrl+Shift+P)"));
+    QAction *copySvgAct = toolBar->addAction(QStringLiteral("复制SVG (Ctrl+Shift+S)"));
 
     QSplitter *mainSplitter = new QSplitter(Qt::Horizontal);
 
@@ -163,6 +170,95 @@ void MainWindow::setupUI()
             QStringLiteral("导出ZIP"), "", "ZIP files (*.zip)");
         if (!filePath.isEmpty()) {
             statusBar()->showMessage(QStringLiteral("ZIP导出功能将在后续版本实现"), 3000);
+        }
+    });
+
+    connect(copyCodeAct, &QAction::triggered, this, [this]() {
+        QApplication::clipboard()->setText(codeEditor->toPlainText());
+        statusBar()->showMessage(QStringLiteral("代码已复制到剪贴板"), 2000);
+    });
+
+    connect(copyPngAct, &QAction::triggered, this, [this]() {
+        if (!compiler->pdfPath().isEmpty() && QFile::exists(compiler->pdfPath())) {
+            compiler->convertToPng(300);
+            connect(compiler, &LatexCompiler::conversionFinished, this,
+                [this](bool ok, const QString &pngPath) {
+                    if (ok) {
+                        QImage img(pngPath);
+                        if (!img.isNull()) {
+                            QApplication::clipboard()->setImage(img);
+                            statusBar()->showMessage(QStringLiteral("PNG已复制到剪贴板"), 2000);
+                        }
+                    }
+                }, Qt::SingleShotConnection);
+        } else {
+            statusBar()->showMessage(QStringLiteral("请先编译生成PDF"), 3000);
+        }
+    });
+
+    connect(copySvgAct, &QAction::triggered, this, [this]() {
+        if (!compiler->pdfPath().isEmpty() && QFile::exists(compiler->pdfPath())) {
+            compiler->convertToSvg();
+            connect(compiler, &LatexCompiler::conversionFinished, this,
+                [this](bool ok, const QString &svgPath) {
+                    if (ok) {
+                        QFile svgFile(svgPath);
+                        if (svgFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+                            QString svgContent = QString::fromUtf8(svgFile.readAll());
+                            svgFile.close();
+                            QApplication::clipboard()->setText(svgContent);
+                            statusBar()->showMessage(QStringLiteral("SVG已复制到剪贴板"), 2000);
+                        }
+                    }
+                }, Qt::SingleShotConnection);
+        } else {
+            statusBar()->showMessage(QStringLiteral("请先编译生成PDF"), 3000);
+        }
+    });
+
+    QShortcut *copyCodeShortcut = new QShortcut(QKeySequence("Ctrl+Shift+C"), this);
+    connect(copyCodeShortcut, &QShortcut::activated, this, [this]() {
+        QApplication::clipboard()->setText(codeEditor->toPlainText());
+        statusBar()->showMessage(QStringLiteral("代码已复制到剪贴板"), 2000);
+    });
+
+    QShortcut *copyPngShortcut = new QShortcut(QKeySequence("Ctrl+Shift+P"), this);
+    connect(copyPngShortcut, &QShortcut::activated, this, [this]() {
+        if (!compiler->pdfPath().isEmpty() && QFile::exists(compiler->pdfPath())) {
+            compiler->convertToPng(300);
+            connect(compiler, &LatexCompiler::conversionFinished, this,
+                [this](bool ok, const QString &pngPath) {
+                    if (ok) {
+                        QImage img(pngPath);
+                        if (!img.isNull()) {
+                            QApplication::clipboard()->setImage(img);
+                            statusBar()->showMessage(QStringLiteral("PNG已复制到剪贴板"), 2000);
+                        }
+                    }
+                }, Qt::SingleShotConnection);
+        } else {
+            statusBar()->showMessage(QStringLiteral("请先编译生成PDF"), 3000);
+        }
+    });
+
+    QShortcut *copySvgShortcut = new QShortcut(QKeySequence("Ctrl+Shift+S"), this);
+    connect(copySvgShortcut, &QShortcut::activated, this, [this]() {
+        if (!compiler->pdfPath().isEmpty() && QFile::exists(compiler->pdfPath())) {
+            compiler->convertToSvg();
+            connect(compiler, &LatexCompiler::conversionFinished, this,
+                [this](bool ok, const QString &svgPath) {
+                    if (ok) {
+                        QFile svgFile(svgPath);
+                        if (svgFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+                            QString svgContent = QString::fromUtf8(svgFile.readAll());
+                            svgFile.close();
+                            QApplication::clipboard()->setText(svgContent);
+                            statusBar()->showMessage(QStringLiteral("SVG已复制到剪贴板"), 2000);
+                        }
+                    }
+                }, Qt::SingleShotConnection);
+        } else {
+            statusBar()->showMessage(QStringLiteral("请先编译生成PDF"), 3000);
         }
     });
 
