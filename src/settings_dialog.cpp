@@ -121,6 +121,8 @@ void SettingsDialog::ensureTemplatesCopied(const QString &resourceTemplateDir)
     QDir().mkpath(destDir);
 
     QDir resDir(resourceTemplateDir);
+    if (!resDir.exists()) return;
+
     QStringList templates = resDir.entryList(QStringList() << "*.tex", QDir::Files);
     for (const QString &tpl : templates) {
         QString destPath = destDir + tpl;

@@ -26,11 +26,16 @@
 #include <QCloseEvent>
 #include <QStandardPaths>
 
+#define STRINGIFY(x) STRINGIFY_IMPL(x)
+#define STRINGIFY_IMPL(x) #x
+#define RES_DIR STRINGIFY(RESOURCE_DIR)
+
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), currentSnippetId("")
 {
-    SettingsDialog::ensureTemplatesCopied(QStringLiteral("resources/templates"));
+    QString resourceDir = QStringLiteral(RES_DIR);
+    SettingsDialog::ensureTemplatesCopied(resourceDir + "/templates");
     SnippetManager::copyPresetsFromResources(
-        QStringLiteral("resources/presets"),
+        resourceDir + "/presets",
         QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/presets/");
     snippetMgr = new SnippetManager(this);
     compiler = new LatexCompiler(this);
@@ -400,12 +405,28 @@ void MainWindow::setupConnections()
         });
 
     connect(compileBtn, &QPushButton::clicked, this, [this]() {
-        if (currentSnippetId.isEmpty()) return;
         saveCurrentSnippet();
-        Snippet s = snippetMgr->loadSnippet(currentSnippetId);
-        QString code = applyParams(s.code);
+        QString code;
+        QString templateId;
+        QString snippetId = currentSnippetId;
+
+        if (currentSnippetId.isEmpty()) {
+            code = codeEditor->toPlainText();
+            templateId.clear();
+            snippetId = "scratch";
+        } else {
+            Snippet s = snippetMgr->loadSnippet(currentSnippetId);
+            code = applyParams(s.code);
+            templateId = s.templateId;
+        }
+
+        if (code.trimmed().isEmpty()) {
+            statusBar()->showMessage(QStringLiteral("请先输入 TikZ 代码"), 3000);
+            return;
+        }
+
         logPanel->clear();
-        compiler->compile(code, s.templateId, currentSnippetId);
+        compiler->compile(code, templateId, snippetId);
     });
 
     connect(applyParamsBtn, &QPushButton::clicked, this, [this]() {

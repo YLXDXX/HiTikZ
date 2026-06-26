@@ -37,6 +37,10 @@ add_executable(TikzManager
 
 target_link_libraries(TikzManager PRIVATE Qt6::Widgets Qt6::Pdf Qt6::PdfWidgets)
 
+target_compile_definitions(TikzManager PRIVATE
+    RESOURCE_DIR=${CMAKE_SOURCE_DIR}/resources
+)
+
 if(WITH_QHOTKEY AND TARGET qhotkey)
     target_link_libraries(TikzManager PRIVATE qhotkey)
     target_compile_definitions(TikzManager PRIVATE HAS_QHOTKEY)
