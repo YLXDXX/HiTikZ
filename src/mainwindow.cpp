@@ -126,9 +126,22 @@ void MainWindow::setupUI()
     rightLayout->addWidget(nameEdit);
     rightLayout->addWidget(new QLabel(QStringLiteral("简介:")));
     rightLayout->addWidget(descEdit, 1);
-    rightLayout->addWidget(compileBtn);
-    rightLayout->addWidget(saveBtn);
 
+    paramsScrollArea = new QScrollArea;
+    paramsScrollArea->setWidgetResizable(true);
+    paramsScrollArea->setMaximumHeight(150);
+    paramsWidget = new QWidget;
+    paramsLayout = new QVBoxLayout(paramsWidget);
+    paramsLayout->setContentsMargins(0, 0, 0, 0);
+    paramsScrollArea->setWidget(paramsWidget);
+    rightLayout->addWidget(new QLabel(QStringLiteral("参数:")));
+    rightLayout->addWidget(paramsScrollArea);
+
+    applyParamsBtn = new QPushButton(QStringLiteral("应用参数"));
+
+    rightLayout->addWidget(compileBtn);
+    rightLayout->addWidget(applyParamsBtn);
+    rightLayout->addWidget(saveBtn);
     // --- Toolbar actions ---
     connect(newAct, &QAction::triggered, this, [this]() {
         bool ok;
@@ -318,8 +331,17 @@ void MainWindow::setupConnections()
         if (currentSnippetId.isEmpty()) return;
         saveCurrentSnippet();
         Snippet s = snippetMgr->loadSnippet(currentSnippetId);
+        QString code = applyParams(s.code);
         logPanel->clear();
-        compiler->compile(s.code, s.templateId, currentSnippetId);
+        compiler->compile(code, s.templateId, currentSnippetId);
+    });
+
+    connect(applyParamsBtn, &QPushButton::clicked, this, [this]() {
+        if (currentSnippetId.isEmpty()) return;
+        Snippet s = snippetMgr->loadSnippet(currentSnippetId);
+        QString code = applyParams(s.code);
+        logPanel->clear();
+        compiler->compile(code, s.templateId, currentSnippetId);
     });
 
     connect(saveBtn, &QPushButton::clicked, this, [this]() {
@@ -373,6 +395,7 @@ void MainWindow::loadSnippetIntoEditor(const QString &id)
     codeEditor->blockSignals(false);
     nameEdit->setText(s.name);
     descEdit->setPlainText(s.description);
+    parseParams();
 }
 
 void MainWindow::saveCurrentSnippet()
@@ -404,6 +427,7 @@ void MainWindow::refreshCategoryTree()
 
 void MainWindow::onCurrentSnippetChanged()
 {
+    parseParams();
 }
 
 void MainWindow::jumpToErrorLine(const QString &logText)
@@ -422,4 +446,55 @@ void MainWindow::jumpToErrorLine(const QString &logText)
     codeEditor->setTextCursor(cursor);
     codeEditor->highlightCurrentLine();
     codeEditor->setFocus();
+}
+
+void MainWindow::clearParams()
+{
+    QLayoutItem *child;
+    while ((child = paramsLayout->takeAt(0)) != nullptr) {
+        if (child->widget())
+            child->widget()->deleteLater();
+        delete child;
+    }
+    currentParams.clear();
+}
+
+void MainWindow::parseParams()
+{
+    clearParams();
+
+    QString code = codeEditor->toPlainText();
+    QRegularExpression re("%\\s*@param:\\s*(\\w+)=(\\S+)");
+    QRegularExpressionMatchIterator it = re.globalMatch(code);
+
+    while (it.hasNext()) {
+        QRegularExpressionMatch match = it.next();
+        ParamInfo param;
+        param.name = match.captured(1);
+        param.defaultValue = match.captured(2);
+
+        QWidget *row = new QWidget;
+        QHBoxLayout *rowLayout = new QHBoxLayout(row);
+        rowLayout->setContentsMargins(0, 0, 0, 0);
+        QLabel *label = new QLabel(param.name + ":");
+        QLineEdit *edit = new QLineEdit(param.defaultValue);
+        edit->setMaximumWidth(100);
+        rowLayout->addWidget(label);
+        rowLayout->addWidget(edit, 1);
+
+        param.edit = edit;
+        currentParams.append(param);
+        paramsLayout->addWidget(row);
+    }
+
+    paramsLayout->addStretch();
+}
+
+QString MainWindow::applyParams(const QString &code)
+{
+    QString result = code;
+    for (const ParamInfo &param : currentParams) {
+        result.replace("@@@" + param.name + "@@@", param.edit->text());
+    }
+    return result;
 }

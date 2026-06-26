@@ -10,12 +10,19 @@
 #include <QStandardItemModel>
 #include <QPushButton>
 #include <QScrollArea>
+#include <QVBoxLayout>
 #include <QPdfDocument>
 #include <QPdfView>
 
 class SnippetManager;
 class LatexCompiler;
 class CodeEditor;
+
+struct ParamInfo {
+    QString name;
+    QString defaultValue;
+    QLineEdit *edit;
+};
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -32,6 +39,9 @@ private:
     void refreshCategoryTree();
     void onCurrentSnippetChanged();
     void jumpToErrorLine(const QString &logText);
+    void parseParams();
+    void clearParams();
+    QString applyParams(const QString &code);
 
     SnippetManager *snippetMgr;
     LatexCompiler *compiler;
@@ -53,6 +63,12 @@ private:
     QTextEdit *descEdit;
     QPushButton *compileBtn;
     QPushButton *saveBtn;
+
+    QScrollArea *paramsScrollArea;
+    QWidget *paramsWidget;
+    QVBoxLayout *paramsLayout;
+    QPushButton *applyParamsBtn;
+    QList<ParamInfo> currentParams;
 
     QString currentSnippetId;
 };
