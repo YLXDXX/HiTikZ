@@ -2,6 +2,7 @@
 #include "snippet_manager.h"
 #include "latex_compiler.h"
 #include "code_editor.h"
+#include "settings_dialog.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QToolBar>
@@ -24,8 +25,10 @@
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), currentSnippetId("")
 {
+    SettingsDialog::ensureTemplatesCopied(QStringLiteral("resources/templates"));
     snippetMgr = new SnippetManager(this);
     compiler = new LatexCompiler(this);
+    SettingsDialog::applyToCompiler(compiler);
 
     setupUI();
     setupConnections();
@@ -50,6 +53,8 @@ void MainWindow::setupUI()
     QAction *copyCodeAct = toolBar->addAction(QStringLiteral("复制代码 (Ctrl+Shift+C)"));
     QAction *copyPngAct = toolBar->addAction(QStringLiteral("复制PNG (Ctrl+Shift+P)"));
     QAction *copySvgAct = toolBar->addAction(QStringLiteral("复制SVG (Ctrl+Shift+S)"));
+    toolBar->addSeparator();
+    QAction *settingsAct = toolBar->addAction(QStringLiteral("设置"));
 
     QSplitter *mainSplitter = new QSplitter(Qt::Horizontal);
 
@@ -213,6 +218,14 @@ void MainWindow::setupUI()
                 }, Qt::SingleShotConnection);
         } else {
             statusBar()->showMessage(QStringLiteral("请先编译生成PDF"), 3000);
+        }
+    });
+
+    connect(settingsAct, &QAction::triggered, this, [this]() {
+        SettingsDialog dlg(this);
+        if (dlg.exec() == QDialog::Accepted) {
+            SettingsDialog::applyToCompiler(compiler);
+            statusBar()->showMessage(QStringLiteral("设置已保存"), 3000);
         }
     });
 
