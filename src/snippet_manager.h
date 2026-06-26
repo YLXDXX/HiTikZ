@@ -4,12 +4,14 @@
 #include <QStringList>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QJsonArray>
 
 struct Snippet {
     QString id;
     QString name;
     QString description;
     QString category;
+    QStringList tags;
     QString templateId;
     QString code;
 };
@@ -17,15 +19,22 @@ struct Snippet {
 class SnippetManager : public QObject {
     Q_OBJECT
 public:
-    SnippetManager(QObject *parent = nullptr) : QObject(parent) {}
-    QString getBasePath() const { return QString(); }
-    Snippet loadSnippet(const QString &id) { (void)id; return Snippet(); }
-    bool saveSnippet(const Snippet &s) { (void)s; return false; }
-    QList<Snippet> getAllSnippets() { return QList<Snippet>(); }
+    explicit SnippetManager(QObject *parent = nullptr);
+
+    QString getBasePath() const;
+    QString getPresetPath() const;
+    Snippet loadSnippet(const QString &id);
+    bool saveSnippet(const Snippet &s);
+    bool deleteSnippet(const QString &id);
+    QList<Snippet> getAllSnippets() const;
+    QString createSnippet(const QString &name, const QString &category);
+    bool snippetExists(const QString &id) const;
 
 private:
     QString basePath;
-    QString getSnippetPath(const QString &id) { (void)id; return QString(); }
-    QJsonObject snippetToJson(const Snippet &s) { (void)s; return QJsonObject(); }
-    Snippet jsonToSnippet(const QJsonObject &obj) { (void)obj; return Snippet(); }
+    QString presetPath;
+
+    QString getSnippetPath(const QString &id) const;
+    QJsonObject snippetToJson(const Snippet &s) const;
+    Snippet jsonToSnippet(const QJsonObject &obj) const;
 };

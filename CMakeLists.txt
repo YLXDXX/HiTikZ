@@ -19,3 +19,13 @@ add_executable(TikzManager
 )
 
 target_link_libraries(TikzManager PRIVATE Qt6::Widgets Qt6::Pdf Qt6::PdfWidgets)
+
+enable_testing()
+
+add_executable(test_snippet_manager
+    tests/test_snippet_manager.cpp
+    src/snippet_manager.cpp
+)
+target_include_directories(test_snippet_manager PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_snippet_manager PRIVATE Qt6::Core)
+add_test(NAME SnippetManager COMMAND test_snippet_manager)
