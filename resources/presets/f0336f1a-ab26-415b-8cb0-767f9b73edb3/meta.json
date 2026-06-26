@@ -1,0 +1,12 @@
+{
+  "id": "f0336f1a-ab26-415b-8cb0-767f9b73edb3",
+  "name": "矩形",
+  "description": "带阴影的矩形，展示基本填充效果",
+  "category": "数学/几何",
+  "tags": [
+    "矩形",
+    "几何",
+    "shape"
+  ],
+  "templateId": "default_math"
+}

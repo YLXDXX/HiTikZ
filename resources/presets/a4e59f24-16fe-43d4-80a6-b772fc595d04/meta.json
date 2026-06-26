@@ -1,0 +1,12 @@
+{
+  "id": "a4e59f24-16fe-43d4-80a6-b772fc595d04",
+  "name": "地面与斜面",
+  "description": "带摩擦系数的斜面与物体",
+  "category": "物理/力学",
+  "tags": [
+    "斜面",
+    "力学",
+    "地面"
+  ],
+  "templateId": "default_physics"
+}

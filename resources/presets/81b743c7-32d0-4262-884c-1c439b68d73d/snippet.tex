@@ -1,0 +1,13 @@
+% @param: length=3
+% @param: coils=8
+% @param: amplitude=0.3
+\begin{tikzpicture}
+  \coordinate (A) at (0,0);
+  \coordinate (B) at (@@length@@,0);
+  \fill[gray] (A) rectangle ++(-0.3,0.8);
+  \fill[gray] (B) rectangle ++(0.3,0.8);
+  \draw[thick,decorate,decoration={coil,aspect=0.4,segment length=3mm,amplitude=@@amplitude@@cm}] (A) -- (B);
+  \node[below] at (A) {固定端};
+  \node[below] at (B) {自由端};
+  \draw[<->] (0,-0.8) -- (@@length@@,-0.8) node[midway,below] {L};
+\end{tikzpicture}

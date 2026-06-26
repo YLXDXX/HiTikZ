@@ -1,0 +1,12 @@
+{
+  "id": "694934b7-2b11-4f98-bb25-c52bd4c1aca8",
+  "name": "墙面 (斜线填充)",
+  "description": "带斜线填充的墙面示意图",
+  "category": "物理/力学",
+  "tags": [
+    "墙面",
+    "力学",
+    "结构"
+  ],
+  "templateId": "default_physics"
+}

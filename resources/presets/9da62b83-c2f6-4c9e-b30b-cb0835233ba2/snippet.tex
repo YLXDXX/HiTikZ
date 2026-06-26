@@ -1,0 +1,11 @@
+% @param: angle=30
+\begin{tikzpicture}
+  \coordinate (O) at (0,3);
+  \fill (O) circle (2pt) node[left] {O};
+  \draw[thick] (O) -- ++(@@angle@@+270:3) coordinate (P);
+  \draw[dashed] (O) -- (0,0);
+  \shade[ball color=red] (P) circle (0.2);
+  \draw (0,2.5) arc (270:@@angle@@+270:0.5);
+  \node at (@@angle@@/2+270-10:0.8) {$\theta$};
+  \draw[->,thick] (P) -- ++(0,-1) node[right] {$mg$};
+\end{tikzpicture}

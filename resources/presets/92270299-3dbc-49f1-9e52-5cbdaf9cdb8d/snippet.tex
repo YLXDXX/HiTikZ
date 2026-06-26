@@ -1,0 +1,11 @@
+\begin{tikzpicture}
+  \draw[thick,->] (-0.5,0) -- (5,0) node[right] {$x$};
+  \draw[thick,->] (0,-0.5) -- (0,4) node[above] {$y$};
+  \node[below left] at (0,0) {O};
+  \foreach \x in {1,2,3,4} {
+    \draw (\x,0.1) -- (\x,-0.1) node[below] {\x};
+  }
+  \foreach \y in {1,2,3} {
+    \draw (0.1,\y) -- (-0.1,\y) node[left] {\y};
+  }
+\end{tikzpicture}

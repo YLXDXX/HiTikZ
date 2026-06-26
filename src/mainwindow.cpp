@@ -24,10 +24,14 @@
 #include <QShortcut>
 #include <QMenu>
 #include <QCloseEvent>
+#include <QStandardPaths>
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), currentSnippetId("")
 {
     SettingsDialog::ensureTemplatesCopied(QStringLiteral("resources/templates"));
+    SnippetManager::copyPresetsFromResources(
+        QStringLiteral("resources/presets"),
+        QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/presets/");
     snippetMgr = new SnippetManager(this);
     compiler = new LatexCompiler(this);
     SettingsDialog::applyToCompiler(compiler);
@@ -72,16 +76,20 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), currentSnippetId(
 
 #ifdef HAS_QHOTKEY
     QHotkey *hotkey = new QHotkey(QKeySequence("Ctrl+Alt+T"), true, this);
-    connect(hotkey, &QHotkey::activated, this, [this]() {
-        if (isVisible() && !isMinimized()) {
-            hide();
-        } else {
-            show();
-            raise();
-            activateWindow();
-            searchBox->setFocus();
-        }
-    });
+    if (hotkey->isRegistered()) {
+        connect(hotkey, &QHotkey::activated, this, [this]() {
+            if (isVisible() && !isMinimized()) {
+                hide();
+            } else {
+                show();
+                raise();
+                activateWindow();
+                searchBox->setFocus();
+            }
+        });
+    } else {
+        qWarning() << "Global hotkey (Ctrl+Alt+T) unavailable (not supported on this platform)";
+    }
 #endif
 }
 
@@ -216,6 +224,10 @@ void MainWindow::setupUI()
 
     connect(deleteAct, &QAction::triggered, this, [this]() {
         if (currentSnippetId.isEmpty()) return;
+        if (snippetMgr->isPresetId(currentSnippetId)) {
+            statusBar()->showMessage(QStringLiteral("预设片段不可删除"), 3000);
+            return;
+        }
         int ret = QMessageBox::question(this, QStringLiteral("确认删除"),
             QStringLiteral("确定要删除此片段吗？"), QMessageBox::Yes | QMessageBox::No);
         if (ret == QMessageBox::Yes) {
@@ -379,7 +391,8 @@ void MainWindow::setupConnections()
             for (const SearchResult &r : results) {
                 if (!category.isEmpty() && r.snippet.category != category)
                     continue;
-                QStandardItem *item = new QStandardItem(r.snippet.name);
+                QString label = r.snippet.isPreset ? QStringLiteral("[预设] ") + r.snippet.name : r.snippet.name;
+                QStandardItem *item = new QStandardItem(label);
                 item->setData(r.snippet.id, Qt::UserRole);
                 item->setToolTip(r.snippet.description);
                 thumbnailModel->appendRow(item);
@@ -435,9 +448,11 @@ void MainWindow::refreshSearch()
 
     QList<SearchResult> results = snippetMgr->searchSnippets(query);
     for (const SearchResult &r : results) {
-        QStandardItem *item = new QStandardItem(r.snippet.name);
+        QString label = r.snippet.isPreset ? QStringLiteral("[预设] ") + r.snippet.name : r.snippet.name;
+        QStandardItem *item = new QStandardItem(label);
         item->setData(r.snippet.id, Qt::UserRole);
-        item->setToolTip(QString("%1 (分数: %2)\n%3")
+        item->setToolTip(QString("%1%2 (分数: %3)\n%4")
+            .arg(r.snippet.isPreset ? QStringLiteral("[预设] ") : QString())
             .arg(r.snippet.name).arg(r.score).arg(r.snippet.description));
         thumbnailModel->appendRow(item);
     }
@@ -454,12 +469,19 @@ void MainWindow::loadSnippetIntoEditor(const QString &id)
     codeEditor->blockSignals(false);
     nameEdit->setText(s.name);
     descEdit->setPlainText(s.description);
+
+    bool isPreset = s.isPreset || snippetMgr->isPresetId(id);
+    codeEditor->setReadOnly(isPreset);
+    nameEdit->setReadOnly(isPreset);
+    descEdit->setReadOnly(isPreset);
+    saveBtn->setEnabled(!isPreset);
     parseParams();
 }
 
 void MainWindow::saveCurrentSnippet()
 {
     if (currentSnippetId.isEmpty()) return;
+    if (snippetMgr->isPresetId(currentSnippetId)) return;
 
     Snippet s = snippetMgr->loadSnippet(currentSnippetId);
     s.name = nameEdit->text();

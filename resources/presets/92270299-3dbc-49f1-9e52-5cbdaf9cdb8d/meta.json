@@ -1,0 +1,11 @@
+{
+  "id": "92270299-3dbc-49f1-9e52-5cbdaf9cdb8d",
+  "name": "坐标轴",
+  "description": "标准 x-y 坐标轴框架",
+  "category": "数学/坐标系",
+  "tags": [
+    "坐标轴",
+    "坐标系"
+  ],
+  "templateId": "default_math"
+}

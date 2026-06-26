@@ -1,0 +1,11 @@
+{
+  "id": "9433c900-e3b2-4470-aef3-016a57f77e00",
+  "name": "向量加减法",
+  "description": "向量加法平行四边形法则",
+  "category": "数学/向量",
+  "tags": [
+    "向量",
+    "平行四边形"
+  ],
+  "templateId": "default_math"
+}

@@ -27,14 +27,52 @@ QString SnippetManager::getPresetPath() const
     return presetPath;
 }
 
+QString SnippetManager::getResourcePresetPath() const
+{
+    return QStringLiteral("resources/presets");
+}
+
 QString SnippetManager::getSnippetPath(const QString &id) const
 {
     return basePath + id + "/";
 }
 
+QString SnippetManager::getPresetSnippetPath(const QString &id) const
+{
+    return presetPath + id + "/";
+}
+
 bool SnippetManager::snippetExists(const QString &id) const
 {
-    return QDir(getSnippetPath(id)).exists();
+    return QDir(getSnippetPath(id)).exists() || QDir(getPresetSnippetPath(id)).exists();
+}
+
+bool SnippetManager::isPresetId(const QString &id) const
+{
+    ensurePresetIdsCached();
+    return presetIdsCache.contains(id);
+}
+
+void SnippetManager::ensurePresetIdsCached() const
+{
+    if (presetIdsCached) return;
+    presetIdsCached = true;
+
+    QDir dir(presetPath);
+    QStringList entries = dir.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+    for (const QString &entry : entries) {
+        QString metaPath = presetPath + entry + "/meta.json";
+        if (!QFile::exists(metaPath)) continue;
+        QFile metaFile(metaPath);
+        if (!metaFile.open(QIODevice::ReadOnly)) continue;
+        QByteArray data = metaFile.readAll();
+        metaFile.close();
+        QJsonDocument doc = QJsonDocument::fromJson(data);
+        if (doc.isObject()) {
+            QString id = doc.object().value("id").toString();
+            if (!id.isEmpty()) presetIdsCache.insert(id);
+        }
+    }
 }
 
 QString SnippetManager::createSnippet(const QString &name, const QString &category)
@@ -77,6 +115,9 @@ bool SnippetManager::saveSnippet(const Snippet &s)
 
 Snippet SnippetManager::loadSnippet(const QString &id)
 {
+    if (isPresetId(id))
+        return loadPreset(id);
+
     Snippet s;
     QString path = getSnippetPath(id);
     if (!QDir(path).exists())
@@ -101,8 +142,38 @@ Snippet SnippetManager::loadSnippet(const QString &id)
     return s;
 }
 
+Snippet SnippetManager::loadPreset(const QString &id)
+{
+    Snippet s;
+    QString path = getPresetSnippetPath(id);
+    if (!QDir(path).exists())
+        return s;
+
+    QFile metaFile(path + "meta.json");
+    if (metaFile.open(QIODevice::ReadOnly)) {
+        QByteArray data = metaFile.readAll();
+        metaFile.close();
+        QJsonDocument doc = QJsonDocument::fromJson(data);
+        if (doc.isObject()) {
+            s = jsonToSnippet(doc.object());
+        }
+    }
+
+    QFile texFile(path + "snippet.tex");
+    if (texFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        s.code = QString::fromUtf8(texFile.readAll());
+        texFile.close();
+    }
+
+    s.isPreset = true;
+    return s;
+}
+
 bool SnippetManager::deleteSnippet(const QString &id)
 {
+    if (isPresetId(id))
+        return false;
+
     QString path = getSnippetPath(id);
     QDir dir(path);
     if (!dir.exists())
@@ -140,6 +211,35 @@ QList<Snippet> SnippetManager::getAllSnippets() const
     return snippets;
 }
 
+QList<Snippet> SnippetManager::getAllPresets() const
+{
+    QList<Snippet> presets;
+    QDir dir(presetPath);
+    QStringList entries = dir.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+    for (const QString &entry : entries) {
+        QString metaPath = presetPath + entry + "/meta.json";
+        if (!QFile::exists(metaPath))
+            continue;
+
+        QFile metaFile(metaPath);
+        if (!metaFile.open(QIODevice::ReadOnly))
+            continue;
+
+        QByteArray data = metaFile.readAll();
+        metaFile.close();
+
+        QJsonDocument doc = QJsonDocument::fromJson(data);
+        if (doc.isObject()) {
+            Snippet s = jsonToSnippet(doc.object());
+            s.isPreset = true;
+            if (!s.id.isEmpty()) {
+                presets.append(s);
+            }
+        }
+    }
+    return presets;
+}
+
 QJsonObject SnippetManager::snippetToJson(const Snippet &s) const
 {
     QJsonObject obj;
@@ -169,6 +269,28 @@ Snippet SnippetManager::jsonToSnippet(const QJsonObject &obj) const
     return s;
 }
 
+void SnippetManager::copyPresetsFromResources(const QString &resourceDir, const QString &destDir)
+{
+    QDir().mkpath(destDir);
+
+    QDir resDir(resourceDir);
+    if (!resDir.exists()) return;
+
+    QStringList presetDirs = resDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+    for (const QString &presetId : presetDirs) {
+        QString srcDir = resourceDir + "/" + presetId;
+        QString dstDir = destDir + "/" + presetId;
+        if (QDir(dstDir).exists()) continue;
+
+        QDir().mkpath(dstDir);
+
+        QStringList files = QDir(srcDir).entryList(QDir::Files);
+        for (const QString &file : files) {
+            QFile::copy(srcDir + "/" + file, dstDir + "/" + file);
+        }
+    }
+}
+
 int SnippetManager::fuzzyMatchScore(const QString &query, const QString &target)
 {
     if (query.isEmpty()) return 100;
@@ -190,20 +312,25 @@ int SnippetManager::fuzzyMatchScore(const QString &query, const QString &target)
     return (qi == query.length()) ? score : 0;
 }
 
-QList<SearchResult> SnippetManager::searchSnippets(const QString &query) const
+QList<SearchResult> SnippetManager::searchSnippets(const QString &query, bool includePresets) const
 {
     QList<SearchResult> results;
     QList<Snippet> all = getAllSnippets();
+
+    if (includePresets) {
+        QList<Snippet> presets = getAllPresets();
+        all.append(presets);
+    }
 
     for (const Snippet &s : all) {
         int nameScore = fuzzyMatchScore(query, s.name);
         int descScore = fuzzyMatchScore(query, s.description) / 3;
         int totalScore = nameScore * 2 + descScore;
 
-        if (totalScore > 0) {
+        if (totalScore > 0 || query.isEmpty()) {
             SearchResult r;
             r.snippet = s;
-            r.score = totalScore;
+            r.score = totalScore > 0 ? totalScore : 0;
             results.append(r);
         }
     }
@@ -216,13 +343,21 @@ QList<SearchResult> SnippetManager::searchSnippets(const QString &query) const
     return results;
 }
 
-QStringList SnippetManager::getAllCategories() const
+QStringList SnippetManager::getAllCategories(bool includePresets) const
 {
     QSet<QString> cats;
     QList<Snippet> all = getAllSnippets();
     for (const Snippet &s : all) {
         if (!s.category.isEmpty()) {
             cats.insert(s.category);
+        }
+    }
+    if (includePresets) {
+        QList<Snippet> presets = getAllPresets();
+        for (const Snippet &s : presets) {
+            if (!s.category.isEmpty()) {
+                cats.insert(s.category);
+            }
         }
     }
     return cats.values();

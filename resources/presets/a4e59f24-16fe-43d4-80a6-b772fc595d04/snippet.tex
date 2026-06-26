@@ -1,0 +1,14 @@
+% @param: angle=30
+\begin{tikzpicture}
+  \coordinate (A) at (0,0);
+  \coordinate (B) at (5,0);
+  \coordinate (C) at (2,{2*tan(@@angle@@)});
+  \draw[thick] (A) -- (B) -- (C) -- cycle;
+  \draw[thick,pattern=north east lines] (A) -- (B);
+  \node[below left] at (B) {地面};
+  \draw (2.5,0) arc (0:@@angle@@:0.6);
+  \node at (2.5+0.8*cos(@@angle@@/2),0.8*sin(@@angle@@/2)) {$\theta$};
+  \fill[red] (1.5,{1.5*tan(@@angle@@)+0.1}) rectangle ++(0.6,0.6);
+  \draw[->,thick] (1.8,{1.5*tan(@@angle@@)+0.7}) -- (1.8,{1.5*tan(@@angle@@)+1.5}) node[right] {$N$};
+  \draw[->,thick] (1.8,{1.5*tan(@@angle@@)+0.4}) -- (2.8,{1.5*tan(@@angle@@)+0.4}) node[right] {$mg\sin\theta$};
+\end{tikzpicture}

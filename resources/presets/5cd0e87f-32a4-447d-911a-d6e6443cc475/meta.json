@@ -1,0 +1,12 @@
+{
+  "id": "5cd0e87f-32a4-447d-911a-d6e6443cc475",
+  "name": "椭圆",
+  "description": "椭圆与焦点标注",
+  "category": "数学/几何",
+  "tags": [
+    "椭圆",
+    "几何",
+    "shape"
+  ],
+  "templateId": "default_math"
+}

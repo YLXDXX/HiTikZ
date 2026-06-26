@@ -1,0 +1,12 @@
+{
+  "id": "999cb1ce-73ce-445d-bf7e-46b1699c3bdc",
+  "name": "坐标格纸",
+  "description": "实验用坐标格纸 (mm方格)",
+  "category": "数学/坐标系",
+  "tags": [
+    "格纸",
+    "坐标",
+    "实验"
+  ],
+  "templateId": "default_math"
+}
