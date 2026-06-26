@@ -15,7 +15,7 @@ add_executable(TikzManager
     src/mainwindow.cpp
     src/snippet_manager.cpp
     src/latex_compiler.cpp
-    src/code_editor.h
+    src/code_editor.cpp
 )
 
 target_link_libraries(TikzManager PRIVATE Qt6::Widgets Qt6::Pdf Qt6::PdfWidgets)

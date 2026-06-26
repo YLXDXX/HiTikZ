@@ -13,6 +13,7 @@
 
 class SnippetManager;
 class LatexCompiler;
+class CodeEditor;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -39,7 +40,7 @@ private:
     QTreeView *categoryTree;
     QListView *thumbnailList;
 
-    QPlainTextEdit *codeEditor;
+    CodeEditor *codeEditor;
     QPlainTextEdit *logPanel;
 
     QWidget *rightPanel;

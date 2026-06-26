@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "snippet_manager.h"
 #include "latex_compiler.h"
+#include "code_editor.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QToolBar>
@@ -72,7 +73,7 @@ void MainWindow::setupUI()
 
     // --- Center Panel ---
     QSplitter *centerSplitter = new QSplitter(Qt::Vertical);
-    codeEditor = new QPlainTextEdit;
+    codeEditor = new CodeEditor;
     codeEditor->setFont(QFont("monospace", 10));
     codeEditor->setTabStopDistance(4 * codeEditor->fontMetrics().horizontalAdvance(' '));
     codeEditor->setLineWrapMode(QPlainTextEdit::NoWrap);
