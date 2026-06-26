@@ -10,6 +10,8 @@
 #include <QStandardItemModel>
 #include <QPushButton>
 #include <QScrollArea>
+#include <QPdfDocument>
+#include <QPdfView>
 
 class SnippetManager;
 class LatexCompiler;
@@ -29,6 +31,7 @@ private:
     void saveCurrentSnippet();
     void refreshCategoryTree();
     void onCurrentSnippetChanged();
+    void jumpToErrorLine(const QString &logText);
 
     SnippetManager *snippetMgr;
     LatexCompiler *compiler;
@@ -44,7 +47,8 @@ private:
     QPlainTextEdit *logPanel;
 
     QWidget *rightPanel;
-    QLabel *previewLabel;
+    QPdfView *pdfView;
+    QPdfDocument *pdfDoc;
     QLineEdit *nameEdit;
     QTextEdit *descEdit;
     QPushButton *compileBtn;

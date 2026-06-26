@@ -15,6 +15,9 @@
 #include <QHeaderView>
 #include <QIcon>
 #include <QFileDialog>
+#include <QRegularExpression>
+#include <QTextCursor>
+#include <QFileInfo>
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), currentSnippetId("")
 {
@@ -92,10 +95,10 @@ void MainWindow::setupUI()
     QVBoxLayout *rightLayout = new QVBoxLayout(rightPanel);
     rightLayout->setContentsMargins(4, 4, 4, 4);
 
-    previewLabel = new QLabel(QStringLiteral("预览区"));
-    previewLabel->setAlignment(Qt::AlignCenter);
-    previewLabel->setMinimumSize(250, 250);
-    previewLabel->setFrameStyle(QFrame::StyledPanel | QFrame::Sunken);
+    pdfDoc = new QPdfDocument(this);
+    pdfView = new QPdfView(this);
+    pdfView->setDocument(pdfDoc);
+    pdfView->setMinimumSize(250, 250);
 
     nameEdit = new QLineEdit;
     nameEdit->setPlaceholderText(QStringLiteral("名称"));
@@ -106,7 +109,7 @@ void MainWindow::setupUI()
     compileBtn = new QPushButton(QStringLiteral("编译预览"));
     saveBtn = new QPushButton(QStringLiteral("保存"));
 
-    rightLayout->addWidget(previewLabel, 3);
+    rightLayout->addWidget(pdfView, 3);
     rightLayout->addWidget(new QLabel(QStringLiteral("名称:")));
     rightLayout->addWidget(nameEdit);
     rightLayout->addWidget(new QLabel(QStringLiteral("简介:")));
@@ -137,7 +140,7 @@ void MainWindow::setupUI()
             codeEditor->clear();
             nameEdit->clear();
             descEdit->clear();
-            previewLabel->setText(QStringLiteral("预览区"));
+            pdfDoc->close();
             refreshSearch();
             refreshCategoryTree();
         }
@@ -147,7 +150,6 @@ void MainWindow::setupUI()
         QString filePath = QFileDialog::getOpenFileName(this,
             QStringLiteral("导入ZIP"), "", "ZIP files (*.zip)");
         if (!filePath.isEmpty()) {
-            // TODO: Implement ZIP import
             statusBar()->showMessage(QStringLiteral("ZIP导入功能将在后续版本实现"), 3000);
         }
     });
@@ -160,12 +162,10 @@ void MainWindow::setupUI()
         QString filePath = QFileDialog::getSaveFileName(this,
             QStringLiteral("导出ZIP"), "", "ZIP files (*.zip)");
         if (!filePath.isEmpty()) {
-            // TODO: Implement ZIP export
             statusBar()->showMessage(QStringLiteral("ZIP导出功能将在后续版本实现"), 3000);
         }
     });
 
-    // --- Assemble ---
     mainSplitter->addWidget(leftPanel);
     mainSplitter->addWidget(centerSplitter);
     mainSplitter->addWidget(rightPanel);
@@ -192,8 +192,6 @@ void MainWindow::setupConnections()
         this, [this](const QModelIndex &current, const QModelIndex &) {
             if (!current.isValid()) return;
             QString category = current.data(Qt::UserRole).toString();
-            searchBox->clear();
-            refreshSearch();
             thumbnailModel->clear();
 
             QList<SearchResult> results = snippetMgr->searchSnippets("");
@@ -224,14 +222,11 @@ void MainWindow::setupConnections()
         this, [this](bool success, const QString &pdfPath, const QString &log) {
             logPanel->setPlainText(log);
             if (success) {
-                QPixmap pix(pdfPath);
-                if (!pix.isNull()) {
-                    previewLabel->setPixmap(pix.scaled(
-                        previewLabel->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
-                }
+                pdfDoc->load(QFileInfo(pdfPath).absoluteFilePath());
                 statusBar()->showMessage(QStringLiteral("编译成功"), 3000);
             } else {
-                previewLabel->setText(QStringLiteral("编译失败"));
+                pdfDoc->close();
+                jumpToErrorLine(log);
                 statusBar()->showMessage(QStringLiteral("编译失败，详见日志"), 3000);
             }
         });
@@ -300,4 +295,22 @@ void MainWindow::refreshCategoryTree()
 
 void MainWindow::onCurrentSnippetChanged()
 {
+}
+
+void MainWindow::jumpToErrorLine(const QString &logText)
+{
+    QRegularExpression re("l\\.(\\d+)");
+    QRegularExpressionMatchIterator it = re.globalMatch(logText);
+    if (!it.hasNext()) return;
+
+    QRegularExpressionMatch match = it.next();
+    int line = match.captured(1).toInt();
+    if (line < 1) return;
+
+    QTextCursor cursor = codeEditor->textCursor();
+    cursor.movePosition(QTextCursor::Start);
+    cursor.movePosition(QTextCursor::Down, QTextCursor::MoveAnchor, line - 1);
+    codeEditor->setTextCursor(cursor);
+    codeEditor->highlightCurrentLine();
+    codeEditor->setFocus();
 }
