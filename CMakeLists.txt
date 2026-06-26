@@ -10,6 +10,22 @@ set(CMAKE_AUTORCC ON)
 
 find_package(Qt6 REQUIRED COMPONENTS Widgets Pdf PdfWidgets)
 
+include(FetchContent)
+FetchContent_Declare(
+    qhotkey
+    GIT_REPOSITORY https://github.com/Skycoder42/QHotkey.git
+    GIT_TAG master
+)
+set(QHOTKEY_EXAMPLES OFF CACHE BOOL "")
+set(QHOTKEY_INSTALL OFF CACHE BOOL "")
+set(QT_DEFAULT_MAJOR_VERSION 6 CACHE STRING "")
+
+option(WITH_QHOTKEY "Build with global hotkey support" ON)
+
+if(WITH_QHOTKEY)
+    FetchContent_MakeAvailable(qhotkey)
+endif()
+
 add_executable(TikzManager
     src/main.cpp
     src/mainwindow.cpp
@@ -20,6 +36,11 @@ add_executable(TikzManager
 )
 
 target_link_libraries(TikzManager PRIVATE Qt6::Widgets Qt6::Pdf Qt6::PdfWidgets)
+
+if(WITH_QHOTKEY AND TARGET qhotkey)
+    target_link_libraries(TikzManager PRIVATE qhotkey)
+    target_compile_definitions(TikzManager PRIVATE HAS_QHOTKEY)
+endif()
 
 enable_testing()
 

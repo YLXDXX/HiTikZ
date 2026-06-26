@@ -13,6 +13,13 @@
 #include <QVBoxLayout>
 #include <QPdfDocument>
 #include <QPdfView>
+#include <QSystemTrayIcon>
+#include <QMenu>
+#include <QCloseEvent>
+
+#ifdef HAS_QHOTKEY
+#include <QHotkey>
+#endif
 
 class SnippetManager;
 class LatexCompiler;
@@ -29,6 +36,9 @@ class MainWindow : public QMainWindow {
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
+
+protected:
+    void closeEvent(QCloseEvent *event) override;
 
 private:
     void setupUI();
@@ -69,6 +79,9 @@ private:
     QVBoxLayout *paramsLayout;
     QPushButton *applyParamsBtn;
     QList<ParamInfo> currentParams;
+
+    QSystemTrayIcon *trayIcon;
+    QMenu *trayMenu;
 
     QString currentSnippetId;
 };

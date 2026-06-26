@@ -22,6 +22,8 @@
 #include <QClipboard>
 #include <QImage>
 #include <QShortcut>
+#include <QMenu>
+#include <QCloseEvent>
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), currentSnippetId("")
 {
@@ -34,10 +36,67 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), currentSnippetId(
     setupConnections();
     refreshCategoryTree();
     refreshSearch();
+
+    trayIcon = new QSystemTrayIcon(this);
+    trayIcon->setIcon(QIcon::fromTheme("applications-graphics"));
+    trayIcon->setToolTip(QStringLiteral("HiTikZ - TikZ 代码管理器"));
+
+    trayMenu = new QMenu(this);
+    QAction *showAct = trayMenu->addAction(QStringLiteral("显示窗口"));
+    QAction *hideAct = trayMenu->addAction(QStringLiteral("隐藏到托盘"));
+    trayMenu->addSeparator();
+    QAction *quitAct = trayMenu->addAction(QStringLiteral("退出"));
+
+    connect(showAct, &QAction::triggered, this, [this]() {
+        show();
+        raise();
+        activateWindow();
+    });
+    connect(hideAct, &QAction::triggered, this, &QMainWindow::hide);
+    connect(quitAct, &QAction::triggered, qApp, &QApplication::quit);
+    connect(trayIcon, &QSystemTrayIcon::activated, this, [this](QSystemTrayIcon::ActivationReason reason) {
+        if (reason == QSystemTrayIcon::DoubleClick || reason == QSystemTrayIcon::Trigger) {
+            if (isVisible() && !isMinimized()) {
+                hide();
+            } else {
+                show();
+                raise();
+                activateWindow();
+                searchBox->setFocus();
+            }
+        }
+    });
+
+    trayIcon->setContextMenu(trayMenu);
+    trayIcon->show();
+
+#ifdef HAS_QHOTKEY
+    QHotkey *hotkey = new QHotkey(QKeySequence("Ctrl+Alt+T"), true, this);
+    connect(hotkey, &QHotkey::activated, this, [this]() {
+        if (isVisible() && !isMinimized()) {
+            hide();
+        } else {
+            show();
+            raise();
+            activateWindow();
+            searchBox->setFocus();
+        }
+    });
+#endif
 }
 
 MainWindow::~MainWindow()
 {
+}
+
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+    if (trayIcon && trayIcon->isVisible()) {
+        hide();
+        event->ignore();
+    } else {
+        event->accept();
+    }
 }
 
 void MainWindow::setupUI()
