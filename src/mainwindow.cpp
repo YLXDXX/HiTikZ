@@ -18,6 +18,7 @@
 #include <QFileDialog>
 #include <QRegularExpression>
 #include <QTextCursor>
+#include <QTextCharFormat>
 #include <QFileInfo>
 #include <QClipboard>
 #include <QImage>
@@ -229,6 +230,7 @@ void MainWindow::setupUI()
     logPanel->setReadOnly(true);
     logPanel->setFont(QFont("monospace", 9));
     logPanel->setMaximumBlockCount(2000);
+    logPanel->viewport()->installEventFilter(this);
 
     centerSplitter->addWidget(codeEditor);
     centerSplitter->addWidget(logPanel);
@@ -574,7 +576,7 @@ void MainWindow::setupConnections()
 
     connect(compiler, &LatexCompiler::compilationFinished,
         this, [this](bool success, const QString &pdfPath, const QString &log) {
-            logPanel->setPlainText(log);
+            setFormattedLog(log);
             if (success) {
                 pdfDoc->close();
                 pdfDoc->load(QFileInfo(pdfPath).absoluteFilePath());
@@ -939,6 +941,11 @@ void MainWindow::deleteCategoryItem(QStandardItem *item)
 
 bool MainWindow::eventFilter(QObject *obj, QEvent *event)
 {
+    if (obj == logPanel->viewport() && event->type() == QEvent::MouseButtonDblClick) {
+        handleLogDoubleClick();
+        return true;
+    }
+
     if (obj == categoryTree->viewport() && event->type() == QEvent::Drop) {
         QDropEvent *de = static_cast<QDropEvent *>(event);
         const QMimeData *mime = de->mimeData();
@@ -982,4 +989,72 @@ void MainWindow::refreshTemplateCombo()
         templateCombo->addItem(id, id);
     }
     templateCombo->setCurrentIndex(0);
+}
+
+void MainWindow::setFormattedLog(const QString &log)
+{
+    logPanel->clear();
+
+    if (log.isEmpty()) return;
+
+    QTextCharFormat errorFormat;
+    errorFormat.setForeground(QColor(220, 30, 30));
+    errorFormat.setFontWeight(QFont::Bold);
+
+    QTextCharFormat warningFormat;
+    warningFormat.setForeground(QColor(200, 140, 0));
+
+    QTextCharFormat lineNumFormat;
+    lineNumFormat.setForeground(QColor(180, 60, 60));
+
+    QTextCharFormat infoFormat;
+    infoFormat.setForeground(QColor(100, 100, 100));
+
+    QTextCharFormat defaultFormat;
+
+    const QStringList lines = log.split('\n');
+    static const QRegularExpression errorRe("^!\\s");
+    static const QRegularExpression warningRe("Warning", QRegularExpression::CaseInsensitiveOption);
+    static const QRegularExpression lineRe("^l\\.\\d+");
+    static const QRegularExpression infoRe("^\\(");
+    static const QRegularExpression overfullRe("Overfull|Underfull");
+
+    for (const QString &line : lines) {
+        QTextCharFormat fmt = defaultFormat;
+        if (errorRe.match(line).hasMatch()) {
+            fmt = errorFormat;
+        } else if (lineRe.match(line.trimmed()).hasMatch()) {
+            fmt = lineNumFormat;
+        } else if (warningRe.match(line).hasMatch() || overfullRe.match(line).hasMatch()) {
+            fmt = warningFormat;
+        } else if (infoRe.match(line).hasMatch()) {
+            fmt = infoFormat;
+        }
+        logPanel->textCursor().insertText(line + '\n', fmt);
+    }
+
+    QTextCursor cursor = logPanel->textCursor();
+    cursor.movePosition(QTextCursor::Start);
+    logPanel->setTextCursor(cursor);
+}
+
+void MainWindow::handleLogDoubleClick()
+{
+    QTextCursor cursor = logPanel->textCursor();
+    cursor.select(QTextCursor::BlockUnderCursor);
+    QString line = cursor.selectedText().trimmed();
+
+    QRegularExpression re("l\\.(\\d+)");
+    QRegularExpressionMatch match = re.match(line);
+    if (!match.hasMatch()) return;
+
+    int lineNum = match.captured(1).toInt();
+    if (lineNum < 1) return;
+
+    cursor = codeEditor->textCursor();
+    cursor.movePosition(QTextCursor::Start);
+    cursor.movePosition(QTextCursor::Down, QTextCursor::MoveAnchor, lineNum - 1);
+    codeEditor->setTextCursor(cursor);
+    codeEditor->highlightCurrentLine();
+    codeEditor->setFocus();
 }

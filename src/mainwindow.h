@@ -58,6 +58,8 @@ private:
     void loadPreviewForSnippet(const QString &id);
     void clearPdfPreview();
     void generateAllPreviews();
+    void setFormattedLog(const QString &log);
+    void handleLogDoubleClick();
 
     QString snippetDataPath(const QString &id) const;
     QIcon loadThumbnailIcon(const QString &snippetId, bool isPreset) const;
