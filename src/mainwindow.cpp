@@ -48,6 +48,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), currentSnippetId(
 
     setupUI();
     setupConnections();
+    refreshTemplateCombo();
     refreshCategoryTree();
     refreshSearch();
 
@@ -257,6 +258,9 @@ void MainWindow::setupUI()
     rightLayout->addWidget(nameEdit);
     rightLayout->addWidget(new QLabel(QStringLiteral("简介:")));
     rightLayout->addWidget(descEdit, 1);
+    rightLayout->addWidget(new QLabel(QStringLiteral("模板:")));
+    templateCombo = new QComboBox;
+    rightLayout->addWidget(templateCombo);
 
     paramsScrollArea = new QScrollArea;
     paramsScrollArea->setWidgetResizable(true);
@@ -522,6 +526,14 @@ void MainWindow::setupConnections()
     connect(snippetMgr, &SnippetManager::categoriesChanged,
         this, &MainWindow::refreshCategoryTree);
 
+    connect(templateCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
+        this, [this](int) {
+            if (currentSnippetId.isEmpty()) return;
+            Snippet s = snippetMgr->loadSnippet(currentSnippetId);
+            s.templateId = templateCombo->currentData().toString();
+            snippetMgr->saveSnippet(s);
+        });
+
     connect(compileBtn, &QPushButton::clicked, this, [this]() {
         saveCurrentSnippet();
         QString code;
@@ -617,6 +629,11 @@ void MainWindow::loadSnippetIntoEditor(const QString &id)
     codeEditor->blockSignals(false);
     nameEdit->setText(s.name);
     descEdit->setPlainText(s.description);
+
+    if (!s.templateId.isEmpty()) {
+        int idx = templateCombo->findData(s.templateId);
+        if (idx >= 0) templateCombo->setCurrentIndex(idx);
+    }
 
     loadPreviewForSnippet(id);
 
@@ -950,4 +967,19 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event)
         }
     }
     return QMainWindow::eventFilter(obj, event);
+}
+
+void MainWindow::refreshTemplateCombo()
+{
+    templateCombo->blockSignals(true);
+    templateCombo->clear();
+    QString tplDir = SettingsDialog::templateDir();
+    QDir d(tplDir);
+    QStringList files = d.entryList(QStringList() << "*.tex", QDir::Files);
+    for (const QString &f : files) {
+        QString id = QFileInfo(f).completeBaseName();
+        templateCombo->addItem(id, id);
+    }
+    templateCombo->setCurrentIndex(0);
+    templateCombo->blockSignals(false);
 }

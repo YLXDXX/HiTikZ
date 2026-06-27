@@ -16,6 +16,7 @@
 #include <QSystemTrayIcon>
 #include <QMenu>
 #include <QCloseEvent>
+#include <QComboBox>
 
 #ifdef HAS_QHOTKEY
 #include <QHotkey>
@@ -65,6 +66,7 @@ private:
     void showCategoryContextMenu(const QPoint &pos);
     void renameCategoryItem(QStandardItem *item);
     void deleteCategoryItem(QStandardItem *item);
+    void refreshTemplateCombo();
 
     SnippetManager *snippetMgr;
     LatexCompiler *compiler;
@@ -84,6 +86,7 @@ private:
     QPdfDocument *pdfDoc;
     QLineEdit *nameEdit;
     QTextEdit *descEdit;
+    QComboBox *templateCombo;
     QPushButton *compileBtn;
     QPushButton *saveBtn;
 
