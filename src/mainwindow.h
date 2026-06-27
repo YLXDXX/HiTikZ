@@ -86,6 +86,9 @@ private:
     QWidget *rightPanel;
     QPdfView *pdfView;
     QPdfDocument *pdfDoc;
+    QPushButton *fitPageBtn;
+    QPushButton *fitWidthBtn;
+    QPushButton *fitHeightBtn;
     QLineEdit *nameEdit;
     QTextEdit *descEdit;
     QLineEdit *tagsEdit;

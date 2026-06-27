@@ -182,9 +182,13 @@ void MainWindow::setupUI()
     pdfView->viewport()->setCursor(Qt::OpenHandCursor);
 
     QHBoxLayout *zoomToolbar = new QHBoxLayout;
-    QPushButton *fitPageBtn = new QPushButton(QStringLiteral("适应整页"));
-    QPushButton *fitWidthBtn = new QPushButton(QStringLiteral("适应宽度"));
-    QPushButton *fitHeightBtn = new QPushButton(QStringLiteral("适应高度"));
+    fitPageBtn = new QPushButton(QStringLiteral("适应整页"));
+    fitWidthBtn = new QPushButton(QStringLiteral("适应宽度"));
+    fitHeightBtn = new QPushButton(QStringLiteral("适应高度"));
+    fitPageBtn->setCheckable(true);
+    fitWidthBtn->setCheckable(true);
+    fitHeightBtn->setCheckable(true);
+    fitPageBtn->setChecked(true);
     QPushButton *zoomInBtn = new QPushButton(QStringLiteral("+"));
     QPushButton *zoomOutBtn = new QPushButton(QStringLiteral("−"));
     zoomInBtn->setFixedWidth(36);
@@ -943,7 +947,6 @@ void MainWindow::zoomPdfIn()
     qreal oldFactor = pdfView->zoomFactor();
     qreal newFactor = oldFactor * 1.25;
 
-    m_pdfZoomPref = 3;
     pdfView->setZoomMode(QPdfView::ZoomMode::Custom);
     pdfView->setZoomFactor(newFactor);
 
@@ -965,7 +968,6 @@ void MainWindow::zoomPdfOut()
     qreal oldFactor = pdfView->zoomFactor();
     qreal newFactor = qMax(0.1, oldFactor / 1.25);
 
-    m_pdfZoomPref = 3;
     pdfView->setZoomMode(QPdfView::ZoomMode::Custom);
     pdfView->setZoomFactor(newFactor);
 
@@ -984,12 +986,18 @@ void MainWindow::zoomPdfOut()
 void MainWindow::fitPdfPage()
 {
     m_pdfZoomPref = 0;
+    fitPageBtn->setChecked(true);
+    fitWidthBtn->setChecked(false);
+    fitHeightBtn->setChecked(false);
     pdfView->setZoomMode(QPdfView::ZoomMode::FitInView);
 }
 
 void MainWindow::fitPdfWidth()
 {
     m_pdfZoomPref = 1;
+    fitPageBtn->setChecked(false);
+    fitWidthBtn->setChecked(true);
+    fitHeightBtn->setChecked(false);
     pdfView->setZoomMode(QPdfView::ZoomMode::FitToWidth);
 }
 
@@ -1009,6 +1017,9 @@ void MainWindow::fitPdfHeight()
     qreal ratio = vpSize.height() / pagePixels;
 
     m_pdfZoomPref = 2;
+    fitPageBtn->setChecked(false);
+    fitWidthBtn->setChecked(false);
+    fitHeightBtn->setChecked(true);
     pdfView->setZoomMode(QPdfView::ZoomMode::Custom);
     pdfView->setZoomFactor(ratio);
 }
@@ -1018,10 +1029,13 @@ void MainWindow::applyPdfZoomPreference()
     if (!pdfDoc || pdfDoc->status() != QPdfDocument::Status::Ready)
         return;
 
+    fitPageBtn->setChecked(m_pdfZoomPref == 0);
+    fitWidthBtn->setChecked(m_pdfZoomPref == 1);
+    fitHeightBtn->setChecked(m_pdfZoomPref == 2);
+
     switch (m_pdfZoomPref) {
     case 0: pdfView->setZoomMode(QPdfView::ZoomMode::FitInView); break;
     case 1: pdfView->setZoomMode(QPdfView::ZoomMode::FitToWidth); break;
     case 2: fitPdfHeight(); break;
-    case 3: break;
     }
 }
