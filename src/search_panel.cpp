@@ -103,14 +103,12 @@ void SearchPanel::setupUI()
         this, &SearchPanel::showThumbnailContextMenu);
 
     connect(editSnippetAct, &QAction::triggered, this, [this]() {
-        QModelIndex idx = thumbnailList->currentIndex();
-        if (idx.isValid())
-            emit snippetSelected(idx.data(Qt::UserRole).toString());
+        if (m_contextMenuIndex.isValid())
+            emit snippetSelected(m_contextMenuIndex.data(Qt::UserRole).toString());
     });
     connect(changeCatAct, &QAction::triggered, this, [this]() {
-        QModelIndex idx = thumbnailList->currentIndex();
-        if (!idx.isValid()) return;
-        QString id = idx.data(Qt::UserRole).toString();
+        if (!m_contextMenuIndex.isValid()) return;
+        QString id = m_contextMenuIndex.data(Qt::UserRole).toString();
         bool ok;
         QString newCat = QInputDialog::getText(this, QStringLiteral("变更分类"),
             QStringLiteral("新分类:"), QLineEdit::Normal,
@@ -122,21 +120,18 @@ void SearchPanel::setupUI()
         }
     });
     connect(copyCodeAct, &QAction::triggered, this, [this]() {
-        QModelIndex idx = thumbnailList->currentIndex();
-        if (!idx.isValid()) return;
-        QString id = idx.data(Qt::UserRole).toString();
+        if (!m_contextMenuIndex.isValid()) return;
+        QString id = m_contextMenuIndex.data(Qt::UserRole).toString();
         Snippet s = snippetMgr->loadSnippet(id);
         QApplication::clipboard()->setText(s.code);
     });
     connect(exportSnippetAct, &QAction::triggered, this, [this]() {
-        QModelIndex idx = thumbnailList->currentIndex();
-        if (idx.isValid())
-            emit snippetExportRequested(idx.data(Qt::UserRole).toString());
+        if (m_contextMenuIndex.isValid())
+            emit snippetExportRequested(m_contextMenuIndex.data(Qt::UserRole).toString());
     });
     connect(deleteSnippetAct, &QAction::triggered, this, [this]() {
-        QModelIndex idx = thumbnailList->currentIndex();
-        if (idx.isValid())
-            emit snippetDeleteRequested(idx.data(Qt::UserRole).toString());
+        if (m_contextMenuIndex.isValid())
+            emit snippetDeleteRequested(m_contextMenuIndex.data(Qt::UserRole).toString());
     });
 
     auto getEffectiveCatItem = [this]() -> QStandardItem* {
@@ -401,7 +396,7 @@ bool SearchPanel::eventFilter(QObject *obj, QEvent *event)
 
 void SearchPanel::showThumbnailContextMenu(const QPoint &pos)
 {
-    QModelIndex idx = thumbnailList->indexAt(pos);
-    if (!idx.isValid()) return;
+    m_contextMenuIndex = thumbnailList->indexAt(pos);
+    if (!m_contextMenuIndex.isValid()) return;
     thumbnailCtxMenu->popup(thumbnailList->viewport()->mapToGlobal(pos));
 }

@@ -210,6 +210,7 @@ void SettingsDialog::createTemplate()
         "\\documentclass[tikz, border=5pt]{standalone}\n"
         "\\usepackage{tikz}\n"
         "\\usepackage{xcolor}\n"
+        "\\usepackage{ctex}\n"
         "\\begin{document}\n"
         "%%% TIKZ_CODE_HERE %%%\n"
         "\\end{document}\n"

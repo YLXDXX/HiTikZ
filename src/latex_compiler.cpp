@@ -131,6 +131,7 @@ QString LatexCompiler::wrapCode(const QString &texCode, const QString &templateI
         "\\documentclass[tikz, border=5pt]{standalone}\n"
         "\\usepackage{tikz}\n"
         "\\usepackage{xcolor}\n"
+        "\\usepackage{ctex}\n"
         "\\usetikzlibrary{calc,shapes,arrows,positioning,patterns}\n"
         "\\begin{document}\n"
         "%1\n"

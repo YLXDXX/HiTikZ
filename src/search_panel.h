@@ -48,5 +48,6 @@ private:
     QMenu *categoryCtxMenu;
     QMenu *thumbnailCtxMenu;
     QTimer *searchDebounceTimer;
+    QModelIndex m_contextMenuIndex;
 };
 
