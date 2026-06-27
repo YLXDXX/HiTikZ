@@ -53,6 +53,7 @@ private:
     void saveCurrentSnippet();
     void handleThumbnailDelete(const QString &id);
     void handleThumbnailExport(const QString &id);
+    static QString resolveParamsFromCode(const QString &code);
     void refreshCategoryTree();
     void onCurrentSnippetChanged();
     void jumpToErrorLine(const QString &logText);

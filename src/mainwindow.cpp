@@ -749,7 +749,7 @@ void MainWindow::generateAllPreviews()
         QTimer::singleShot(30000, &loop, &QEventLoop::quit);
 
         QString snippetId = s.id;
-        QString code = s.code;
+        QString code = resolveParamsFromCode(s.code);
 
         QObject::connect(compiler, &LatexCompiler::compilationFinished,
             &loop, [&](bool success, const QString &pdfPath, const QString &) {
@@ -889,4 +889,19 @@ void MainWindow::checkSystemDependencies()
     QTimer::singleShot(200, this, [this, msg]() {
         QMessageBox::warning(this, QStringLiteral("缺少依赖"), msg);
     });
+}
+
+QString MainWindow::resolveParamsFromCode(const QString &code)
+{
+    QString result = code;
+    QRegularExpression re("%\\s*@param:\\s*(\\w+)=(\\S+)");
+    QRegularExpressionMatchIterator it = re.globalMatch(code);
+
+    while (it.hasNext()) {
+        QRegularExpressionMatch match = it.next();
+        QString varName = match.captured(1);
+        QString defaultValue = match.captured(2);
+        result.replace("@@" + varName + "@@", defaultValue);
+    }
+    return result;
 }
