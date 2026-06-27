@@ -131,6 +131,7 @@ void MainWindow::setupUI()
     QAction *settingsAct = toolBar->addAction(QStringLiteral("设置"));
     toolBar->addSeparator();
     QAction *genPreviewAct = toolBar->addAction(QStringLiteral("生成所有预览"));
+    QAction *resetAct = toolBar->addAction(QStringLiteral("重置出厂"));
 
     QSplitter *mainSplitter = new QSplitter(Qt::Horizontal);
 
@@ -335,6 +336,41 @@ void MainWindow::setupUI()
     });
 
     connect(genPreviewAct, &QAction::triggered, this, &MainWindow::generateAllPreviews);
+
+    connect(resetAct, &QAction::triggered, this, [this]() {
+        QMessageBox::StandardButton reply = QMessageBox::warning(
+            this, QStringLiteral("确认重置"),
+            QStringLiteral("这将删除所有用户创建的片段和修改，恢复为初始状态。\n\n建议重启程序以生效。\n\n确定要继续吗？"),
+            QMessageBox::Yes | QMessageBox::No);
+        if (reply != QMessageBox::Yes) return;
+
+        QString dataLocation = QStandardPaths::writableLocation(
+            QStandardPaths::AppDataLocation);
+        QDir(dataLocation + "/snippets").removeRecursively();
+        QDir(dataLocation + "/presets").removeRecursively();
+        QDir(dataLocation + "/templates").removeRecursively();
+        QDir().mkpath(dataLocation + "/snippets");
+        QDir().mkpath(dataLocation + "/presets");
+        QDir().mkpath(dataLocation + "/templates");
+
+        QString resourceDir = QStringLiteral(RES_DIR);
+        SettingsDialog::ensureTemplatesCopied(resourceDir + "/templates");
+        SnippetManager::copyPresetsFromResources(
+            resourceDir + "/presets",
+            dataLocation + "/presets/");
+        SettingsDialog::applyToCompiler(compiler);
+
+        currentSnippetId.clear();
+        codeEditor->clear();
+        nameEdit->clear();
+        descEdit->clear();
+        clearPreview();
+        refreshCategoryTree();
+        refreshSearch();
+
+        QMessageBox::information(this, QStringLiteral("重置完成"),
+            QStringLiteral("已恢复到出厂设置。"));
+    });
 
     QShortcut *copyCodeShortcut = new QShortcut(QKeySequence("Ctrl+Shift+C"), this);
     connect(copyCodeShortcut, &QShortcut::activated, this, [this]() {
@@ -641,9 +677,9 @@ void MainWindow::savePreviewPng(const QString &pdfPath, const QString &snippetId
         basePath = snippetMgr->getBasePath() + snippetId;
 
     QProcess pngProc;
-    QString previewPng = basePath + "/preview.png";
+    QString prefix = basePath + "/preview";
     QStringList args;
-    args << "-png" << "-r" << "150" << "-singlefile" << pdfPath << previewPng;
+    args << "-png" << "-r" << "150" << "-singlefile" << pdfPath << prefix;
     pngProc.start("pdftocairo", args);
     pngProc.waitForFinished(5000);
 }
