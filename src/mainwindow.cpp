@@ -33,6 +33,8 @@
 #include <QDataStream>
 #include <QDropEvent>
 #include <QWheelEvent>
+#include <QMouseEvent>
+#include <QScrollBar>
 
 #define STRINGIFY(x) STRINGIFY_IMPL(x)
 #define STRINGIFY_IMPL(x) #x
@@ -174,7 +176,10 @@ void MainWindow::setupUI()
     pdfDoc = new QPdfDocument(this);
     pdfView = new QPdfView;
     pdfView->setDocument(pdfDoc);
+    pdfView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    pdfView->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     pdfView->viewport()->installEventFilter(this);
+    pdfView->viewport()->setCursor(Qt::OpenHandCursor);
 
     QHBoxLayout *zoomToolbar = new QHBoxLayout;
     QPushButton *fitPageBtn = new QPushButton(QStringLiteral("适应整页"));
@@ -819,13 +824,47 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event)
         return true;
     }
 
-    if (obj == pdfView->viewport() && event->type() == QEvent::Wheel) {
-        QWheelEvent *we = static_cast<QWheelEvent *>(event);
-        if (we->angleDelta().y() > 0)
-            zoomPdfIn();
-        else if (we->angleDelta().y() < 0)
-            zoomPdfOut();
-        return true;
+    if (obj == pdfView->viewport()) {
+        if (event->type() == QEvent::Wheel) {
+            QWheelEvent *we = static_cast<QWheelEvent *>(event);
+            if (we->angleDelta().y() > 0)
+                zoomPdfIn();
+            else if (we->angleDelta().y() < 0)
+                zoomPdfOut();
+            return true;
+        }
+
+        if (event->type() == QEvent::MouseButtonPress) {
+            QMouseEvent *me = static_cast<QMouseEvent *>(event);
+            if (me->button() == Qt::RightButton) {
+                m_pdfPanning = true;
+                m_pdfPanStart = me->pos();
+                pdfView->viewport()->setCursor(Qt::ClosedHandCursor);
+                return true;
+            }
+        }
+
+        if (event->type() == QEvent::MouseButtonRelease) {
+            QMouseEvent *me = static_cast<QMouseEvent *>(event);
+            if (me->button() == Qt::RightButton && m_pdfPanning) {
+                m_pdfPanning = false;
+                pdfView->viewport()->setCursor(Qt::OpenHandCursor);
+                return true;
+            }
+        }
+
+        if (event->type() == QEvent::MouseMove && m_pdfPanning) {
+            QMouseEvent *me = static_cast<QMouseEvent *>(event);
+            QPoint delta = m_pdfPanStart - me->pos();
+            m_pdfPanStart = me->pos();
+            if (pdfView->horizontalScrollBar())
+                pdfView->horizontalScrollBar()->setValue(
+                    pdfView->horizontalScrollBar()->value() + delta.x());
+            if (pdfView->verticalScrollBar())
+                pdfView->verticalScrollBar()->setValue(
+                    pdfView->verticalScrollBar()->value() + delta.y());
+            return true;
+        }
     }
 
     return QMainWindow::eventFilter(obj, event);
@@ -897,16 +936,40 @@ QString MainWindow::resolveParamsFromCode(const QString &code)
 
 void MainWindow::zoomPdfIn()
 {
-    qreal factor = pdfView->zoomFactor();
+    QPoint vpPos = pdfView->viewport()->mapFromGlobal(QCursor::pos());
+    qreal oldFactor = pdfView->zoomFactor();
+    qreal newFactor = oldFactor * 1.25;
+
     pdfView->setZoomMode(QPdfView::ZoomMode::Custom);
-    pdfView->setZoomFactor(factor * 1.25);
+    pdfView->setZoomFactor(newFactor);
+
+    qreal scale = newFactor / oldFactor;
+    QPoint delta(vpPos.x() * (scale - 1.0), vpPos.y() * (scale - 1.0));
+    if (pdfView->horizontalScrollBar())
+        pdfView->horizontalScrollBar()->setValue(
+            pdfView->horizontalScrollBar()->value() + delta.x());
+    if (pdfView->verticalScrollBar())
+        pdfView->verticalScrollBar()->setValue(
+            pdfView->verticalScrollBar()->value() + delta.y());
 }
 
 void MainWindow::zoomPdfOut()
 {
-    qreal factor = pdfView->zoomFactor();
+    QPoint vpPos = pdfView->viewport()->mapFromGlobal(QCursor::pos());
+    qreal oldFactor = pdfView->zoomFactor();
+    qreal newFactor = qMax(0.1, oldFactor / 1.25);
+
     pdfView->setZoomMode(QPdfView::ZoomMode::Custom);
-    pdfView->setZoomFactor(qMax(0.1, factor / 1.25));
+    pdfView->setZoomFactor(newFactor);
+
+    qreal scale = newFactor / oldFactor;
+    QPoint delta(vpPos.x() * (scale - 1.0), vpPos.y() * (scale - 1.0));
+    if (pdfView->horizontalScrollBar())
+        pdfView->horizontalScrollBar()->setValue(
+            pdfView->horizontalScrollBar()->value() + delta.x());
+    if (pdfView->verticalScrollBar())
+        pdfView->verticalScrollBar()->setValue(
+            pdfView->verticalScrollBar()->value() + delta.y());
 }
 
 void MainWindow::fitPdfPage()
@@ -927,10 +990,13 @@ void MainWindow::fitPdfHeight()
     QSizeF pageSize = pdfDoc->pagePointSize(0);
     if (pageSize.isEmpty()) return;
 
-    QSize viewportSize = pdfView->viewport()->size();
-    if (viewportSize.height() <= 0) return;
+    QSize vpSize = pdfView->viewport()->size();
+    if (vpSize.height() <= 0) return;
 
-    qreal ratio = viewportSize.height() / pageSize.height();
+    qreal dpi = pdfView->logicalDpiY();
+    qreal pagePixels = pageSize.height() * dpi / 72.0;
+    qreal ratio = vpSize.height() / pagePixels;
+
     pdfView->setZoomMode(QPdfView::ZoomMode::Custom);
     pdfView->setZoomFactor(ratio);
 }

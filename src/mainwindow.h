@@ -104,4 +104,6 @@ private:
     QString currentSnippetId;
     bool m_batchGenerating = false;
     QTimer *searchDebounceTimer = nullptr;
+    bool m_pdfPanning = false;
+    QPoint m_pdfPanStart;
 };
