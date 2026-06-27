@@ -174,25 +174,40 @@ void MainWindow::setupUI()
     QAction *renameCatAct = categoryCtxMenu->addAction(QStringLiteral("重命名分类"));
     QAction *deleteCatAct = categoryCtxMenu->addAction(QStringLiteral("删除分类"));
     QAction *newSubCatAct = categoryCtxMenu->addAction(QStringLiteral("新建子分类"));
+    QAction *newTopCatAct = categoryCtxMenu->addAction(QStringLiteral("新建大类"));
+    newTopCatAct->setVisible(false);
 
-    connect(renameCatAct, &QAction::triggered, this, [this]() {
+    auto getEffectiveCatItem = [this]() -> QStandardItem* {
         QModelIndex idx = categoryTree->currentIndex();
-        if (idx.isValid()) renameCategoryItem(categoryModel->itemFromIndex(idx));
+        return idx.isValid() ? categoryModel->itemFromIndex(idx) : nullptr;
+    };
+
+    connect(renameCatAct, &QAction::triggered, this, [this, getEffectiveCatItem]() {
+        renameCategoryItem(getEffectiveCatItem());
     });
-    connect(deleteCatAct, &QAction::triggered, this, [this]() {
-        QModelIndex idx = categoryTree->currentIndex();
-        if (idx.isValid()) deleteCategoryItem(categoryModel->itemFromIndex(idx));
+    connect(deleteCatAct, &QAction::triggered, this, [this, getEffectiveCatItem]() {
+        deleteCategoryItem(getEffectiveCatItem());
     });
-    connect(newSubCatAct, &QAction::triggered, this, [this]() {
-        QModelIndex idx = categoryTree->currentIndex();
-        if (!idx.isValid()) return;
-        QString parentCat = idx.data(Qt::UserRole).toString();
+    connect(newSubCatAct, &QAction::triggered, this, [this, getEffectiveCatItem]() {
+        QStandardItem *item = getEffectiveCatItem();
+        if (!item) return;
+        QString parentCat = item->data(Qt::UserRole).toString();
         bool ok;
         QString name = QInputDialog::getText(this, QStringLiteral("新建子分类"),
             QStringLiteral("子分类名称:"), QLineEdit::Normal, "", &ok);
         if (ok && !name.isEmpty()) {
             QString newCat = parentCat.isEmpty() ? name : parentCat + "/" + name;
             snippetMgr->createSnippet(QStringLiteral("新片段"), newCat);
+            refreshCategoryTree();
+            refreshSearch();
+        }
+    });
+    connect(newTopCatAct, &QAction::triggered, this, [this]() {
+        bool ok;
+        QString name = QInputDialog::getText(this, QStringLiteral("新建大类"),
+            QStringLiteral("大类名称:"), QLineEdit::Normal, "", &ok);
+        if (ok && !name.isEmpty()) {
+            snippetMgr->createSnippet(QStringLiteral("新片段"), name);
             refreshCategoryTree();
             refreshSearch();
         }
@@ -272,6 +287,29 @@ void MainWindow::setupUI()
     });
 
     connect(deleteAct, &QAction::triggered, this, [this]() {
+        QModelIndex catIdx = categoryTree->currentIndex();
+        QString cat = catIdx.isValid() ? catIdx.data(Qt::UserRole).toString() : QString();
+        bool isAllCat = cat.isEmpty() && catIdx.isValid()
+            && categoryModel->itemFromIndex(catIdx)
+            && categoryModel->itemFromIndex(catIdx)->text() == QStringLiteral("全部");
+
+        if (currentSnippetId.isEmpty() && !cat.isEmpty() && !isAllCat) {
+            int ret = QMessageBox::warning(this, QStringLiteral("删除分类"),
+                QStringLiteral("确定删除分类 \"%1\" 及其全部内容吗？").arg(cat),
+                QMessageBox::Yes | QMessageBox::No);
+            if (ret == QMessageBox::Yes) {
+                int count = snippetMgr->deleteCategory(cat);
+                statusBar()->showMessage(QStringLiteral("已删除 %1 个片段").arg(count), 3000);
+                codeEditor->clear();
+                nameEdit->clear();
+                descEdit->clear();
+                pdfDoc->close();
+                refreshSearch();
+                refreshCategoryTree();
+            }
+            return;
+        }
+
         if (currentSnippetId.isEmpty()) return;
         int ret = QMessageBox::question(this, QStringLiteral("确认删除"),
             QStringLiteral("确定要删除此片段吗？"), QMessageBox::Yes | QMessageBox::No);
@@ -451,6 +489,13 @@ void MainWindow::setupConnections()
             if (!current.isValid()) return;
             QString category = current.data(Qt::UserRole).toString();
             thumbnailModel->clear();
+
+            currentSnippetId.clear();
+            codeEditor->clear();
+            nameEdit->clear();
+            descEdit->clear();
+            clearPdfPreview();
+            clearParams();
 
             QList<SearchResult> results = snippetMgr->searchSnippets("");
             for (const SearchResult &r : results) {
@@ -816,8 +861,20 @@ void MainWindow::showCategoryContextMenu(const QPoint &pos)
     if (!idx.isValid()) return;
     QStandardItem *item = categoryModel->itemFromIndex(idx);
     if (!item) return;
-    if (item->data(Qt::UserRole).toString().isEmpty() && item->text() == QStringLiteral("全部"))
-        return;
+
+    QString catData = item->data(Qt::UserRole).toString();
+    bool isAll = catData.isEmpty() && item->text() == QStringLiteral("全部");
+
+    QList<QAction*> actions = categoryCtxMenu->actions();
+    for (QAction *act : actions) {
+        if (act->text() == QStringLiteral("新建大类"))
+            act->setVisible(isAll);
+        else if (act->text() == QStringLiteral("重命名分类")
+              || act->text() == QStringLiteral("删除分类")
+              || act->text() == QStringLiteral("新建子分类"))
+            act->setVisible(!isAll);
+    }
+
     categoryCtxMenu->popup(categoryTree->viewport()->mapToGlobal(pos));
 }
 

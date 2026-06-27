@@ -381,22 +381,23 @@ bool SnippetManager::updateSnippetCategory(const QString &id, const QString &new
 int SnippetManager::renameCategory(const QString &oldCategory, const QString &newCategory)
 {
     int count = 0;
-    QList<Snippet> all = getAllSnippets();
-    for (Snippet &s : all) {
-        if (s.category == oldCategory) {
-            s.category = newCategory;
-            saveSnippet(s);
-            count++;
+    auto updateAll = [&](const QList<Snippet> &list) {
+        for (const Snippet &s : list) {
+            if (s.category == oldCategory) {
+                Snippet updated = s;
+                updated.category = newCategory;
+                saveSnippet(updated);
+                count++;
+            } else if (s.category.startsWith(oldCategory + "/")) {
+                Snippet updated = s;
+                updated.category = newCategory + "/" + s.category.mid(oldCategory.length() + 1);
+                saveSnippet(updated);
+                count++;
+            }
         }
-    }
-    QList<Snippet> presets = getAllPresets();
-    for (Snippet &s : presets) {
-        if (s.category == oldCategory) {
-            s.category = newCategory;
-            saveSnippet(s);
-            count++;
-        }
-    }
+    };
+    updateAll(getAllSnippets());
+    updateAll(getAllPresets());
     if (count > 0)
         emit categoriesChanged();
     return count;
@@ -407,14 +408,14 @@ int SnippetManager::deleteCategory(const QString &category)
     int count = 0;
     QList<Snippet> all = getAllSnippets();
     for (const Snippet &s : all) {
-        if (s.category == category) {
+        if (s.category == category || s.category.startsWith(category + "/")) {
             deleteSnippet(s.id);
             count++;
         }
     }
     QList<Snippet> presets = getAllPresets();
     for (const Snippet &s : presets) {
-        if (s.category == category) {
+        if (s.category == category || s.category.startsWith(category + "/")) {
             deleteSnippet(s.id);
             count++;
         }
