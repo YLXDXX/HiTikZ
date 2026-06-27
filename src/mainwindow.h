@@ -57,6 +57,7 @@ private:
     void fitPdfPage();
     void fitPdfWidth();
     void fitPdfHeight();
+    void applyPdfZoomPreference();
     void refreshCategoryTree();
     void onCurrentSnippetChanged();
     void jumpToErrorLine(const QString &logText);
@@ -106,4 +107,5 @@ private:
     QTimer *searchDebounceTimer = nullptr;
     bool m_pdfPanning = false;
     QPoint m_pdfPanStart;
+    int m_pdfZoomPref = 0;
 };
