@@ -863,7 +863,7 @@ void MainWindow::generateAllPreviews()
                 statusBar()->showMessage(
                     QStringLiteral("生成预览: %1/%2").arg(done).arg(total), 0);
                 loop.quit();
-            });
+            }, Qt::SingleShotConnection);
 
         compiler->compile(code, s.templateId, snippetId);
         loop.exec();
