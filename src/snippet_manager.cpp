@@ -56,7 +56,6 @@ bool SnippetManager::isPresetId(const QString &id) const
 void SnippetManager::ensurePresetIdsCached() const
 {
     if (presetIdsCached) return;
-    presetIdsCached = true;
 
     QDir dir(presetPath);
     QStringList entries = dir.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
@@ -73,6 +72,7 @@ void SnippetManager::ensurePresetIdsCached() const
             if (!id.isEmpty()) presetIdsCache.insert(id);
         }
     }
+    presetIdsCached = true;
 }
 
 QString SnippetManager::createSnippet(const QString &name, const QString &category)
