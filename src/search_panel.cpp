@@ -1,4 +1,5 @@
 #include "search_panel.h"
+#include "snippet_properties_dialog.h"
 #include "snippet_manager.h"
 #include <QVBoxLayout>
 #include <QHeaderView>
@@ -12,12 +13,6 @@
 #include <QEvent>
 #include <QFileInfo>
 #include <QDir>
-#include <QStatusBar>
-#include <QMainWindow>
-#include <QApplication>
-#include <QClipboard>
-#include <QFileDialog>
-#include <QCursor>
 
 SearchPanel::SearchPanel(SnippetManager *mgr, QWidget *parent)
     : QWidget(parent), snippetMgr(mgr)
@@ -80,8 +75,12 @@ void SearchPanel::setupUI()
     thumbnailList->setWordWrap(true);
     thumbnailList->setDragEnabled(true);
     thumbnailList->setDragDropMode(QAbstractItemView::DragOnly);
+    thumbnailList->setContextMenuPolicy(Qt::CustomContextMenu);
     thumbnailModel = new QStandardItemModel(this);
     thumbnailList->setModel(thumbnailModel);
+
+    connect(thumbnailList, &QListView::customContextMenuRequested,
+        this, &SearchPanel::onThumbnailRightClick);
 
     categoryCtxMenu = new QMenu(this);
     QAction *renameCatAct = categoryCtxMenu->addAction(QStringLiteral("重命名分类"));
@@ -89,19 +88,6 @@ void SearchPanel::setupUI()
     QAction *newSubCatAct = categoryCtxMenu->addAction(QStringLiteral("新建子分类"));
     QAction *newTopCatAct = categoryCtxMenu->addAction(QStringLiteral("新建大类"));
     newTopCatAct->setVisible(false);
-
-    thumbnailList->setContextMenuPolicy(Qt::CustomContextMenu);
-    thumbnailCtxMenu = new QMenu(this);
-    thumbnailCtxMenu->addAction(QStringLiteral("查看/编辑属性"));
-    thumbnailCtxMenu->addSeparator();
-    thumbnailCtxMenu->addAction(QStringLiteral("变更分类"));
-    thumbnailCtxMenu->addAction(QStringLiteral("复制代码"));
-    thumbnailCtxMenu->addAction(QStringLiteral("导出存档"));
-    thumbnailCtxMenu->addSeparator();
-    thumbnailCtxMenu->addAction(QStringLiteral("删除片段"));
-
-    connect(thumbnailList, &QListView::customContextMenuRequested,
-        this, &SearchPanel::showThumbnailContextMenu);
 
     auto getEffectiveCatItem = [this]() -> QStandardItem* {
         QModelIndex idx = categoryTree->currentIndex();
@@ -323,6 +309,20 @@ void SearchPanel::deleteCategoryItem(QStandardItem *item)
     refreshSearch();
 }
 
+void SearchPanel::onThumbnailRightClick(const QPoint &pos)
+{
+    QModelIndex idx = thumbnailList->indexAt(pos);
+    if (!idx.isValid()) return;
+    QString id = idx.data(Qt::UserRole).toString();
+    if (id.isEmpty()) return;
+
+    SnippetPropertiesDialog dlg(id, snippetMgr, this);
+    if (dlg.exec() == QDialog::Accepted) {
+        refreshCategoryTree();
+        refreshSearch();
+    }
+}
+
 QIcon SearchPanel::loadThumbnailIcon(const QString &snippetId) const
 {
     QString basePath = snippetMgr->isPresetId(snippetId)
@@ -361,36 +361,4 @@ bool SearchPanel::eventFilter(QObject *obj, QEvent *event)
         }
     }
     return QWidget::eventFilter(obj, event);
-}
-
-void SearchPanel::showThumbnailContextMenu(const QPoint &pos)
-{
-    QModelIndex idx = thumbnailList->indexAt(pos);
-    if (!idx.isValid()) return;
-    m_contextMenuSnippetId = idx.data(Qt::UserRole).toString();
-    if (m_contextMenuSnippetId.isEmpty()) return;
-
-    QAction *selected = thumbnailCtxMenu->exec(QCursor::pos());
-    if (!selected) return;
-
-    if (selected->text() == QStringLiteral("查看/编辑属性")) {
-        emit snippetSelected(m_contextMenuSnippetId);
-    } else if (selected->text() == QStringLiteral("变更分类")) {
-        bool ok;
-        QString newCat = QInputDialog::getText(this, QStringLiteral("变更分类"),
-            QStringLiteral("新分类:"), QLineEdit::Normal,
-            snippetMgr->loadSnippet(m_contextMenuSnippetId).category, &ok);
-        if (ok) {
-            snippetMgr->updateSnippetCategory(m_contextMenuSnippetId, newCat);
-            refreshCategoryTree();
-            refreshSearch();
-        }
-    } else if (selected->text() == QStringLiteral("复制代码")) {
-        Snippet s = snippetMgr->loadSnippet(m_contextMenuSnippetId);
-        QApplication::clipboard()->setText(s.code);
-    } else if (selected->text() == QStringLiteral("导出存档")) {
-        emit snippetExportRequested(m_contextMenuSnippetId);
-    } else if (selected->text() == QStringLiteral("删除片段")) {
-        emit snippetDeleteRequested(m_contextMenuSnippetId);
-    }
 }

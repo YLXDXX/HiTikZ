@@ -436,12 +436,6 @@ void MainWindow::setupConnections()
             loadSnippetIntoEditor(id);
         });
 
-    connect(searchPanel, &SearchPanel::snippetDeleteRequested,
-        this, &MainWindow::handleThumbnailDelete);
-
-    connect(searchPanel, &SearchPanel::snippetExportRequested,
-        this, &MainWindow::handleThumbnailExport);
-
     connect(snippetMgr, &SnippetManager::categoriesChanged,
         this, &MainWindow::refreshCategoryTree);
 
@@ -565,46 +559,6 @@ void MainWindow::saveCurrentSnippet()
     }
     s.tags = tags;
     snippetMgr->saveSnippet(s);
-}
-
-void MainWindow::handleThumbnailDelete(const QString &id)
-{
-    if (id.isEmpty()) return;
-    Snippet s = snippetMgr->loadSnippet(id);
-    int ret = QMessageBox::question(this, QStringLiteral("确认删除"),
-        QStringLiteral("确定要删除片段 \"%1\" 吗？").arg(s.name),
-        QMessageBox::Yes | QMessageBox::No);
-    if (ret != QMessageBox::Yes) return;
-
-    snippetMgr->deleteSnippet(id);
-    if (currentSnippetId == id) {
-        currentSnippetId.clear();
-        codeEditor->clear();
-        nameEdit->clear();
-        descEdit->clear();
-        tagsEdit->clear();
-        clearPdfPreview();
-    }
-    searchPanel->refreshCategoryTree();
-    searchPanel->refreshSearch();
-    statusBar()->showMessage(QStringLiteral("已删除片段"), 3000);
-}
-
-void MainWindow::handleThumbnailExport(const QString &id)
-{
-    if (id.isEmpty()) return;
-    Snippet s = snippetMgr->loadSnippet(id);
-    QString filePath = QFileDialog::getSaveFileName(this,
-        QStringLiteral("导出存档"), s.name + ".tar.gz",
-        "TikZ 存档 (*.tar.gz)");
-    if (!filePath.isEmpty()) {
-        if (snippetMgr->exportSnippetZip(id, filePath)) {
-            statusBar()->showMessage(QStringLiteral("导出成功"), 3000);
-        } else {
-            QMessageBox::warning(this, QStringLiteral("导出失败"),
-                QStringLiteral("无法导出该片段。"));
-        }
-    }
 }
 
 void MainWindow::onCurrentSnippetChanged()

@@ -22,8 +22,6 @@ public:
 signals:
     void snippetSelected(const QString &id);
     void searchQueryChanged(const QString &query);
-    void snippetDeleteRequested(const QString &id);
-    void snippetExportRequested(const QString &id);
 
 protected:
     bool eventFilter(QObject *obj, QEvent *event) override;
@@ -35,7 +33,7 @@ private:
     void showCategoryContextMenu(const QPoint &pos);
     void renameCategoryItem(QStandardItem *item);
     void deleteCategoryItem(QStandardItem *item);
-    void showThumbnailContextMenu(const QPoint &pos);
+    void onThumbnailRightClick(const QPoint &pos);
     QIcon loadThumbnailIcon(const QString &snippetId) const;
 
     SnippetManager *snippetMgr;
@@ -46,8 +44,5 @@ private:
     QStandardItemModel *categoryModel;
     QStandardItemModel *thumbnailModel;
     QMenu *categoryCtxMenu;
-    QMenu *thumbnailCtxMenu;
     QTimer *searchDebounceTimer;
-    QString m_contextMenuSnippetId;
 };
-
