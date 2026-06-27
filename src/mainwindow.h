@@ -51,6 +51,8 @@ private:
     void refreshSearch();
     void loadSnippetIntoEditor(const QString &id);
     void saveCurrentSnippet();
+    void handleThumbnailDelete(const QString &id);
+    void handleThumbnailExport(const QString &id);
     void refreshCategoryTree();
     void onCurrentSnippetChanged();
     void jumpToErrorLine(const QString &logText);
@@ -81,6 +83,7 @@ private:
     QPdfDocument *pdfDoc;
     QLineEdit *nameEdit;
     QTextEdit *descEdit;
+    QLineEdit *tagsEdit;
     QComboBox *templateCombo;
     QPushButton *compileBtn;
     QPushButton *saveBtn;

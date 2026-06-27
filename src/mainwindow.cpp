@@ -189,6 +189,10 @@ void MainWindow::setupUI()
     rightLayout->addWidget(nameEdit);
     rightLayout->addWidget(new QLabel(QStringLiteral("简介:")));
     rightLayout->addWidget(descEdit, 1);
+    rightLayout->addWidget(new QLabel(QStringLiteral("标签 (逗号分隔):")));
+    tagsEdit = new QLineEdit;
+    tagsEdit->setPlaceholderText(QStringLiteral("标签1, 标签2, ..."));
+    rightLayout->addWidget(tagsEdit);
     rightLayout->addWidget(new QLabel(QStringLiteral("模板:")));
     templateCombo = new QComboBox;
     rightLayout->addWidget(templateCombo);
@@ -234,6 +238,7 @@ void MainWindow::setupUI()
                 statusBar()->showMessage(QStringLiteral("已删除 %1 个片段").arg(count), 3000);
                 codeEditor->clear();
                 nameEdit->clear();
+                tagsEdit->clear();
                 descEdit->clear();
                 pdfDoc->close();
                 refreshSearch();
@@ -431,6 +436,12 @@ void MainWindow::setupConnections()
             loadSnippetIntoEditor(id);
         });
 
+    connect(searchPanel, &SearchPanel::snippetDeleteRequested,
+        this, &MainWindow::handleThumbnailDelete);
+
+    connect(searchPanel, &SearchPanel::snippetExportRequested,
+        this, &MainWindow::handleThumbnailExport);
+
     connect(snippetMgr, &SnippetManager::categoriesChanged,
         this, &MainWindow::refreshCategoryTree);
 
@@ -526,6 +537,7 @@ void MainWindow::loadSnippetIntoEditor(const QString &id)
     }
     nameEdit->setText(s.name);
     descEdit->setPlainText(s.description);
+    tagsEdit->setText(s.tags.join(", "));
 
     if (!s.templateId.isEmpty()) {
         int idx = templateCombo->findData(s.templateId);
@@ -545,7 +557,54 @@ void MainWindow::saveCurrentSnippet()
     s.name = nameEdit->text();
     s.description = descEdit->toPlainText();
     s.code = codeEditor->toPlainText();
+    QStringList tags;
+    for (const QString &tag : tagsEdit->text().split(',')) {
+        QString trimmed = tag.trimmed();
+        if (!trimmed.isEmpty())
+            tags.append(trimmed);
+    }
+    s.tags = tags;
     snippetMgr->saveSnippet(s);
+}
+
+void MainWindow::handleThumbnailDelete(const QString &id)
+{
+    if (id.isEmpty()) return;
+    Snippet s = snippetMgr->loadSnippet(id);
+    int ret = QMessageBox::question(this, QStringLiteral("确认删除"),
+        QStringLiteral("确定要删除片段 \"%1\" 吗？").arg(s.name),
+        QMessageBox::Yes | QMessageBox::No);
+    if (ret != QMessageBox::Yes) return;
+
+    snippetMgr->deleteSnippet(id);
+    if (currentSnippetId == id) {
+        currentSnippetId.clear();
+        codeEditor->clear();
+        nameEdit->clear();
+        descEdit->clear();
+        tagsEdit->clear();
+        clearPdfPreview();
+    }
+    searchPanel->refreshCategoryTree();
+    searchPanel->refreshSearch();
+    statusBar()->showMessage(QStringLiteral("已删除片段"), 3000);
+}
+
+void MainWindow::handleThumbnailExport(const QString &id)
+{
+    if (id.isEmpty()) return;
+    Snippet s = snippetMgr->loadSnippet(id);
+    QString filePath = QFileDialog::getSaveFileName(this,
+        QStringLiteral("导出存档"), s.name + ".tar.gz",
+        "TikZ 存档 (*.tar.gz)");
+    if (!filePath.isEmpty()) {
+        if (snippetMgr->exportSnippetZip(id, filePath)) {
+            statusBar()->showMessage(QStringLiteral("导出成功"), 3000);
+        } else {
+            QMessageBox::warning(this, QStringLiteral("导出失败"),
+                QStringLiteral("无法导出该片段。"));
+        }
+    }
 }
 
 void MainWindow::onCurrentSnippetChanged()

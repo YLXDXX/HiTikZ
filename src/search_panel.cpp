@@ -12,6 +12,11 @@
 #include <QEvent>
 #include <QFileInfo>
 #include <QDir>
+#include <QStatusBar>
+#include <QMainWindow>
+#include <QApplication>
+#include <QClipboard>
+#include <QFileDialog>
 
 SearchPanel::SearchPanel(SnippetManager *mgr, QWidget *parent)
     : QWidget(parent), snippetMgr(mgr)
@@ -83,6 +88,56 @@ void SearchPanel::setupUI()
     QAction *newSubCatAct = categoryCtxMenu->addAction(QStringLiteral("新建子分类"));
     QAction *newTopCatAct = categoryCtxMenu->addAction(QStringLiteral("新建大类"));
     newTopCatAct->setVisible(false);
+
+    thumbnailList->setContextMenuPolicy(Qt::CustomContextMenu);
+    thumbnailCtxMenu = new QMenu(this);
+    QAction *editSnippetAct = thumbnailCtxMenu->addAction(QStringLiteral("查看/编辑属性"));
+    thumbnailCtxMenu->addSeparator();
+    QAction *changeCatAct = thumbnailCtxMenu->addAction(QStringLiteral("变更分类"));
+    QAction *copyCodeAct = thumbnailCtxMenu->addAction(QStringLiteral("复制代码"));
+    QAction *exportSnippetAct = thumbnailCtxMenu->addAction(QStringLiteral("导出存档"));
+    thumbnailCtxMenu->addSeparator();
+    QAction *deleteSnippetAct = thumbnailCtxMenu->addAction(QStringLiteral("删除片段"));
+
+    connect(thumbnailList, &QListView::customContextMenuRequested,
+        this, &SearchPanel::showThumbnailContextMenu);
+
+    connect(editSnippetAct, &QAction::triggered, this, [this]() {
+        QModelIndex idx = thumbnailList->currentIndex();
+        if (idx.isValid())
+            emit snippetSelected(idx.data(Qt::UserRole).toString());
+    });
+    connect(changeCatAct, &QAction::triggered, this, [this]() {
+        QModelIndex idx = thumbnailList->currentIndex();
+        if (!idx.isValid()) return;
+        QString id = idx.data(Qt::UserRole).toString();
+        bool ok;
+        QString newCat = QInputDialog::getText(this, QStringLiteral("变更分类"),
+            QStringLiteral("新分类:"), QLineEdit::Normal,
+            snippetMgr->loadSnippet(id).category, &ok);
+        if (ok) {
+            snippetMgr->updateSnippetCategory(id, newCat);
+            refreshCategoryTree();
+            refreshSearch();
+        }
+    });
+    connect(copyCodeAct, &QAction::triggered, this, [this]() {
+        QModelIndex idx = thumbnailList->currentIndex();
+        if (!idx.isValid()) return;
+        QString id = idx.data(Qt::UserRole).toString();
+        Snippet s = snippetMgr->loadSnippet(id);
+        QApplication::clipboard()->setText(s.code);
+    });
+    connect(exportSnippetAct, &QAction::triggered, this, [this]() {
+        QModelIndex idx = thumbnailList->currentIndex();
+        if (idx.isValid())
+            emit snippetExportRequested(idx.data(Qt::UserRole).toString());
+    });
+    connect(deleteSnippetAct, &QAction::triggered, this, [this]() {
+        QModelIndex idx = thumbnailList->currentIndex();
+        if (idx.isValid())
+            emit snippetDeleteRequested(idx.data(Qt::UserRole).toString());
+    });
 
     auto getEffectiveCatItem = [this]() -> QStandardItem* {
         QModelIndex idx = categoryTree->currentIndex();
@@ -312,4 +367,41 @@ QIcon SearchPanel::loadThumbnailIcon(const QString &snippetId) const
     if (QFile::exists(pngPath))
         return QIcon(pngPath);
     return QIcon();
+}
+
+bool SearchPanel::eventFilter(QObject *obj, QEvent *event)
+{
+    if (obj == categoryTree->viewport() && event->type() == QEvent::Drop) {
+        QDropEvent *de = static_cast<QDropEvent *>(event);
+        const QMimeData *mime = de->mimeData();
+        QModelIndex targetIdx = categoryTree->indexAt(de->position().toPoint());
+        QString targetCat;
+        if (targetIdx.isValid())
+            targetCat = targetIdx.data(Qt::UserRole).toString();
+
+        if (mime->hasFormat("application/x-qabstractitemmodeldatalist")) {
+            QByteArray data = mime->data("application/x-qabstractitemmodeldatalist");
+            QDataStream stream(&data, QIODevice::ReadOnly);
+            int row, col;
+            QMap<int, QVariant> roleData;
+            stream >> row >> col >> roleData;
+            QString snippetId = roleData[Qt::UserRole].toString();
+
+            if (!snippetId.isEmpty()) {
+                snippetMgr->updateSnippetCategory(snippetId, targetCat);
+                refreshCategoryTree();
+                refreshSearch();
+                de->accept();
+                return true;
+            }
+        }
+    }
+    return QWidget::eventFilter(obj, event);
+}
+
+void SearchPanel::showThumbnailContextMenu(const QPoint &pos)
+{
+    QModelIndex idx = thumbnailList->indexAt(pos);
+    if (!idx.isValid()) return;
+    thumbnailCtxMenu->popup(thumbnailList->viewport()->mapToGlobal(pos));
 }
