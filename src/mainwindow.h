@@ -18,6 +18,7 @@
 #include <QCloseEvent>
 #include <QComboBox>
 #include <QTimer>
+#include <QMap>
 
 #ifdef HAS_QHOTKEY
 #include <QHotkey>
@@ -65,7 +66,7 @@ private:
     QString snippetDataPath(const QString &id) const;
     QIcon loadThumbnailIcon(const QString &snippetId, bool isPreset) const;
 
-    void buildCategoryTree(QStandardItem *parent, const QString &path, int depth = 0);
+    void buildCategoryTree(QStandardItem *parent, const QString &path, const QMap<QString, int> &counts, int depth = 0);
     void showCategoryContextMenu(const QPoint &pos);
     void renameCategoryItem(QStandardItem *item);
     void deleteCategoryItem(QStandardItem *item);

@@ -6,6 +6,7 @@
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QSet>
+#include <QMap>
 
 struct Snippet {
     QString id;
@@ -50,6 +51,7 @@ public:
     static int fuzzyMatchScore(const QString &query, const QString &target);
     QList<SearchResult> searchSnippets(const QString &query, bool includePresets = true) const;
     QStringList getAllCategories(bool includePresets = true) const;
+    QMap<QString, int> getCategoryCounts(bool includePresets = true) const;
 
 signals:
     void snippetCreated(const QString &id);

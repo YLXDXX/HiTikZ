@@ -295,9 +295,7 @@ void MainWindow::setupUI()
     connect(deleteAct, &QAction::triggered, this, [this]() {
         QModelIndex catIdx = categoryTree->currentIndex();
         QString cat = catIdx.isValid() ? catIdx.data(Qt::UserRole).toString() : QString();
-        bool isAllCat = cat.isEmpty() && catIdx.isValid()
-            && categoryModel->itemFromIndex(catIdx)
-            && categoryModel->itemFromIndex(catIdx)->text() == QStringLiteral("全部");
+        bool isAllCat = (cat.isEmpty() && catIdx.isValid());
 
         if (currentSnippetId.isEmpty() && !cat.isEmpty() && !isAllCat) {
             int ret = QMessageBox::warning(this, QStringLiteral("删除分类"),
@@ -669,20 +667,26 @@ void MainWindow::refreshCategoryTree()
     categoryModel->clear();
     QStandardItem *rootItem = categoryModel->invisibleRootItem();
 
-    QStandardItem *allItem = new QStandardItem(QStringLiteral("全部"));
+    QMap<QString, int> catCounts = snippetMgr->getCategoryCounts(true);
+
+    int totalCount = 0;
+    for (auto it = catCounts.constBegin(); it != catCounts.constEnd(); ++it)
+        totalCount += it.value();
+
+    QStandardItem *allItem = new QStandardItem(QStringLiteral("全部 (%1)").arg(totalCount));
     allItem->setData("", Qt::UserRole);
     allItem->setEditable(false);
     rootItem->appendRow(allItem);
 
     QStringList categories = snippetMgr->getAllCategories();
     for (const QString &cat : categories) {
-        buildCategoryTree(rootItem, cat);
+        buildCategoryTree(rootItem, cat, catCounts);
     }
 
     categoryTree->expandAll();
 }
 
-void MainWindow::buildCategoryTree(QStandardItem *parent, const QString &path, int depth)
+void MainWindow::buildCategoryTree(QStandardItem *parent, const QString &path, const QMap<QString, int> &counts, int depth)
 {
     Q_UNUSED(depth);
     if (path.isEmpty()) return;
@@ -694,24 +698,36 @@ void MainWindow::buildCategoryTree(QStandardItem *parent, const QString &path, i
     if (!fullPath.isEmpty()) fullPath += "/";
     fullPath += name;
 
+    int subtreeCount = 0;
+    for (auto it = counts.constBegin(); it != counts.constEnd(); ++it) {
+        if (it.key() == fullPath || it.key().startsWith(fullPath + "/"))
+            subtreeCount += it.value();
+    }
+
     QStandardItem *child = nullptr;
     for (int i = 0; i < parent->rowCount(); ++i) {
         QStandardItem *sibling = parent->child(i);
-        if (sibling->text() == name) {
+        if (sibling->data(Qt::UserRole).toString() == fullPath) {
             child = sibling;
             break;
         }
     }
 
+    QString label = subtreeCount > 0
+        ? QString("%1 (%2)").arg(name).arg(subtreeCount)
+        : name;
+
     if (!child) {
-        child = new QStandardItem(name);
+        child = new QStandardItem(label);
         child->setData(fullPath, Qt::UserRole);
         child->setEditable(false);
         parent->appendRow(child);
+    } else {
+        child->setText(label);
     }
 
     if (!remaining.isEmpty()) {
-        buildCategoryTree(child, remaining, depth + 1);
+        buildCategoryTree(child, remaining, counts, depth + 1);
     }
 }
 
@@ -895,7 +911,8 @@ void MainWindow::showCategoryContextMenu(const QPoint &pos)
     if (!item) return;
 
     QString catData = item->data(Qt::UserRole).toString();
-    bool isAll = catData.isEmpty() && item->text() == QStringLiteral("全部");
+    bool isAll = catData.isEmpty();
+    // Use data role to identify "全部", not text (which now includes counts)
 
     QList<QAction*> actions = categoryCtxMenu->actions();
     for (QAction *act : actions) {

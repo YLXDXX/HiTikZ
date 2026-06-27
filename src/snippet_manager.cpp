@@ -386,6 +386,26 @@ QStringList SnippetManager::getAllCategories(bool includePresets) const
     return cats.values();
 }
 
+QMap<QString, int> SnippetManager::getCategoryCounts(bool includePresets) const
+{
+    QMap<QString, int> counts;
+    QList<Snippet> all = getAllSnippets();
+    for (const Snippet &s : all) {
+        if (!s.category.isEmpty()) {
+            counts[s.category]++;
+        }
+    }
+    if (includePresets) {
+        QList<Snippet> presets = getAllPresets();
+        for (const Snippet &s : presets) {
+            if (!s.category.isEmpty()) {
+                counts[s.category]++;
+            }
+        }
+    }
+    return counts;
+}
+
 bool SnippetManager::updateSnippetCategory(const QString &id, const QString &newCategory)
 {
     Snippet s = loadSnippet(id);
