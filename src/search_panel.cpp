@@ -17,6 +17,7 @@
 #include <QApplication>
 #include <QClipboard>
 #include <QFileDialog>
+#include <QCursor>
 
 SearchPanel::SearchPanel(SnippetManager *mgr, QWidget *parent)
     : QWidget(parent), snippetMgr(mgr)
@@ -91,46 +92,16 @@ void SearchPanel::setupUI()
 
     thumbnailList->setContextMenuPolicy(Qt::CustomContextMenu);
     thumbnailCtxMenu = new QMenu(this);
-    QAction *editSnippetAct = thumbnailCtxMenu->addAction(QStringLiteral("查看/编辑属性"));
+    thumbnailCtxMenu->addAction(QStringLiteral("查看/编辑属性"));
     thumbnailCtxMenu->addSeparator();
-    QAction *changeCatAct = thumbnailCtxMenu->addAction(QStringLiteral("变更分类"));
-    QAction *copyCodeAct = thumbnailCtxMenu->addAction(QStringLiteral("复制代码"));
-    QAction *exportSnippetAct = thumbnailCtxMenu->addAction(QStringLiteral("导出存档"));
+    thumbnailCtxMenu->addAction(QStringLiteral("变更分类"));
+    thumbnailCtxMenu->addAction(QStringLiteral("复制代码"));
+    thumbnailCtxMenu->addAction(QStringLiteral("导出存档"));
     thumbnailCtxMenu->addSeparator();
-    QAction *deleteSnippetAct = thumbnailCtxMenu->addAction(QStringLiteral("删除片段"));
+    thumbnailCtxMenu->addAction(QStringLiteral("删除片段"));
 
     connect(thumbnailList, &QListView::customContextMenuRequested,
         this, &SearchPanel::showThumbnailContextMenu);
-
-    connect(editSnippetAct, &QAction::triggered, this, [this]() {
-        if (!m_contextMenuSnippetId.isEmpty())
-            emit snippetSelected(m_contextMenuSnippetId);
-    });
-    connect(changeCatAct, &QAction::triggered, this, [this]() {
-        if (m_contextMenuSnippetId.isEmpty()) return;
-        bool ok;
-        QString newCat = QInputDialog::getText(this, QStringLiteral("变更分类"),
-            QStringLiteral("新分类:"), QLineEdit::Normal,
-            snippetMgr->loadSnippet(m_contextMenuSnippetId).category, &ok);
-        if (ok) {
-            snippetMgr->updateSnippetCategory(m_contextMenuSnippetId, newCat);
-            refreshCategoryTree();
-            refreshSearch();
-        }
-    });
-    connect(copyCodeAct, &QAction::triggered, this, [this]() {
-        if (m_contextMenuSnippetId.isEmpty()) return;
-        Snippet s = snippetMgr->loadSnippet(m_contextMenuSnippetId);
-        QApplication::clipboard()->setText(s.code);
-    });
-    connect(exportSnippetAct, &QAction::triggered, this, [this]() {
-        if (!m_contextMenuSnippetId.isEmpty())
-            emit snippetExportRequested(m_contextMenuSnippetId);
-    });
-    connect(deleteSnippetAct, &QAction::triggered, this, [this]() {
-        if (!m_contextMenuSnippetId.isEmpty())
-            emit snippetDeleteRequested(m_contextMenuSnippetId);
-    });
 
     auto getEffectiveCatItem = [this]() -> QStandardItem* {
         QModelIndex idx = categoryTree->currentIndex();
@@ -398,5 +369,28 @@ void SearchPanel::showThumbnailContextMenu(const QPoint &pos)
     if (!idx.isValid()) return;
     m_contextMenuSnippetId = idx.data(Qt::UserRole).toString();
     if (m_contextMenuSnippetId.isEmpty()) return;
-    thumbnailCtxMenu->popup(thumbnailList->viewport()->mapToGlobal(pos));
+
+    QAction *selected = thumbnailCtxMenu->exec(QCursor::pos());
+    if (!selected) return;
+
+    if (selected->text() == QStringLiteral("查看/编辑属性")) {
+        emit snippetSelected(m_contextMenuSnippetId);
+    } else if (selected->text() == QStringLiteral("变更分类")) {
+        bool ok;
+        QString newCat = QInputDialog::getText(this, QStringLiteral("变更分类"),
+            QStringLiteral("新分类:"), QLineEdit::Normal,
+            snippetMgr->loadSnippet(m_contextMenuSnippetId).category, &ok);
+        if (ok) {
+            snippetMgr->updateSnippetCategory(m_contextMenuSnippetId, newCat);
+            refreshCategoryTree();
+            refreshSearch();
+        }
+    } else if (selected->text() == QStringLiteral("复制代码")) {
+        Snippet s = snippetMgr->loadSnippet(m_contextMenuSnippetId);
+        QApplication::clipboard()->setText(s.code);
+    } else if (selected->text() == QStringLiteral("导出存档")) {
+        emit snippetExportRequested(m_contextMenuSnippetId);
+    } else if (selected->text() == QStringLiteral("删除片段")) {
+        emit snippetDeleteRequested(m_contextMenuSnippetId);
+    }
 }
