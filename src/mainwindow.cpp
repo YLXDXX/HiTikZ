@@ -184,22 +184,10 @@ void MainWindow::setupUI()
     QVBoxLayout *rightLayout = new QVBoxLayout(rightPanel);
     rightLayout->setContentsMargins(4, 4, 4, 4);
 
-    previewStack = new QStackedWidget;
-
     pdfDoc = new QPdfDocument(this);
     pdfView = new QPdfView;
     pdfView->setDocument(pdfDoc);
     pdfView->setMinimumSize(250, 250);
-
-    previewImageLabel = new QLabel(QStringLiteral("预览区"));
-    previewImageLabel->setAlignment(Qt::AlignCenter);
-    previewImageLabel->setMinimumSize(250, 250);
-    previewImageLabel->setFrameStyle(QFrame::StyledPanel | QFrame::Sunken);
-    previewImageLabel->setScaledContents(false);
-
-    previewStack->addWidget(previewImageLabel);
-    previewStack->addWidget(pdfView);
-    previewStack->setCurrentIndex(0);
 
     nameEdit = new QLineEdit;
     nameEdit->setPlaceholderText(QStringLiteral("名称"));
@@ -210,7 +198,7 @@ void MainWindow::setupUI()
     compileBtn = new QPushButton(QStringLiteral("编译预览"));
     saveBtn = new QPushButton(QStringLiteral("保存"));
 
-    rightLayout->addWidget(previewStack, 3);
+    rightLayout->addWidget(pdfView, 3);
     rightLayout->addWidget(new QLabel(QStringLiteral("名称:")));
     rightLayout->addWidget(nameEdit);
     rightLayout->addWidget(new QLabel(QStringLiteral("简介:")));
@@ -258,7 +246,7 @@ void MainWindow::setupUI()
             codeEditor->clear();
             nameEdit->clear();
             descEdit->clear();
-            previewStack->setCurrentIndex(0);
+            pdfDoc->close();
             refreshSearch();
             refreshCategoryTree();
         }
@@ -364,7 +352,7 @@ void MainWindow::setupUI()
         codeEditor->clear();
         nameEdit->clear();
         descEdit->clear();
-        clearPreview();
+        clearPdfPreview();
         refreshCategoryTree();
         refreshSearch();
 
@@ -454,6 +442,11 @@ void MainWindow::setupConnections()
                 QStandardItem *item = new QStandardItem(label);
                 item->setData(r.snippet.id, Qt::UserRole);
                 item->setToolTip(r.snippet.description);
+
+                QIcon icon = loadThumbnailIcon(r.snippet.id, r.snippet.isPreset);
+                if (!icon.isNull())
+                    item->setIcon(icon);
+
                 thumbnailModel->appendRow(item);
             }
         });
@@ -501,11 +494,10 @@ void MainWindow::setupConnections()
             logPanel->setPlainText(log);
             if (success) {
                 pdfDoc->load(QFileInfo(pdfPath).absoluteFilePath());
-                previewStack->setCurrentIndex(1);
-                savePreviewPng(pdfPath, currentSnippetId);
+                savePreviewData(pdfPath, currentSnippetId);
                 statusBar()->showMessage(QStringLiteral("编译成功"), 3000);
             } else {
-                previewStack->setCurrentIndex(0);
+                pdfDoc->close();
                 jumpToErrorLine(log);
                 statusBar()->showMessage(QStringLiteral("编译失败，详见日志"), 3000);
             }
@@ -531,6 +523,11 @@ void MainWindow::refreshSearch()
         item->setToolTip(QString("%1%2 (分数: %3)\n%4")
             .arg(r.snippet.isPreset ? QStringLiteral("[预设] ") : QString())
             .arg(r.snippet.name).arg(r.score).arg(r.snippet.description));
+
+        QIcon icon = loadThumbnailIcon(r.snippet.id, r.snippet.isPreset);
+        if (!icon.isNull())
+            item->setIcon(icon);
+
         thumbnailModel->appendRow(item);
     }
 }
@@ -659,27 +656,42 @@ QString MainWindow::applyParams(const QString &code)
     return result;
 }
 
-void MainWindow::clearPreview()
+void MainWindow::clearPdfPreview()
 {
     pdfDoc->close();
-    previewImageLabel->setText(QStringLiteral("预览区\n请编译以生成预览"));
-    previewStack->setCurrentIndex(0);
 }
 
-void MainWindow::savePreviewPng(const QString &pdfPath, const QString &snippetId)
+QString MainWindow::snippetDataPath(const QString &id) const
+{
+    if (snippetMgr->isPresetId(id))
+        return snippetMgr->getPresetPath() + id;
+    else
+        return snippetMgr->getBasePath() + id;
+}
+
+QIcon MainWindow::loadThumbnailIcon(const QString &snippetId, bool isPreset) const
+{
+    Q_UNUSED(isPreset);
+    QString pngPath = snippetDataPath(snippetId) + "/preview.png";
+    if (QFile::exists(pngPath))
+        return QIcon(pngPath);
+    return QIcon();
+}
+
+void MainWindow::savePreviewData(const QString &pdfPath, const QString &snippetId)
 {
     if (snippetId.isEmpty()) return;
 
-    QString basePath;
-    if (snippetMgr->isPresetId(snippetId))
-        basePath = snippetMgr->getPresetPath() + snippetId;
-    else
-        basePath = snippetMgr->getBasePath() + snippetId;
+    QString basePath = snippetDataPath(snippetId);
+    QString previewPdf = basePath + "/preview.pdf";
+
+    if (QFile::exists(previewPdf))
+        QFile::remove(previewPdf);
+    QFile::copy(pdfPath, previewPdf);
 
     QProcess pngProc;
-    QString prefix = basePath + "/preview";
     QStringList args;
-    args << "-png" << "-r" << "150" << "-singlefile" << pdfPath << prefix;
+    args << "-png" << "-r" << "150" << "-singlefile" << pdfPath << (basePath + "/preview");
     pngProc.start("pdftocairo", args);
     pngProc.waitForFinished(5000);
 }
@@ -687,28 +699,16 @@ void MainWindow::savePreviewPng(const QString &pdfPath, const QString &snippetId
 void MainWindow::loadPreviewForSnippet(const QString &id)
 {
     if (id.isEmpty()) {
-        clearPreview();
+        clearPdfPreview();
         return;
     }
 
-    QString basePath;
-    if (snippetMgr->isPresetId(id))
-        basePath = snippetMgr->getPresetPath() + id;
-    else
-        basePath = snippetMgr->getBasePath() + id;
-
-    QString previewPng = basePath + "/preview.png";
-    if (QFile::exists(previewPng)) {
-        QPixmap pix(previewPng);
-        if (!pix.isNull()) {
-            previewImageLabel->setPixmap(pix.scaled(
-                previewImageLabel->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
-            previewStack->setCurrentIndex(0);
-            return;
-        }
+    QString previewPdf = snippetDataPath(id) + "/preview.pdf";
+    if (QFile::exists(previewPdf)) {
+        pdfDoc->load(QFileInfo(previewPdf).absoluteFilePath());
+    } else {
+        clearPdfPreview();
     }
-
-    clearPreview();
 }
 
 void MainWindow::generateAllPreviews()
@@ -736,7 +736,7 @@ void MainWindow::generateAllPreviews()
         QObject::connect(compiler, &LatexCompiler::compilationFinished,
             &loop, [&](bool success, const QString &pdfPath, const QString &) {
                 if (success) {
-                    savePreviewPng(pdfPath, snippetId);
+                    savePreviewData(pdfPath, snippetId);
                 }
                 done++;
                 statusBar()->showMessage(

@@ -16,7 +16,6 @@
 #include <QSystemTrayIcon>
 #include <QMenu>
 #include <QCloseEvent>
-#include <QStackedWidget>
 
 #ifdef HAS_QHOTKEY
 #include <QHotkey>
@@ -53,10 +52,13 @@ private:
     void parseParams();
     void clearParams();
     QString applyParams(const QString &code);
-    void savePreviewPng(const QString &pdfPath, const QString &snippetId);
+    void savePreviewData(const QString &pdfPath, const QString &snippetId);
     void loadPreviewForSnippet(const QString &id);
-    void clearPreview();
+    void clearPdfPreview();
     void generateAllPreviews();
+
+    QString snippetDataPath(const QString &id) const;
+    QIcon loadThumbnailIcon(const QString &snippetId, bool isPreset) const;
 
     SnippetManager *snippetMgr;
     LatexCompiler *compiler;
@@ -72,8 +74,6 @@ private:
     QPlainTextEdit *logPanel;
 
     QWidget *rightPanel;
-    QStackedWidget *previewStack;
-    QLabel *previewImageLabel;
     QPdfView *pdfView;
     QPdfDocument *pdfDoc;
     QLineEdit *nameEdit;
