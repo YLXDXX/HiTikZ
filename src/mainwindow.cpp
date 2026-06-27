@@ -624,9 +624,10 @@ void MainWindow::loadSnippetIntoEditor(const QString &id)
     if (s.id.isEmpty()) return;
 
     currentSnippetId = id;
-    codeEditor->blockSignals(true);
-    codeEditor->setPlainText(s.code);
-    codeEditor->blockSignals(false);
+    {
+        const QSignalBlocker blocker(codeEditor);
+        codeEditor->setPlainText(s.code);
+    }
     nameEdit->setText(s.name);
     descEdit->setPlainText(s.description);
 
@@ -971,7 +972,7 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event)
 
 void MainWindow::refreshTemplateCombo()
 {
-    templateCombo->blockSignals(true);
+    const QSignalBlocker blocker(templateCombo);
     templateCombo->clear();
     QString tplDir = SettingsDialog::templateDir();
     QDir d(tplDir);
@@ -981,5 +982,4 @@ void MainWindow::refreshTemplateCombo()
         templateCombo->addItem(id, id);
     }
     templateCombo->setCurrentIndex(0);
-    templateCombo->blockSignals(false);
 }
