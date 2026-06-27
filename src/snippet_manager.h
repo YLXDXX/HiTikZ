@@ -36,8 +36,8 @@ public:
     Snippet loadPreset(const QString &id);
     bool saveSnippet(const Snippet &s);
     bool deleteSnippet(const QString &id);
-    QList<Snippet> getAllSnippets() const;
-    QList<Snippet> getAllPresets() const;
+    QList<Snippet> getAllSnippets(bool loadCode = false) const;
+    QList<Snippet> getAllPresets(bool loadCode = false) const;
     QString createSnippet(const QString &name, const QString &category);
     bool snippetExists(const QString &id) const;
     bool isPresetId(const QString &id) const;

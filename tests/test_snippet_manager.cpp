@@ -68,6 +68,56 @@ int main(int argc, char *argv[]) {
         qDebug() << "PASS: Test 7 - Load non-existent returns empty";
     }
 
+    // Test 8: getAllSnippets with loadCode
+    {
+        QString id = mgr.createSnippet("LoadCode Test", "test/loadcode");
+        Snippet s = mgr.loadSnippet(id);
+        s.code = "\\begin{tikzpicture}\\draw (0,0)--(2,2);\\end{tikzpicture}";
+        mgr.saveSnippet(s);
+
+        QList<Snippet> noCode = mgr.getAllSnippets(false);
+        bool foundNoCode = false;
+        for (const auto &sn : noCode) {
+            if (sn.id == id) {
+                assert(sn.code.isEmpty());
+                foundNoCode = true;
+                break;
+            }
+        }
+        assert(foundNoCode);
+        qDebug() << "PASS: Test 8a - getAllSnippets(false) does not load code";
+
+        QList<Snippet> withCode = mgr.getAllSnippets(true);
+        bool foundWithCode = false;
+        for (const auto &sn : withCode) {
+            if (sn.id == id) {
+                assert(sn.code == s.code);
+                foundWithCode = true;
+                break;
+            }
+        }
+        assert(foundWithCode);
+        qDebug() << "PASS: Test 8b - getAllSnippets(true) loads code correctly";
+
+        mgr.deleteSnippet(id);
+    }
+
+    // Test 9: renameCategory preserves snippet code
+    {
+        QString id = mgr.createSnippet("RenameCat Test", "test/renamecat");
+        Snippet s = mgr.loadSnippet(id);
+        s.code = "\\begin{tikzpicture}\\draw (0,0)--(3,3);\\end{tikzpicture}";
+        mgr.saveSnippet(s);
+
+        mgr.renameCategory("test/renamecat", "test/renamed");
+        Snippet reloaded = mgr.loadSnippet(id);
+        assert(reloaded.code == s.code);
+        assert(reloaded.category == "test/renamed");
+        qDebug() << "PASS: Test 9 - renameCategory preserves snippet code";
+
+        mgr.deleteSnippet(id);
+    }
+
     qDebug() << "\nAll tests passed!";
     return 0;
 }

@@ -190,7 +190,7 @@ bool SnippetManager::deleteSnippet(const QString &id)
     return true;
 }
 
-QList<Snippet> SnippetManager::getAllSnippets() const
+QList<Snippet> SnippetManager::getAllSnippets(bool loadCode) const
 {
     QList<Snippet> snippets;
     QDir dir(basePath);
@@ -211,6 +211,14 @@ QList<Snippet> SnippetManager::getAllSnippets() const
         if (doc.isObject()) {
             Snippet s = jsonToSnippet(doc.object());
             if (!s.id.isEmpty()) {
+                if (loadCode) {
+                    QString texPath = basePath + entry + "/snippet.tex";
+                    QFile texFile(texPath);
+                    if (texFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+                        s.code = QString::fromUtf8(texFile.readAll());
+                        texFile.close();
+                    }
+                }
                 snippets.append(s);
             }
         }
@@ -218,7 +226,7 @@ QList<Snippet> SnippetManager::getAllSnippets() const
     return snippets;
 }
 
-QList<Snippet> SnippetManager::getAllPresets() const
+QList<Snippet> SnippetManager::getAllPresets(bool loadCode) const
 {
     QList<Snippet> presets;
     QDir dir(presetPath);
@@ -240,6 +248,14 @@ QList<Snippet> SnippetManager::getAllPresets() const
             Snippet s = jsonToSnippet(doc.object());
             s.isPreset = true;
             if (!s.id.isEmpty()) {
+                if (loadCode) {
+                    QString texPath = presetPath + entry + "/snippet.tex";
+                    QFile texFile(texPath);
+                    if (texFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+                        s.code = QString::fromUtf8(texFile.readAll());
+                        texFile.close();
+                    }
+                }
                 presets.append(s);
             }
         }
@@ -396,8 +412,8 @@ int SnippetManager::renameCategory(const QString &oldCategory, const QString &ne
             }
         }
     };
-    updateAll(getAllSnippets());
-    updateAll(getAllPresets());
+    updateAll(getAllSnippets(true));
+    updateAll(getAllPresets(true));
     if (count > 0)
         emit categoriesChanged();
     return count;

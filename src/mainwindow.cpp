@@ -833,8 +833,8 @@ void MainWindow::loadPreviewForSnippet(const QString &id)
 
 void MainWindow::generateAllPreviews()
 {
-    QList<Snippet> all = snippetMgr->getAllSnippets();
-    all.append(snippetMgr->getAllPresets());
+    QList<Snippet> all = snippetMgr->getAllSnippets(true);
+    all.append(snippetMgr->getAllPresets(true));
 
     if (all.isEmpty()) {
         statusBar()->showMessage(QStringLiteral("没有可生成预览的条目"), 3000);
