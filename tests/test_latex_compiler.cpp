@@ -106,6 +106,36 @@ int main(int argc, char *argv[]) {
                 qDebug() << "PASS: Test 4b - PNG conversion and file exists";
             }
         }
+
+        // SVG conversion sub-test
+        if (success && QFile::exists(pdfPath)) {
+            LatexCompiler compiler2;
+            bool svgConvFinished = false;
+            bool svgConvSuccess = false;
+            QString svgPath;
+
+            QObject::connect(&compiler2, &LatexCompiler::conversionFinished,
+                [&](bool ok, const QString &path) {
+                    svgConvFinished = true;
+                    svgConvSuccess = ok;
+                    svgPath = path;
+                });
+
+            compiler2.convertToSvg(pdfPath);
+
+            QEventLoop loop3;
+            QTimer::singleShot(10000, &loop3, &QEventLoop::quit);
+            QObject::connect(&compiler2, &LatexCompiler::conversionFinished, &loop3, &QEventLoop::quit);
+            loop3.exec();
+
+            if (!svgConvFinished || !svgConvSuccess) {
+                qDebug() << "FAIL: Test 4c - SVG conversion failed"; failed++;
+            } else if (!QFile::exists(svgPath)) {
+                qDebug() << "FAIL: Test 4d - SVG file does not exist"; failed++;
+            } else {
+                qDebug() << "PASS: Test 4c - SVG conversion and file exists";
+            }
+        }
     }
 
     // Test 5: Compilation with error
