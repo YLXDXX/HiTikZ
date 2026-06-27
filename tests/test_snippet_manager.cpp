@@ -118,6 +118,40 @@ int main(int argc, char *argv[]) {
         mgr.deleteSnippet(id);
     }
 
+    // Test 10: ZIP export and import
+    {
+        QString id = mgr.createSnippet("ZipTest", "test/zip");
+        Snippet s = mgr.loadSnippet(id);
+        s.description = "ZIP export/import test";
+        s.code = "\\begin{tikzpicture}\\draw (0,0)--(4,4);\\end{tikzpicture}";
+        s.tags = QStringList{"zip", "test"};
+        mgr.saveSnippet(s);
+
+        QString zipPath = QDir::tempPath() + "/test_export.tar.gz";
+        if (QFile::exists(zipPath)) QFile::remove(zipPath);
+        assert(mgr.exportSnippetZip(id, zipPath));
+        assert(QFile::exists(zipPath));
+        qDebug() << "PASS: Test 10a - Export snippet to archive";
+
+        QStringList importedIds = mgr.importSnippetsZip(zipPath);
+        assert(!importedIds.isEmpty());
+        qDebug() << "PASS: Test 10b - Import snippet from archive";
+
+        QString newId = importedIds.first();
+        assert(mgr.snippetExists(newId));
+        assert(!mgr.isPresetId(newId));
+        Snippet imported = mgr.loadSnippet(newId);
+        assert(imported.name == s.name);
+        assert(imported.description == s.description);
+        assert(imported.code == s.code);
+        assert(imported.tags == s.tags);
+        qDebug() << "PASS: Test 10c - Imported data matches original";
+
+        QFile::remove(zipPath);
+        mgr.deleteSnippet(id);
+        mgr.deleteSnippet(newId);
+    }
+
     qDebug() << "\nAll tests passed!";
     return 0;
 }

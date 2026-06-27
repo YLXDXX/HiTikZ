@@ -53,6 +53,9 @@ public:
     QStringList getAllCategories(bool includePresets = true) const;
     QMap<QString, int> getCategoryCounts(bool includePresets = true) const;
 
+    bool exportSnippetZip(const QString &id, const QString &zipPath);
+    QStringList importSnippetsZip(const QString &zipPath);
+
 signals:
     void snippetCreated(const QString &id);
     void snippetDeleted(const QString &id);

@@ -5,6 +5,9 @@
 #include <QUuid>
 #include <QJsonDocument>
 #include <QSet>
+#include <QProcess>
+#include <QTemporaryDir>
+#include <QDebug>
 #include <algorithm>
 
 SnippetManager::SnippetManager(QObject *parent)
@@ -459,4 +462,99 @@ int SnippetManager::deleteCategory(const QString &category)
     if (count > 0)
         emit categoriesChanged();
     return count;
+}
+
+bool SnippetManager::exportSnippetZip(const QString &id, const QString &zipPath)
+{
+    QString srcDir;
+    if (isPresetId(id))
+        srcDir = getPresetSnippetPath(id);
+    else
+        srcDir = getSnippetPath(id);
+
+    while (srcDir.endsWith('/'))
+        srcDir.chop(1);
+
+    QDir dir(srcDir);
+    if (!dir.exists()) return false;
+
+    if (QFile::exists(zipPath))
+        QFile::remove(zipPath);
+
+    QProcess tar;
+    QString parentDir = QFileInfo(srcDir).absolutePath();
+    QString dirName = QFileInfo(srcDir).fileName();
+    QStringList args;
+    args << "-czf" << zipPath << "-C" << parentDir << dirName;
+    tar.start("tar", args);
+    tar.waitForFinished(10000);
+    return tar.exitCode() == 0 && QFile::exists(zipPath);
+}
+
+QStringList SnippetManager::importSnippetsZip(const QString &zipPath)
+{
+    QStringList importedIds;
+
+    if (!QFile::exists(zipPath)) return importedIds;
+
+    QTemporaryDir tempDir;
+    if (!tempDir.isValid()) return importedIds;
+
+    QProcess unzip;
+    unzip.start("tar", QStringList() << "-xzf" << zipPath << "-C" << tempDir.path());
+    unzip.waitForFinished(10000);
+
+    if (unzip.exitCode() != 0) {
+        QProcess unzipFallback;
+        unzipFallback.start("unzip", QStringList() << "-o" << zipPath << "-d" << tempDir.path());
+        unzipFallback.waitForFinished(10000);
+        if (unzipFallback.exitCode() != 0)
+            return importedIds;
+    }
+
+    QDir extractDir(tempDir.path());
+    QStringList subDirs = extractDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+
+    for (const QString &subDir : subDirs) {
+        QString metaJsonPath = tempDir.path() + "/" + subDir + "/meta.json";
+        if (!QFile::exists(metaJsonPath)) {
+            QString snippetTexPath = tempDir.path() + "/" + subDir + "/snippet.tex";
+            if (!QFile::exists(snippetTexPath)) continue;
+        }
+
+        QString newId = QUuid::createUuid().toString(QUuid::WithoutBraces);
+        QString destDir = basePath + newId + "/";
+        QDir().mkpath(destDir);
+
+        QStringList files = QDir(tempDir.path() + "/" + subDir).entryList(QDir::Files);
+        for (const QString &file : files) {
+            QFile::copy(tempDir.path() + "/" + subDir + "/" + file, destDir + file);
+        }
+
+        if (QFile::exists(destDir + "meta.json")) {
+            QFile metaFile(destDir + "meta.json");
+            if (metaFile.open(QIODevice::ReadOnly)) {
+                QByteArray data = metaFile.readAll();
+                metaFile.close();
+                QJsonDocument doc = QJsonDocument::fromJson(data);
+                if (doc.isObject()) {
+                    QJsonObject obj = doc.object();
+                    obj["id"] = newId;
+                    QJsonDocument newDoc(obj);
+                    if (metaFile.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+                        metaFile.write(newDoc.toJson());
+                        metaFile.close();
+                    }
+                }
+            }
+        }
+
+        importedIds.append(newId);
+        emit snippetCreated(newId);
+    }
+
+    if (!importedIds.isEmpty())
+        emit categoriesChanged();
+
+    return importedIds;
 }

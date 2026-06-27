@@ -126,8 +126,8 @@ void MainWindow::setupUI()
     QToolBar *toolBar = addToolBar(QStringLiteral("工具栏"));
     QAction *newAct = toolBar->addAction(QStringLiteral("新建片段"));
     QAction *deleteAct = toolBar->addAction(QStringLiteral("删除片段"));
-    QAction *importAct = toolBar->addAction(QStringLiteral("导入ZIP"));
-    QAction *exportAct = toolBar->addAction(QStringLiteral("导出ZIP"));
+    QAction *importAct = toolBar->addAction(QStringLiteral("导入(导出)存档"));
+    QAction *exportAct = toolBar->addAction(QStringLiteral("存档"));
     toolBar->addSeparator();
     QAction *copyCodeAct = toolBar->addAction(QStringLiteral("复制代码 (Ctrl+Shift+C)"));
     QAction *copyPngAct = toolBar->addAction(QStringLiteral("复制PNG (Ctrl+Shift+P)"));
@@ -331,9 +331,20 @@ void MainWindow::setupUI()
 
     connect(importAct, &QAction::triggered, this, [this]() {
         QString filePath = QFileDialog::getOpenFileName(this,
-            QStringLiteral("导入ZIP"), "", "ZIP files (*.zip)");
+            QStringLiteral("导入存档"), "", "TikZ 存档 (*.tar.gz *.zip)");
         if (!filePath.isEmpty()) {
-            statusBar()->showMessage(QStringLiteral("ZIP导入功能将在后续版本实现"), 3000);
+            QStringList imported = snippetMgr->importSnippetsZip(filePath);
+            if (imported.isEmpty()) {
+                QMessageBox::warning(this, QStringLiteral("导入失败"),
+                    QStringLiteral("未能从ZIP文件中导入任何片段。请确认文件格式正确。"));
+            } else {
+                statusBar()->showMessage(QStringLiteral("成功导入 %1 个片段").arg(imported.size()), 5000);
+                refreshCategoryTree();
+                refreshSearch();
+                if (!imported.isEmpty()) {
+                    loadSnippetIntoEditor(imported.first());
+                }
+            }
         }
     });
 
@@ -343,9 +354,14 @@ void MainWindow::setupUI()
             return;
         }
         QString filePath = QFileDialog::getSaveFileName(this,
-            QStringLiteral("导出ZIP"), "", "ZIP files (*.zip)");
+            QStringLiteral("导出存档"), "", "TikZ 存档 (*.tar.gz)");
         if (!filePath.isEmpty()) {
-            statusBar()->showMessage(QStringLiteral("ZIP导出功能将在后续版本实现"), 3000);
+            if (snippetMgr->exportSnippetZip(currentSnippetId, filePath)) {
+                statusBar()->showMessage(QStringLiteral("导出成功"), 3000);
+            } else {
+                QMessageBox::warning(this, QStringLiteral("导出失败"),
+                    QStringLiteral("无法导出当前片段。"));
+            }
         }
     });
 
