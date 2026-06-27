@@ -484,7 +484,14 @@ void MainWindow::setupUI()
 
 void MainWindow::setupConnections()
 {
-    connect(searchBox, &QLineEdit::textChanged, this, &MainWindow::refreshSearch);
+    searchDebounceTimer = new QTimer(this);
+    searchDebounceTimer->setSingleShot(true);
+    searchDebounceTimer->setInterval(150);
+    connect(searchDebounceTimer, &QTimer::timeout, this, &MainWindow::refreshSearch);
+
+    connect(searchBox, &QLineEdit::textChanged, this, [this](const QString &) {
+        searchDebounceTimer->start();
+    });
 
     connect(thumbnailList->selectionModel(), &QItemSelectionModel::currentChanged,
         this, [this](const QModelIndex &current, const QModelIndex &) {

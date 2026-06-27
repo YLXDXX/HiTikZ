@@ -17,6 +17,7 @@
 #include <QMenu>
 #include <QCloseEvent>
 #include <QComboBox>
+#include <QTimer>
 
 #ifdef HAS_QHOTKEY
 #include <QHotkey>
@@ -104,4 +105,5 @@ private:
 
     QString currentSnippetId;
     bool m_batchGenerating = false;
+    QTimer *searchDebounceTimer = nullptr;
 };
