@@ -346,7 +346,7 @@ void MainWindow::setupUI()
     });
 
     connect(copyCodeAct, &QAction::triggered, this, [this]() {
-        QApplication::clipboard()->setText(codeEditor->toPlainText());
+        QApplication::clipboard()->setText(applyParams(codeEditor->toPlainText()));
         statusBar()->showMessage(QStringLiteral("代码已复制到剪贴板"), 2000);
     });
 
@@ -452,7 +452,7 @@ void MainWindow::setupUI()
 
     QShortcut *copyCodeShortcut = new QShortcut(QKeySequence("Ctrl+Shift+C"), this);
     connect(copyCodeShortcut, &QShortcut::activated, this, [this]() {
-        QApplication::clipboard()->setText(codeEditor->toPlainText());
+        QApplication::clipboard()->setText(applyParams(codeEditor->toPlainText()));
         statusBar()->showMessage(QStringLiteral("代码已复制到剪贴板"), 2000);
     });
 
