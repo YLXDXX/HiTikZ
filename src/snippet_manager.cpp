@@ -89,7 +89,12 @@ QString SnippetManager::createSnippet(const QString &name, const QString &catego
 
 bool SnippetManager::saveSnippet(const Snippet &s)
 {
-    QString path = getSnippetPath(s.id);
+    QString path;
+    if (isPresetId(s.id))
+        path = getPresetSnippetPath(s.id);
+    else
+        path = getSnippetPath(s.id);
+
     if (!QDir().mkpath(path))
         return false;
 
@@ -171,10 +176,12 @@ Snippet SnippetManager::loadPreset(const QString &id)
 
 bool SnippetManager::deleteSnippet(const QString &id)
 {
+    QString path;
     if (isPresetId(id))
-        return false;
+        path = getPresetSnippetPath(id);
+    else
+        path = getSnippetPath(id);
 
-    QString path = getSnippetPath(id);
     QDir dir(path);
     if (!dir.exists())
         return false;
@@ -361,4 +368,58 @@ QStringList SnippetManager::getAllCategories(bool includePresets) const
         }
     }
     return cats.values();
+}
+
+bool SnippetManager::updateSnippetCategory(const QString &id, const QString &newCategory)
+{
+    Snippet s = loadSnippet(id);
+    if (s.id.isEmpty()) return false;
+    s.category = newCategory;
+    return saveSnippet(s);
+}
+
+int SnippetManager::renameCategory(const QString &oldCategory, const QString &newCategory)
+{
+    int count = 0;
+    QList<Snippet> all = getAllSnippets();
+    for (Snippet &s : all) {
+        if (s.category == oldCategory) {
+            s.category = newCategory;
+            saveSnippet(s);
+            count++;
+        }
+    }
+    QList<Snippet> presets = getAllPresets();
+    for (Snippet &s : presets) {
+        if (s.category == oldCategory) {
+            s.category = newCategory;
+            saveSnippet(s);
+            count++;
+        }
+    }
+    if (count > 0)
+        emit categoriesChanged();
+    return count;
+}
+
+int SnippetManager::deleteCategory(const QString &category)
+{
+    int count = 0;
+    QList<Snippet> all = getAllSnippets();
+    for (const Snippet &s : all) {
+        if (s.category == category) {
+            deleteSnippet(s.id);
+            count++;
+        }
+    }
+    QList<Snippet> presets = getAllPresets();
+    for (const Snippet &s : presets) {
+        if (s.category == category) {
+            deleteSnippet(s.id);
+            count++;
+        }
+    }
+    if (count > 0)
+        emit categoriesChanged();
+    return count;
 }

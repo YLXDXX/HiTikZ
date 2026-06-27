@@ -39,6 +39,7 @@ public:
 
 protected:
     void closeEvent(QCloseEvent *event) override;
+    bool eventFilter(QObject *obj, QEvent *event) override;
 
 private:
     void setupUI();
@@ -59,6 +60,11 @@ private:
 
     QString snippetDataPath(const QString &id) const;
     QIcon loadThumbnailIcon(const QString &snippetId, bool isPreset) const;
+
+    void buildCategoryTree(QStandardItem *parent, const QString &path, int depth = 0);
+    void showCategoryContextMenu(const QPoint &pos);
+    void renameCategoryItem(QStandardItem *item);
+    void deleteCategoryItem(QStandardItem *item);
 
     SnippetManager *snippetMgr;
     LatexCompiler *compiler;
@@ -89,6 +95,7 @@ private:
 
     QSystemTrayIcon *trayIcon;
     QMenu *trayMenu;
+    QMenu *categoryCtxMenu;
 
     QString currentSnippetId;
     bool m_batchGenerating = false;

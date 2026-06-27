@@ -42,6 +42,10 @@ public:
     bool snippetExists(const QString &id) const;
     bool isPresetId(const QString &id) const;
 
+    bool updateSnippetCategory(const QString &id, const QString &newCategory);
+    int renameCategory(const QString &oldCategory, const QString &newCategory);
+    int deleteCategory(const QString &category);
+
     static void copyPresetsFromResources(const QString &resourceDir, const QString &destDir);
     static int fuzzyMatchScore(const QString &query, const QString &target);
     QList<SearchResult> searchSnippets(const QString &query, bool includePresets = true) const;
@@ -51,6 +55,7 @@ signals:
     void snippetCreated(const QString &id);
     void snippetDeleted(const QString &id);
     void snippetModified(const QString &id);
+    void categoriesChanged();
 
 private:
     QString basePath;
