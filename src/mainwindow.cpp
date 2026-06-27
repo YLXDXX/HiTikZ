@@ -493,8 +493,11 @@ void MainWindow::setupConnections()
         this, [this](bool success, const QString &pdfPath, const QString &log) {
             logPanel->setPlainText(log);
             if (success) {
+                pdfDoc->close();
                 pdfDoc->load(QFileInfo(pdfPath).absoluteFilePath());
-                savePreviewData(pdfPath, currentSnippetId);
+                if (!m_batchGenerating) {
+                    savePreviewData(pdfPath, currentSnippetId);
+                }
                 statusBar()->showMessage(QStringLiteral("编译成功"), 3000);
             } else {
                 pdfDoc->close();
@@ -721,6 +724,7 @@ void MainWindow::generateAllPreviews()
         return;
     }
 
+    m_batchGenerating = true;
     statusBar()->showMessage(QStringLiteral("正在生成所有预览..."), 0);
 
     int done = 0;
@@ -749,5 +753,6 @@ void MainWindow::generateAllPreviews()
     }
 
     statusBar()->showMessage(QStringLiteral("预览生成完毕: %1 个条目").arg(total), 5000);
+    m_batchGenerating = false;
     refreshSearch();
 }

@@ -91,4 +91,5 @@ private:
     QMenu *trayMenu;
 
     QString currentSnippetId;
+    bool m_batchGenerating = false;
 };
