@@ -277,9 +277,16 @@ void MainWindow::setupUI()
         statusBar()->showMessage(QStringLiteral("代码已复制到剪贴板"), 2000);
     });
 
-    connect(copyPngAct, &QAction::triggered, this, [this]() {
-        if (!compiler->pdfPath().isEmpty() && QFile::exists(compiler->pdfPath())) {
-            compiler->convertToPng(300);
+    auto copyPngFromCurrentPreview = [this]() {
+        QString pdfPath;
+        if (!currentSnippetId.isEmpty()) {
+            pdfPath = snippetDataPath(currentSnippetId) + "/preview.pdf";
+        }
+        if (pdfPath.isEmpty() || !QFile::exists(pdfPath)) {
+            pdfPath = compiler->pdfPath();
+        }
+        if (!pdfPath.isEmpty() && QFile::exists(pdfPath)) {
+            compiler->convertToPng(pdfPath, 300);
             connect(compiler, &LatexCompiler::conversionFinished, this,
                 [this](bool ok, const QString &pngPath) {
                     if (ok) {
@@ -291,13 +298,20 @@ void MainWindow::setupUI()
                     }
                 }, Qt::SingleShotConnection);
         } else {
-            statusBar()->showMessage(QStringLiteral("请先编译生成PDF"), 3000);
+            statusBar()->showMessage(QStringLiteral("请先编译生成PDF预览"), 3000);
         }
-    });
+    };
 
-    connect(copySvgAct, &QAction::triggered, this, [this]() {
-        if (!compiler->pdfPath().isEmpty() && QFile::exists(compiler->pdfPath())) {
-            compiler->convertToSvg();
+    auto copySvgFromCurrentPreview = [this]() {
+        QString pdfPath;
+        if (!currentSnippetId.isEmpty()) {
+            pdfPath = snippetDataPath(currentSnippetId) + "/preview.pdf";
+        }
+        if (pdfPath.isEmpty() || !QFile::exists(pdfPath)) {
+            pdfPath = compiler->pdfPath();
+        }
+        if (!pdfPath.isEmpty() && QFile::exists(pdfPath)) {
+            compiler->convertToSvg(pdfPath);
             connect(compiler, &LatexCompiler::conversionFinished, this,
                 [this](bool ok, const QString &svgPath) {
                     if (ok) {
@@ -311,9 +325,12 @@ void MainWindow::setupUI()
                     }
                 }, Qt::SingleShotConnection);
         } else {
-            statusBar()->showMessage(QStringLiteral("请先编译生成PDF"), 3000);
+            statusBar()->showMessage(QStringLiteral("请先编译生成PDF预览"), 3000);
         }
-    });
+    };
+
+    connect(copyPngAct, &QAction::triggered, this, copyPngFromCurrentPreview);
+    connect(copySvgAct, &QAction::triggered, this, copySvgFromCurrentPreview);
 
     connect(settingsAct, &QAction::triggered, this, [this]() {
         SettingsDialog dlg(this);
@@ -367,44 +384,10 @@ void MainWindow::setupUI()
     });
 
     QShortcut *copyPngShortcut = new QShortcut(QKeySequence("Ctrl+Shift+P"), this);
-    connect(copyPngShortcut, &QShortcut::activated, this, [this]() {
-        if (!compiler->pdfPath().isEmpty() && QFile::exists(compiler->pdfPath())) {
-            compiler->convertToPng(300);
-            connect(compiler, &LatexCompiler::conversionFinished, this,
-                [this](bool ok, const QString &pngPath) {
-                    if (ok) {
-                        QImage img(pngPath);
-                        if (!img.isNull()) {
-                            QApplication::clipboard()->setImage(img);
-                            statusBar()->showMessage(QStringLiteral("PNG已复制到剪贴板"), 2000);
-                        }
-                    }
-                }, Qt::SingleShotConnection);
-        } else {
-            statusBar()->showMessage(QStringLiteral("请先编译生成PDF"), 3000);
-        }
-    });
+    connect(copyPngShortcut, &QShortcut::activated, this, copyPngFromCurrentPreview);
 
     QShortcut *copySvgShortcut = new QShortcut(QKeySequence("Ctrl+Shift+S"), this);
-    connect(copySvgShortcut, &QShortcut::activated, this, [this]() {
-        if (!compiler->pdfPath().isEmpty() && QFile::exists(compiler->pdfPath())) {
-            compiler->convertToSvg();
-            connect(compiler, &LatexCompiler::conversionFinished, this,
-                [this](bool ok, const QString &svgPath) {
-                    if (ok) {
-                        QFile svgFile(svgPath);
-                        if (svgFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
-                            QString svgContent = QString::fromUtf8(svgFile.readAll());
-                            svgFile.close();
-                            QApplication::clipboard()->setText(svgContent);
-                            statusBar()->showMessage(QStringLiteral("SVG已复制到剪贴板"), 2000);
-                        }
-                    }
-                }, Qt::SingleShotConnection);
-        } else {
-            statusBar()->showMessage(QStringLiteral("请先编译生成PDF"), 3000);
-        }
-    });
+    connect(copySvgShortcut, &QShortcut::activated, this, copySvgFromCurrentPreview);
 
     mainSplitter->addWidget(leftPanel);
     mainSplitter->addWidget(centerSplitter);

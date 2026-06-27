@@ -24,7 +24,9 @@ public:
     QString logPath() const;
 
     void convertToPng(int dpi = 300);
+    void convertToPng(const QString &pdfPath, int dpi = 300);
     void convertToSvg();
+    void convertToSvg(const QString &pdfPath);
     QString xelatexCommand() const;
     QString pdfToCairoCommand() const;
 

@@ -211,20 +211,26 @@ void LatexCompiler::compile(const QString &texCode, const QString &templateId, c
 
 void LatexCompiler::convertToPng(int dpi)
 {
-    QString pdf = pdfPath();
-    if (pdf.isEmpty() || !QFile::exists(pdf)) {
+    convertToPng(pdfPath(), dpi);
+}
+
+void LatexCompiler::convertToPng(const QString &pdfPath, int dpi)
+{
+    if (pdfPath.isEmpty() || !QFile::exists(pdfPath)) {
         emit conversionFinished(false, QString());
         return;
     }
 
-    QString outPrefix = currentCompileDir + "/output";
+    QFileInfo fi(pdfPath);
+    QString outPrefix = fi.absolutePath() + "/" + fi.completeBaseName();
+
     QStringList args;
-    args << "-png" << "-r" << QString::number(dpi) << pdf << outPrefix;
+    args << "-png" << "-r" << QString::number(dpi) << "-singlefile" << pdfPath << outPrefix;
 
     QProcess *conv = new QProcess(this);
     connect(conv, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
-        this, [this, conv](int exitCode, QProcess::ExitStatus) {
-            QString png = currentCompileDir + "/output-1.png";
+        this, [this, conv, outPrefix](int exitCode, QProcess::ExitStatus) {
+            QString png = outPrefix + ".png";
             bool ok = (exitCode == 0 && QFile::exists(png));
             emit conversionFinished(ok, ok ? png : QString());
             conv->deleteLater();
@@ -235,21 +241,27 @@ void LatexCompiler::convertToPng(int dpi)
 
 void LatexCompiler::convertToSvg()
 {
-    QString pdf = pdfPath();
-    if (pdf.isEmpty() || !QFile::exists(pdf)) {
+    convertToSvg(pdfPath());
+}
+
+void LatexCompiler::convertToSvg(const QString &pdfPath)
+{
+    if (pdfPath.isEmpty() || !QFile::exists(pdfPath)) {
         emit conversionFinished(false, QString());
         return;
     }
 
-    QString svg = currentCompileDir + "/output.svg";
+    QFileInfo fi(pdfPath);
+    QString outSvg = fi.absolutePath() + "/" + fi.completeBaseName() + ".svg";
+
     QStringList args;
-    args << "-svg" << pdf << svg;
+    args << "-svg" << pdfPath << outSvg;
 
     QProcess *conv = new QProcess(this);
     connect(conv, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
-        this, [this, conv, svg](int exitCode, QProcess::ExitStatus) {
-            bool ok = (exitCode == 0 && QFile::exists(svg));
-            emit conversionFinished(ok, ok ? svg : QString());
+        this, [this, conv, outSvg](int exitCode, QProcess::ExitStatus) {
+            bool ok = (exitCode == 0 && QFile::exists(outSvg));
+            emit conversionFinished(ok, ok ? outSvg : QString());
             conv->deleteLater();
         });
 
