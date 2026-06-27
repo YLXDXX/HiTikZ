@@ -12,6 +12,8 @@
 #include <QStandardPaths>
 #include <QFileInfo>
 #include <QDebug>
+#include <QInputDialog>
+#include <QMessageBox>
 
 SettingsDialog::SettingsDialog(QWidget *parent)
     : QDialog(parent)
@@ -46,6 +48,19 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     listLayout->setContentsMargins(0, 0, 0, 0);
     templateListWidget = new QListWidget;
     listLayout->addWidget(templateListWidget);
+
+    QHBoxLayout *tplBtnLayout = new QHBoxLayout;
+    QPushButton *newTplBtn = new QPushButton(QStringLiteral("+"));
+    newTplBtn->setFixedWidth(30);
+    QPushButton *delTplBtn = new QPushButton(QStringLiteral("-"));
+    delTplBtn->setFixedWidth(30);
+    tplBtnLayout->addStretch();
+    tplBtnLayout->addWidget(newTplBtn);
+    tplBtnLayout->addWidget(delTplBtn);
+    listLayout->addLayout(tplBtnLayout);
+
+    connect(newTplBtn, &QPushButton::clicked, this, &SettingsDialog::createTemplate);
+    connect(delTplBtn, &QPushButton::clicked, this, &SettingsDialog::deleteTemplate);
 
     QWidget *editPanel = new QWidget;
     QVBoxLayout *editLayout = new QVBoxLayout(editPanel);
@@ -175,4 +190,55 @@ void SettingsDialog::saveTemplateContent()
         file.write(templateEdit->toPlainText().toUtf8());
         file.close();
     }
+}
+
+void SettingsDialog::createTemplate()
+{
+    bool ok;
+    QString name = QInputDialog::getText(this, QStringLiteral("新建模板"),
+        QStringLiteral("模板名称 (不含扩展名):"), QLineEdit::Normal, "", &ok);
+    if (!ok || name.isEmpty()) return;
+
+    QString path = templateDir() + name + ".tex";
+    if (QFile::exists(path)) {
+        QMessageBox::warning(this, QStringLiteral("错误"),
+            QStringLiteral("模板 \"%1\" 已存在").arg(name));
+        return;
+    }
+
+    QString defaultContent = QStringLiteral(
+        "\\documentclass[tikz, border=5pt]{standalone}\n"
+        "\\usepackage{tikz}\n"
+        "\\usepackage{xcolor}\n"
+        "\\begin{document}\n"
+        "%%% TIKZ_CODE_HERE %%%\n"
+        "\\end{document}\n"
+    );
+
+    QFile file(path);
+    if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        file.write(defaultContent.toUtf8());
+        file.close();
+    }
+
+    loadTemplateList();
+    int idx = templateListWidget->findItems(name, Qt::MatchExactly).value(0) ?
+        templateListWidget->row(templateListWidget->findItems(name, Qt::MatchExactly).first()) : 0;
+    templateListWidget->setCurrentRow(idx >= 0 ? idx : 0);
+}
+
+void SettingsDialog::deleteTemplate()
+{
+    QListWidgetItem *item = templateListWidget->currentItem();
+    if (!item) return;
+
+    QString name = item->text();
+    int ret = QMessageBox::warning(this, QStringLiteral("删除模板"),
+        QStringLiteral("确定删除模板 \"%1\" 吗？").arg(name),
+        QMessageBox::Yes | QMessageBox::No);
+    if (ret != QMessageBox::Yes) return;
+
+    QString path = templateDir() + name + ".tex";
+    QFile::remove(path);
+    loadTemplateList();
 }

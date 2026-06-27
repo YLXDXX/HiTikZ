@@ -23,6 +23,8 @@ private:
     void loadTemplateList();
     void loadTemplateContent();
     void saveTemplateContent();
+    void createTemplate();
+    void deleteTemplate();
 
     QLineEdit *xelatexPathEdit;
     QLineEdit *pdftocairoPathEdit;
