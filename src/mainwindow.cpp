@@ -345,10 +345,15 @@ void MainWindow::setupUI()
         }
     });
 
-    connect(copyCodeAct, &QAction::triggered, this, [this]() {
-        QApplication::clipboard()->setText(applyParams(codeEditor->toPlainText()));
+    auto copyCode = [this]() {
+        QString code = applyParams(codeEditor->toPlainText());
+        static QRegularExpression paramLine("^%\\s*@param:.*(\n|\r\n?)?", QRegularExpression::MultilineOption);
+        code.remove(paramLine);
+        QApplication::clipboard()->setText(code);
         statusBar()->showMessage(QStringLiteral("代码已复制到剪贴板"), 2000);
-    });
+    };
+
+    connect(copyCodeAct, &QAction::triggered, this, copyCode);
 
     auto copyPngFromCurrentPreview = [this]() {
         QString pdfPath;
@@ -451,10 +456,7 @@ void MainWindow::setupUI()
     });
 
     QShortcut *copyCodeShortcut = new QShortcut(QKeySequence("Ctrl+Shift+C"), this);
-    connect(copyCodeShortcut, &QShortcut::activated, this, [this]() {
-        QApplication::clipboard()->setText(applyParams(codeEditor->toPlainText()));
-        statusBar()->showMessage(QStringLiteral("代码已复制到剪贴板"), 2000);
-    });
+    connect(copyCodeShortcut, &QShortcut::activated, this, copyCode);
 
     QShortcut *copyPngShortcut = new QShortcut(QKeySequence("Ctrl+Shift+P"), this);
     connect(copyPngShortcut, &QShortcut::activated, this, copyPngFromCurrentPreview);
