@@ -18,7 +18,13 @@ LatexCompiler::LatexCompiler(QObject *parent)
 
 LatexCompiler::~LatexCompiler()
 {
-    cancelCompile();
+    if (process) {
+        if (process->state() != QProcess::NotRunning) {
+            process->kill();
+        }
+        process->disconnect(this);
+        process->deleteLater();
+    }
 }
 
 void LatexCompiler::setTemplateDir(const QString &dir)
@@ -136,15 +142,16 @@ void LatexCompiler::cancelCompile()
 {
     if (process && process->state() != QProcess::NotRunning) {
         process->kill();
-        process->waitForFinished(3000);
     }
 }
 
 void LatexCompiler::compile(const QString &texCode, const QString &templateId, const QString &snippetId)
 {
-    cancelCompile();
-
     if (process) {
+        if (process->state() != QProcess::NotRunning) {
+            process->kill();
+        }
+        process->disconnect(this);
         process->deleteLater();
         process = nullptr;
     }
