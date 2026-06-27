@@ -838,11 +838,12 @@ void MainWindow::savePreviewData(const QString &pdfPath, const QString &snippetI
         QFile::remove(previewPdf);
     QFile::copy(pdfPath, previewPdf);
 
-    QProcess pngProc;
+    QProcess *pngProc = new QProcess(this);
+    connect(pngProc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+        pngProc, &QProcess::deleteLater);
     QStringList args;
     args << "-png" << "-r" << "150" << "-singlefile" << pdfPath << (basePath + "/preview");
-    pngProc.start("pdftocairo", args);
-    pngProc.waitForFinished(5000);
+    pngProc->start("pdftocairo", args);
 }
 
 void MainWindow::loadPreviewForSnippet(const QString &id)
