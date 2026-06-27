@@ -33,6 +33,7 @@ add_executable(TikzManager
     src/latex_compiler.cpp
     src/code_editor.cpp
     src/settings_dialog.cpp
+    src/search_panel.cpp
 )
 
 target_link_libraries(TikzManager PRIVATE Qt6::Widgets Qt6::Pdf Qt6::PdfWidgets)

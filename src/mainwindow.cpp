@@ -1,4 +1,5 @@
 #include "mainwindow.h"
+#include "search_panel.h"
 #include "snippet_manager.h"
 #include "latex_compiler.h"
 #include "code_editor.h"
@@ -67,6 +68,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), currentSnippetId(
         show();
         raise();
         activateWindow();
+        searchPanel->setFocus();
     });
     connect(hideAct, &QAction::triggered, this, &QMainWindow::hide);
     connect(quitAct, &QAction::triggered, qApp, &QApplication::quit);
@@ -78,7 +80,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), currentSnippetId(
                 show();
                 raise();
                 activateWindow();
-                searchBox->setFocus();
+                searchPanel->setFocus();
             }
         }
     });
@@ -100,7 +102,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), currentSnippetId(
                 show();
                 raise();
                 activateWindow();
-                searchBox->setFocus();
+                searchPanel->setFocus();
             }
         });
     } else {
@@ -144,84 +146,7 @@ void MainWindow::setupUI()
 
     QSplitter *mainSplitter = new QSplitter(Qt::Horizontal);
 
-    // --- Left Panel ---
-    leftPanel = new QWidget;
-    QVBoxLayout *leftLayout = new QVBoxLayout(leftPanel);
-    leftLayout->setContentsMargins(4, 4, 4, 4);
-
-    searchBox = new QLineEdit;
-    searchBox->setPlaceholderText(QStringLiteral("搜索名称或简介..."));
-    searchBox->setClearButtonEnabled(true);
-
-    categoryTree = new QTreeView;
-    categoryTree->setHeaderHidden(true);
-    categoryTree->setRootIsDecorated(true);
-    categoryTree->setContextMenuPolicy(Qt::CustomContextMenu);
-    categoryTree->setAcceptDrops(true);
-    categoryTree->setDropIndicatorShown(true);
-    categoryTree->setDragDropMode(QAbstractItemView::DropOnly);
-    categoryTree->viewport()->setAcceptDrops(true);
-    categoryModel = new QStandardItemModel(this);
-    categoryTree->setModel(categoryModel);
-    categoryTree->viewport()->installEventFilter(this);
-
-    thumbnailList = new QListView;
-    thumbnailList->setViewMode(QListView::IconMode);
-    thumbnailList->setIconSize(QSize(96, 96));
-    thumbnailList->setGridSize(QSize(120, 130));
-    thumbnailList->setResizeMode(QListView::Adjust);
-    thumbnailList->setWordWrap(true);
-    thumbnailList->setDragEnabled(true);
-    thumbnailList->setDragDropMode(QAbstractItemView::DragOnly);
-    thumbnailModel = new QStandardItemModel(this);
-    thumbnailList->setModel(thumbnailModel);
-
-    categoryCtxMenu = new QMenu(this);
-    QAction *renameCatAct = categoryCtxMenu->addAction(QStringLiteral("重命名分类"));
-    QAction *deleteCatAct = categoryCtxMenu->addAction(QStringLiteral("删除分类"));
-    QAction *newSubCatAct = categoryCtxMenu->addAction(QStringLiteral("新建子分类"));
-    QAction *newTopCatAct = categoryCtxMenu->addAction(QStringLiteral("新建大类"));
-    newTopCatAct->setVisible(false);
-
-    auto getEffectiveCatItem = [this]() -> QStandardItem* {
-        QModelIndex idx = categoryTree->currentIndex();
-        return idx.isValid() ? categoryModel->itemFromIndex(idx) : nullptr;
-    };
-
-    connect(renameCatAct, &QAction::triggered, this, [this, getEffectiveCatItem]() {
-        renameCategoryItem(getEffectiveCatItem());
-    });
-    connect(deleteCatAct, &QAction::triggered, this, [this, getEffectiveCatItem]() {
-        deleteCategoryItem(getEffectiveCatItem());
-    });
-    connect(newSubCatAct, &QAction::triggered, this, [this, getEffectiveCatItem]() {
-        QStandardItem *item = getEffectiveCatItem();
-        if (!item) return;
-        QString parentCat = item->data(Qt::UserRole).toString();
-        bool ok;
-        QString name = QInputDialog::getText(this, QStringLiteral("新建子分类"),
-            QStringLiteral("子分类名称:"), QLineEdit::Normal, "", &ok);
-        if (ok && !name.isEmpty()) {
-            QString newCat = parentCat.isEmpty() ? name : parentCat + "/" + name;
-            snippetMgr->createSnippet(QStringLiteral("新片段"), newCat);
-            refreshCategoryTree();
-            refreshSearch();
-        }
-    });
-    connect(newTopCatAct, &QAction::triggered, this, [this]() {
-        bool ok;
-        QString name = QInputDialog::getText(this, QStringLiteral("新建大类"),
-            QStringLiteral("大类名称:"), QLineEdit::Normal, "", &ok);
-        if (ok && !name.isEmpty()) {
-            snippetMgr->createSnippet(QStringLiteral("新片段"), name);
-            refreshCategoryTree();
-            refreshSearch();
-        }
-    });
-
-    leftLayout->addWidget(searchBox);
-    leftLayout->addWidget(categoryTree, 1);
-    leftLayout->addWidget(thumbnailList, 2);
+    searchPanel = new SearchPanel(snippetMgr);
 
     // --- Center Panel ---
     QSplitter *centerSplitter = new QSplitter(Qt::Vertical);
@@ -297,9 +222,8 @@ void MainWindow::setupUI()
     });
 
     connect(deleteAct, &QAction::triggered, this, [this]() {
-        QModelIndex catIdx = categoryTree->currentIndex();
-        QString cat = catIdx.isValid() ? catIdx.data(Qt::UserRole).toString() : QString();
-        bool isAllCat = (cat.isEmpty() && catIdx.isValid());
+        QString cat = searchPanel->currentCategory();
+        bool isAllCat = cat.isEmpty();
 
         if (currentSnippetId.isEmpty() && !cat.isEmpty() && !isAllCat) {
             int ret = QMessageBox::warning(this, QStringLiteral("删除分类"),
@@ -491,7 +415,7 @@ void MainWindow::setupUI()
     QShortcut *copySvgShortcut = new QShortcut(QKeySequence("Ctrl+Shift+S"), this);
     connect(copySvgShortcut, &QShortcut::activated, this, copySvgFromCurrentPreview);
 
-    mainSplitter->addWidget(leftPanel);
+    mainSplitter->addWidget(searchPanel);
     mainSplitter->addWidget(centerSplitter);
     mainSplitter->addWidget(rightPanel);
     mainSplitter->setSizes({250, 600, 350});
@@ -502,56 +426,10 @@ void MainWindow::setupUI()
 
 void MainWindow::setupConnections()
 {
-    searchDebounceTimer = new QTimer(this);
-    searchDebounceTimer->setSingleShot(true);
-    searchDebounceTimer->setInterval(150);
-    connect(searchDebounceTimer, &QTimer::timeout, this, &MainWindow::refreshSearch);
-
-    connect(searchBox, &QLineEdit::textChanged, this, [this](const QString &) {
-        searchDebounceTimer->start();
-    });
-
-    connect(thumbnailList->selectionModel(), &QItemSelectionModel::currentChanged,
-        this, [this](const QModelIndex &current, const QModelIndex &) {
-            if (!current.isValid()) return;
-            QString id = current.data(Qt::UserRole).toString();
-            if (!id.isEmpty()) {
-                loadSnippetIntoEditor(id);
-            }
+    connect(searchPanel, &SearchPanel::snippetSelected,
+        this, [this](const QString &id) {
+            loadSnippetIntoEditor(id);
         });
-
-    connect(categoryTree->selectionModel(), &QItemSelectionModel::currentChanged,
-        this, [this](const QModelIndex &current, const QModelIndex &) {
-            if (!current.isValid()) return;
-            QString category = current.data(Qt::UserRole).toString();
-            thumbnailModel->clear();
-
-            currentSnippetId.clear();
-            codeEditor->clear();
-            nameEdit->clear();
-            descEdit->clear();
-            clearPdfPreview();
-            clearParams();
-
-            QList<SearchResult> results = snippetMgr->searchSnippets("");
-            for (const SearchResult &r : results) {
-                if (!category.isEmpty() && !r.snippet.category.startsWith(category))
-                    continue;
-                QString label = r.snippet.isPreset ? QStringLiteral("[预设] ") + r.snippet.name : r.snippet.name;
-                QStandardItem *item = new QStandardItem(label);
-                item->setData(r.snippet.id, Qt::UserRole);
-                item->setToolTip(r.snippet.description);
-
-                QIcon icon = loadThumbnailIcon(r.snippet.id, r.snippet.isPreset);
-                if (!icon.isNull())
-                    item->setIcon(icon);
-
-                thumbnailModel->appendRow(item);
-            }
-        });
-
-    connect(categoryTree, &QTreeView::customContextMenuRequested,
-        this, &MainWindow::showCategoryContextMenu);
 
     connect(snippetMgr, &SnippetManager::categoriesChanged,
         this, &MainWindow::refreshCategoryTree);
@@ -628,24 +506,12 @@ void MainWindow::setupConnections()
 
 void MainWindow::refreshSearch()
 {
-    QString query = searchBox->text().trimmed();
-    thumbnailModel->clear();
+    searchPanel->refreshSearch();
+}
 
-    QList<SearchResult> results = snippetMgr->searchSnippets(query);
-    for (const SearchResult &r : results) {
-        QString label = r.snippet.isPreset ? QStringLiteral("[预设] ") + r.snippet.name : r.snippet.name;
-        QStandardItem *item = new QStandardItem(label);
-        item->setData(r.snippet.id, Qt::UserRole);
-        item->setToolTip(QString("%1%2 (分数: %3)\n%4")
-            .arg(r.snippet.isPreset ? QStringLiteral("[预设] ") : QString())
-            .arg(r.snippet.name).arg(r.score).arg(r.snippet.description));
-
-        QIcon icon = loadThumbnailIcon(r.snippet.id, r.snippet.isPreset);
-        if (!icon.isNull())
-            item->setIcon(icon);
-
-        thumbnailModel->appendRow(item);
-    }
+void MainWindow::refreshCategoryTree()
+{
+    searchPanel->refreshCategoryTree();
 }
 
 void MainWindow::loadSnippetIntoEditor(const QString &id)
@@ -680,75 +546,6 @@ void MainWindow::saveCurrentSnippet()
     s.description = descEdit->toPlainText();
     s.code = codeEditor->toPlainText();
     snippetMgr->saveSnippet(s);
-}
-
-void MainWindow::refreshCategoryTree()
-{
-    categoryModel->clear();
-    QStandardItem *rootItem = categoryModel->invisibleRootItem();
-
-    QMap<QString, int> catCounts = snippetMgr->getCategoryCounts(true);
-
-    int totalCount = 0;
-    for (auto it = catCounts.constBegin(); it != catCounts.constEnd(); ++it)
-        totalCount += it.value();
-
-    QStandardItem *allItem = new QStandardItem(QStringLiteral("全部 (%1)").arg(totalCount));
-    allItem->setData("", Qt::UserRole);
-    allItem->setEditable(false);
-    rootItem->appendRow(allItem);
-
-    QStringList categories = snippetMgr->getAllCategories();
-    for (const QString &cat : categories) {
-        buildCategoryTree(rootItem, cat, catCounts);
-    }
-
-    categoryTree->expandAll();
-}
-
-void MainWindow::buildCategoryTree(QStandardItem *parent, const QString &path, const QMap<QString, int> &counts, int depth)
-{
-    Q_UNUSED(depth);
-    if (path.isEmpty()) return;
-
-    int slashPos = path.indexOf('/');
-    QString name = (slashPos >= 0) ? path.left(slashPos) : path;
-    QString remaining = (slashPos >= 0) ? path.mid(slashPos + 1) : QString();
-    QString fullPath = parent->data(Qt::UserRole).toString();
-    if (!fullPath.isEmpty()) fullPath += "/";
-    fullPath += name;
-
-    int subtreeCount = 0;
-    for (auto it = counts.constBegin(); it != counts.constEnd(); ++it) {
-        if (it.key() == fullPath || it.key().startsWith(fullPath + "/"))
-            subtreeCount += it.value();
-    }
-
-    QStandardItem *child = nullptr;
-    for (int i = 0; i < parent->rowCount(); ++i) {
-        QStandardItem *sibling = parent->child(i);
-        if (sibling->data(Qt::UserRole).toString() == fullPath) {
-            child = sibling;
-            break;
-        }
-    }
-
-    QString label = subtreeCount > 0
-        ? QString("%1 (%2)").arg(name).arg(subtreeCount)
-        : name;
-
-    if (!child) {
-        child = new QStandardItem(label);
-        child->setData(fullPath, Qt::UserRole);
-        child->setEditable(false);
-        parent->appendRow(child);
-    } else {
-        child->setText(label);
-    }
-
-    if (!remaining.isEmpty()) {
-        buildCategoryTree(child, remaining, counts, depth + 1);
-    }
 }
 
 void MainWindow::onCurrentSnippetChanged()
@@ -838,15 +635,6 @@ QString MainWindow::snippetDataPath(const QString &id) const
         return snippetMgr->getBasePath() + id;
 }
 
-QIcon MainWindow::loadThumbnailIcon(const QString &snippetId, bool isPreset) const
-{
-    Q_UNUSED(isPreset);
-    QString pngPath = snippetDataPath(snippetId) + "/preview.png";
-    if (QFile::exists(pngPath))
-        return QIcon(pngPath);
-    return QIcon();
-}
-
 void MainWindow::savePreviewData(const QString &pdfPath, const QString &snippetId)
 {
     if (snippetId.isEmpty()) return;
@@ -924,107 +712,6 @@ void MainWindow::generateAllPreviews()
     refreshSearch();
 }
 
-void MainWindow::showCategoryContextMenu(const QPoint &pos)
-{
-    QModelIndex idx = categoryTree->indexAt(pos);
-    if (!idx.isValid()) return;
-    QStandardItem *item = categoryModel->itemFromIndex(idx);
-    if (!item) return;
-
-    QString catData = item->data(Qt::UserRole).toString();
-    bool isAll = catData.isEmpty();
-    // Use data role to identify "全部", not text (which now includes counts)
-
-    QList<QAction*> actions = categoryCtxMenu->actions();
-    for (QAction *act : actions) {
-        if (act->text() == QStringLiteral("新建大类"))
-            act->setVisible(isAll);
-        else if (act->text() == QStringLiteral("重命名分类")
-              || act->text() == QStringLiteral("删除分类")
-              || act->text() == QStringLiteral("新建子分类"))
-            act->setVisible(!isAll);
-    }
-
-    categoryCtxMenu->popup(categoryTree->viewport()->mapToGlobal(pos));
-}
-
-void MainWindow::renameCategoryItem(QStandardItem *item)
-{
-    if (!item) return;
-    QString oldCat = item->data(Qt::UserRole).toString();
-    if (oldCat.isEmpty()) return;
-
-    bool ok;
-    QString newName = QInputDialog::getText(this, QStringLiteral("重命名分类"),
-        QStringLiteral("新名称:"), QLineEdit::Normal, oldCat, &ok);
-    if (!ok || newName.isEmpty() || newName == oldCat) return;
-
-    int count = snippetMgr->renameCategory(oldCat, newName);
-    statusBar()->showMessage(QStringLiteral("已更新 %1 个片段").arg(count), 3000);
-    refreshCategoryTree();
-    refreshSearch();
-}
-
-void MainWindow::deleteCategoryItem(QStandardItem *item)
-{
-    if (!item) return;
-    QString cat = item->data(Qt::UserRole).toString();
-    if (cat.isEmpty()) return;
-
-    int ret = QMessageBox::warning(this, QStringLiteral("删除分类"),
-        QStringLiteral("确定删除分类 \"%1\" 及其所有片段吗？").arg(cat),
-        QMessageBox::Yes | QMessageBox::No);
-    if (ret != QMessageBox::Yes) return;
-
-    int count = snippetMgr->deleteCategory(cat);
-    statusBar()->showMessage(QStringLiteral("已删除 %1 个片段").arg(count), 3000);
-    currentSnippetId.clear();
-    codeEditor->clear();
-    nameEdit->clear();
-    descEdit->clear();
-    clearPdfPreview();
-    refreshCategoryTree();
-    refreshSearch();
-}
-
-bool MainWindow::eventFilter(QObject *obj, QEvent *event)
-{
-    if (obj == logPanel->viewport() && event->type() == QEvent::MouseButtonDblClick) {
-        handleLogDoubleClick();
-        return true;
-    }
-
-    if (obj == categoryTree->viewport() && event->type() == QEvent::Drop) {
-        QDropEvent *de = static_cast<QDropEvent *>(event);
-        const QMimeData *mime = de->mimeData();
-        QModelIndex targetIdx = categoryTree->indexAt(de->position().toPoint());
-        QString targetCat;
-        if (targetIdx.isValid())
-            targetCat = targetIdx.data(Qt::UserRole).toString();
-
-        if (mime->hasFormat("application/x-qabstractitemmodeldatalist")) {
-            QByteArray data = mime->data("application/x-qabstractitemmodeldatalist");
-            QDataStream stream(&data, QIODevice::ReadOnly);
-            int row, col;
-            QMap<int, QVariant> roleData;
-            stream >> row >> col >> roleData;
-            QString snippetId = roleData[Qt::UserRole].toString();
-
-            if (!snippetId.isEmpty()) {
-                snippetMgr->updateSnippetCategory(snippetId, targetCat);
-                refreshCategoryTree();
-                refreshSearch();
-                statusBar()->showMessage(
-                    QStringLiteral("已移动片段到: %1").arg(targetCat.isEmpty() ? "全部" : targetCat),
-                    3000);
-                de->accept();
-                return true;
-            }
-        }
-    }
-    return QMainWindow::eventFilter(obj, event);
-}
-
 void MainWindow::refreshTemplateCombo()
 {
     const QSignalBlocker blocker(templateCombo);
@@ -1084,6 +771,16 @@ void MainWindow::setFormattedLog(const QString &log)
     QTextCursor cursor = logPanel->textCursor();
     cursor.movePosition(QTextCursor::Start);
     logPanel->setTextCursor(cursor);
+}
+
+bool MainWindow::eventFilter(QObject *obj, QEvent *event)
+{
+    if (obj == logPanel->viewport() && event->type() == QEvent::MouseButtonDblClick) {
+        handleLogDoubleClick();
+        return true;
+    }
+
+    return QMainWindow::eventFilter(obj, event);
 }
 
 void MainWindow::handleLogDoubleClick()

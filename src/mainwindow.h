@@ -27,6 +27,7 @@
 class SnippetManager;
 class LatexCompiler;
 class CodeEditor;
+class SearchPanel;
 
 struct ParamInfo {
     QString name;
@@ -65,23 +66,12 @@ private:
     void checkSystemDependencies();
 
     QString snippetDataPath(const QString &id) const;
-    QIcon loadThumbnailIcon(const QString &snippetId, bool isPreset) const;
 
-    void buildCategoryTree(QStandardItem *parent, const QString &path, const QMap<QString, int> &counts, int depth = 0);
-    void showCategoryContextMenu(const QPoint &pos);
-    void renameCategoryItem(QStandardItem *item);
-    void deleteCategoryItem(QStandardItem *item);
     void refreshTemplateCombo();
 
     SnippetManager *snippetMgr;
     LatexCompiler *compiler;
-    QStandardItemModel *thumbnailModel;
-    QStandardItemModel *categoryModel;
-
-    QWidget *leftPanel;
-    QLineEdit *searchBox;
-    QTreeView *categoryTree;
-    QListView *thumbnailList;
+    SearchPanel *searchPanel;
 
     CodeEditor *codeEditor;
     QPlainTextEdit *logPanel;
@@ -103,7 +93,6 @@ private:
 
     QSystemTrayIcon *trayIcon;
     QMenu *trayMenu;
-    QMenu *categoryCtxMenu;
 
     QString currentSnippetId;
     bool m_batchGenerating = false;
