@@ -401,9 +401,12 @@ void MainWindow::setupUI()
                     if (ok) {
                         QFile svgFile(svgPath);
                         if (svgFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
-                            QString svgContent = QString::fromUtf8(svgFile.readAll());
+                            QByteArray svgData = svgFile.readAll();
                             svgFile.close();
-                            QApplication::clipboard()->setText(svgContent);
+                            QMimeData *mimeData = new QMimeData;
+                            mimeData->setData(QStringLiteral("image/svg+xml"), svgData);
+                            mimeData->setText(QString::fromUtf8(svgData));
+                            QApplication::clipboard()->setMimeData(mimeData);
                             statusBar()->showMessage(QStringLiteral("SVG已复制到剪贴板"), 2000);
                         }
                     }
