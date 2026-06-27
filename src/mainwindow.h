@@ -62,6 +62,7 @@ private:
     void generateAllPreviews();
     void setFormattedLog(const QString &log);
     void handleLogDoubleClick();
+    void checkSystemDependencies();
 
     QString snippetDataPath(const QString &id) const;
     QIcon loadThumbnailIcon(const QString &snippetId, bool isPreset) const;

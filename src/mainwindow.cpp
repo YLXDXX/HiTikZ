@@ -86,6 +86,10 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), currentSnippetId(
     trayIcon->setContextMenu(trayMenu);
     trayIcon->show();
 
+    QTimer::singleShot(100, this, [this]() {
+        checkSystemDependencies();
+    });
+
 #ifdef HAS_QHOTKEY
     QHotkey *hotkey = new QHotkey(QKeySequence("Ctrl+Alt+T"), true, this);
     if (hotkey->isRegistered()) {
@@ -1101,4 +1105,32 @@ void MainWindow::handleLogDoubleClick()
     codeEditor->setTextCursor(cursor);
     codeEditor->highlightCurrentLine();
     codeEditor->setFocus();
+}
+
+void MainWindow::checkSystemDependencies()
+{
+    QStringList missing;
+
+    if (!LatexCompiler::checkXelatexAvailable())
+        missing << QStringLiteral("xelatex");
+
+    if (!LatexCompiler::checkPdfToCairoAvailable())
+        missing << QStringLiteral("pdftocairo");
+
+    if (missing.isEmpty()) return;
+
+    QString msg = QStringLiteral("以下依赖工具未找到：\n\n");
+    for (const QString &m : missing)
+        msg += QStringLiteral("  • %1\n").arg(m);
+    msg += QStringLiteral("\n这些工具是编译 TikZ 预览和格式转换所必需的。\n\n");
+    msg += QStringLiteral("安装方法 (Arch/Manjaro):\n");
+    msg += QStringLiteral("  sudo pacman -S texlive-core poppler\n\n");
+    msg += QStringLiteral("安装方法 (Debian/Ubuntu):\n");
+    msg += QStringLiteral("  sudo apt install texlive-xetex poppler-utils\n\n");
+    msg += QStringLiteral("安装方法 (Fedora):\n");
+    msg += QStringLiteral("  sudo dnf install texlive-xetex poppler-utils");
+
+    QTimer::singleShot(200, this, [this, msg]() {
+        QMessageBox::warning(this, QStringLiteral("缺少依赖"), msg);
+    });
 }
