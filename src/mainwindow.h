@@ -52,6 +52,11 @@ private:
     void loadSnippetIntoEditor(const QString &id);
     void saveCurrentSnippet();
     static QString resolveParamsFromCode(const QString &code);
+    void zoomPdfIn();
+    void zoomPdfOut();
+    void fitPdfPage();
+    void fitPdfWidth();
+    void fitPdfHeight();
     void refreshCategoryTree();
     void onCurrentSnippetChanged();
     void jumpToErrorLine(const QString &logText);

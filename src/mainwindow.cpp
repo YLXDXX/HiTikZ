@@ -32,6 +32,7 @@
 #include <QMimeData>
 #include <QDataStream>
 #include <QDropEvent>
+#include <QWheelEvent>
 
 #define STRINGIFY(x) STRINGIFY_IMPL(x)
 #define STRINGIFY_IMPL(x) #x
@@ -173,7 +174,31 @@ void MainWindow::setupUI()
     pdfDoc = new QPdfDocument(this);
     pdfView = new QPdfView;
     pdfView->setDocument(pdfDoc);
-    pdfView->setMinimumSize(250, 250);
+    pdfView->viewport()->installEventFilter(this);
+
+    QHBoxLayout *zoomToolbar = new QHBoxLayout;
+    QPushButton *fitPageBtn = new QPushButton(QStringLiteral("适应整页"));
+    QPushButton *fitWidthBtn = new QPushButton(QStringLiteral("适应宽度"));
+    QPushButton *fitHeightBtn = new QPushButton(QStringLiteral("适应高度"));
+    QPushButton *zoomInBtn = new QPushButton(QStringLiteral("+"));
+    QPushButton *zoomOutBtn = new QPushButton(QStringLiteral("−"));
+    zoomInBtn->setFixedWidth(36);
+    zoomOutBtn->setFixedWidth(36);
+    zoomToolbar->addWidget(fitPageBtn);
+    zoomToolbar->addWidget(fitWidthBtn);
+    zoomToolbar->addWidget(fitHeightBtn);
+    zoomToolbar->addStretch();
+    zoomToolbar->addWidget(zoomOutBtn);
+    zoomToolbar->addWidget(zoomInBtn);
+    rightLayout->addLayout(zoomToolbar);
+
+    rightLayout->addWidget(pdfView, 2);
+
+    connect(fitPageBtn, &QPushButton::clicked, this, &MainWindow::fitPdfPage);
+    connect(fitWidthBtn, &QPushButton::clicked, this, &MainWindow::fitPdfWidth);
+    connect(fitHeightBtn, &QPushButton::clicked, this, &MainWindow::fitPdfHeight);
+    connect(zoomInBtn, &QPushButton::clicked, this, &MainWindow::zoomPdfIn);
+    connect(zoomOutBtn, &QPushButton::clicked, this, &MainWindow::zoomPdfOut);
 
     nameEdit = new QLineEdit;
     nameEdit->setPlaceholderText(QStringLiteral("名称"));
@@ -184,7 +209,6 @@ void MainWindow::setupUI()
     compileBtn = new QPushButton(QStringLiteral("编译预览"));
     saveBtn = new QPushButton(QStringLiteral("保存"));
 
-    rightLayout->addWidget(pdfView, 3);
     rightLayout->addWidget(new QLabel(QStringLiteral("名称:")));
     rightLayout->addWidget(nameEdit);
     rightLayout->addWidget(new QLabel(QStringLiteral("简介:")));
@@ -209,9 +233,11 @@ void MainWindow::setupUI()
 
     applyParamsBtn = new QPushButton(QStringLiteral("应用参数"));
 
-    rightLayout->addWidget(compileBtn);
-    rightLayout->addWidget(applyParamsBtn);
-    rightLayout->addWidget(saveBtn);
+    QHBoxLayout *btnRow = new QHBoxLayout;
+    btnRow->addWidget(compileBtn);
+    btnRow->addWidget(applyParamsBtn);
+    btnRow->addWidget(saveBtn);
+    rightLayout->addLayout(btnRow);
     // --- Toolbar actions ---
     connect(newAct, &QAction::triggered, this, [this]() {
         bool ok;
@@ -793,6 +819,15 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event)
         return true;
     }
 
+    if (obj == pdfView->viewport() && event->type() == QEvent::Wheel) {
+        QWheelEvent *we = static_cast<QWheelEvent *>(event);
+        if (we->angleDelta().y() > 0)
+            zoomPdfIn();
+        else if (we->angleDelta().y() < 0)
+            zoomPdfOut();
+        return true;
+    }
+
     return QMainWindow::eventFilter(obj, event);
 }
 
@@ -858,4 +893,44 @@ QString MainWindow::resolveParamsFromCode(const QString &code)
         result.replace("@@" + varName + "@@", defaultValue);
     }
     return result;
+}
+
+void MainWindow::zoomPdfIn()
+{
+    qreal factor = pdfView->zoomFactor();
+    pdfView->setZoomMode(QPdfView::ZoomMode::Custom);
+    pdfView->setZoomFactor(factor * 1.25);
+}
+
+void MainWindow::zoomPdfOut()
+{
+    qreal factor = pdfView->zoomFactor();
+    pdfView->setZoomMode(QPdfView::ZoomMode::Custom);
+    pdfView->setZoomFactor(qMax(0.1, factor / 1.25));
+}
+
+void MainWindow::fitPdfPage()
+{
+    pdfView->setZoomMode(QPdfView::ZoomMode::FitInView);
+}
+
+void MainWindow::fitPdfWidth()
+{
+    pdfView->setZoomMode(QPdfView::ZoomMode::FitToWidth);
+}
+
+void MainWindow::fitPdfHeight()
+{
+    if (!pdfDoc || pdfDoc->status() != QPdfDocument::Status::Ready)
+        return;
+
+    QSizeF pageSize = pdfDoc->pagePointSize(0);
+    if (pageSize.isEmpty()) return;
+
+    QSize viewportSize = pdfView->viewport()->size();
+    if (viewportSize.height() <= 0) return;
+
+    qreal ratio = viewportSize.height() / pageSize.height();
+    pdfView->setZoomMode(QPdfView::ZoomMode::Custom);
+    pdfView->setZoomFactor(ratio);
 }
