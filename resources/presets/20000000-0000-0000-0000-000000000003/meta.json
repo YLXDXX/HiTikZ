@@ -5,5 +5,5 @@
   "category": "物理/力学",
   "tags": ["弹簧","振子","简谐运动"],
   "templateId": "default_physics",
-  "tikzLibraries": "decorations.pathmorphing"
+  "tikzLibraries": "patterns,decorations.pathmorphing"
 }

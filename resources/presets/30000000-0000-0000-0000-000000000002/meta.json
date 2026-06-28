@@ -4,5 +4,6 @@
   "description": "两个电阻串联构成的分压电路",
   "category": "电路/基础",
   "tags": ["分压","串联","电阻"],
-  "templateId": "default_circuit"
+  "templateId": "default_circuit",
+  "packages": "amsmath"
 }

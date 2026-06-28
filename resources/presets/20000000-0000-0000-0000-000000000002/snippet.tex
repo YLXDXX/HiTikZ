@@ -1,12 +1,16 @@
+% @param: angle=30
 \begin{tikzpicture}[scale=1.5]
   \coordinate (O) at (0,3);
   \fill (O) circle (1.5pt) node[left] {$O$};
-  \coordinate (P) at (1.2,1.8);
+  \coordinate (P) at ({1.8*sin(@@angle@@)}, {3-1.8*cos(@@angle@@)});
   \draw[thick] (O) -- (P);
   \draw[dashed] (O) -- (0,1.2);
   \shade[ball color=red] (P) circle (0.2);
-  \draw (0,2.5) arc (270:325:0.5);
-  \node at (0.35,2.45) {$\theta$};
-  \draw[->,thick,blue] (P) -- +(0,-1.2) node[right] {$mg$};
-  \draw[->,thick,green!40!black] (P) -- +(-0.7,-0.5) node[left] {$T$};
+  \draw (0,2.5) arc (270:{270+@@angle@@}:0.5);
+  \node at ({0.35*sin(@@angle@@/2)}, {2.5-0.35*cos(@@angle@@/2)})
+    {$\theta$};
+  \draw[->,thick,blue] (P) -- +(0,-1.0) node[right] {$mg$};
+  \draw[->,thick,green!40!black] (P) --
+    +({-0.7*sin(@@angle@@)}, {0.7*cos(@@angle@@)})
+    node[above left] {$T$};
 \end{tikzpicture}

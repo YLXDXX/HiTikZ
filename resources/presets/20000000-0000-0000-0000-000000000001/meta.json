@@ -4,5 +4,6 @@
   "description": "斜面上物体的重力分解：支持力N、下滑力mg sinθ",
   "category": "物理/力学",
   "tags": ["斜面","受力分析","力学"],
-  "templateId": "default_physics"
+  "templateId": "default_physics",
+  "tikzLibraries": "patterns"
 }
