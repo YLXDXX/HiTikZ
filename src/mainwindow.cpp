@@ -226,6 +226,14 @@ void MainWindow::setupUI()
     tagsEdit = new QLineEdit;
     tagsEdit->setPlaceholderText(QStringLiteral("标签1, 标签2, ..."));
     rightLayout->addWidget(tagsEdit);
+    rightLayout->addWidget(new QLabel(QStringLiteral("额外宏包 (逗号分隔):")));
+    packagesEdit = new QLineEdit;
+    packagesEdit->setPlaceholderText(QStringLiteral("如: tikz-3dplot,[european]circuitikz"));
+    rightLayout->addWidget(packagesEdit);
+    rightLayout->addWidget(new QLabel(QStringLiteral("TikZ库 (逗号分隔):")));
+    tikzLibrariesEdit = new QLineEdit;
+    tikzLibrariesEdit->setPlaceholderText(QStringLiteral("如: calc,er,angles"));
+    rightLayout->addWidget(tikzLibrariesEdit);
     rightLayout->addWidget(new QLabel(QStringLiteral("模板:")));
     templateCombo = new QComboBox;
     rightLayout->addWidget(templateCombo);
@@ -274,6 +282,8 @@ void MainWindow::setupUI()
                 codeEditor->clear();
                 nameEdit->clear();
                 tagsEdit->clear();
+                packagesEdit->clear();
+                tikzLibrariesEdit->clear();
                 descEdit->clear();
                 pdfDoc->close();
                 refreshSearch();
@@ -290,6 +300,9 @@ void MainWindow::setupUI()
             currentSnippetId.clear();
             codeEditor->clear();
             nameEdit->clear();
+            tagsEdit->clear();
+            packagesEdit->clear();
+            tikzLibrariesEdit->clear();
             descEdit->clear();
             pdfDoc->close();
             refreshSearch();
@@ -438,6 +451,9 @@ void MainWindow::setupUI()
         codeEditor->clear();
         nameEdit->clear();
         descEdit->clear();
+        tagsEdit->clear();
+        packagesEdit->clear();
+        tikzLibrariesEdit->clear();
         clearPdfPreview();
         refreshCategoryTree();
         refreshSearch();
@@ -487,6 +503,8 @@ void MainWindow::setupConnections()
         QString code;
         QString templateId;
         QString snippetId = currentSnippetId;
+        QString packages;
+        QString tikzLibraries;
 
         if (currentSnippetId.isEmpty()) {
             code = codeEditor->toPlainText();
@@ -496,6 +514,8 @@ void MainWindow::setupConnections()
             Snippet s = snippetMgr->loadSnippet(currentSnippetId);
             code = applyParams(s.code);
             templateId = s.templateId;
+            packages = s.packages;
+            tikzLibraries = s.tikzLibraries;
         }
 
         if (code.trimmed().isEmpty()) {
@@ -504,7 +524,7 @@ void MainWindow::setupConnections()
         }
 
         logPanel->clear();
-        compiler->compile(code, templateId, snippetId);
+        compiler->compile(code, templateId, snippetId, packages, tikzLibraries);
     });
 
     connect(applyParamsBtn, &QPushButton::clicked, this, [this]() {
@@ -512,7 +532,7 @@ void MainWindow::setupConnections()
         Snippet s = snippetMgr->loadSnippet(currentSnippetId);
         QString code = applyParams(s.code);
         logPanel->clear();
-        compiler->compile(code, s.templateId, currentSnippetId);
+        compiler->compile(code, s.templateId, currentSnippetId, s.packages, s.tikzLibraries);
     });
 
     connect(saveBtn, &QPushButton::clicked, this, [this]() {
@@ -568,6 +588,8 @@ void MainWindow::loadSnippetIntoEditor(const QString &id)
     nameEdit->setText(s.name);
     descEdit->setPlainText(s.description);
     tagsEdit->setText(s.tags.join(", "));
+    packagesEdit->setText(s.packages);
+    tikzLibrariesEdit->setText(s.tikzLibraries);
 
     if (!s.templateId.isEmpty()) {
         int idx = templateCombo->findData(s.templateId);
@@ -587,6 +609,8 @@ void MainWindow::saveCurrentSnippet()
     s.name = nameEdit->text();
     s.description = descEdit->toPlainText();
     s.code = codeEditor->toPlainText();
+    s.packages = packagesEdit->text();
+    s.tikzLibraries = tikzLibrariesEdit->text();
     QStringList tags;
     for (const QString &tag : tagsEdit->text().split(',')) {
         QString trimmed = tag.trimmed();
@@ -754,7 +778,7 @@ void MainWindow::generateAllPreviews()
                 loop.quit();
             }, Qt::SingleShotConnection);
 
-        compiler->compile(code, s.templateId, snippetId);
+        compiler->compile(code, s.templateId, snippetId, s.packages, s.tikzLibraries);
         loop.exec();
     }
 

@@ -10,7 +10,8 @@ public:
     explicit LatexCompiler(QObject *parent = nullptr);
     ~LatexCompiler();
 
-    void compile(const QString &texCode, const QString &templateId, const QString &snippetId);
+    void compile(const QString &texCode, const QString &templateId, const QString &snippetId,
+                 const QString &packages = QString(), const QString &tikzLibraries = QString());
     void cancelCompile();
     void setTemplateDir(const QString &dir);
     void setXelatexPath(const QString &path);
@@ -33,6 +34,9 @@ public:
     static bool checkXelatexAvailable();
     static bool checkPdfToCairoAvailable();
 
+    QString wrapCode(const QString &texCode, const QString &templateId,
+                    const QString &packages, const QString &tikzLibraries) const;
+
 signals:
     void compilationFinished(bool success, const QString &pdfPath, const QString &logOutput);
     void conversionFinished(bool success, const QString &outputPath);
@@ -46,6 +50,5 @@ private:
     QString pdfToCairoPath;
     QString texInputs;
 
-    QString wrapCode(const QString &texCode, const QString &templateId) const;
     QString loadTemplate(const QString &templateId) const;
 };

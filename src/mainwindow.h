@@ -92,6 +92,8 @@ private:
     QLineEdit *nameEdit;
     QTextEdit *descEdit;
     QLineEdit *tagsEdit;
+    QLineEdit *packagesEdit;
+    QLineEdit *tikzLibrariesEdit;
     QComboBox *templateCombo;
     QPushButton *compileBtn;
     QPushButton *saveBtn;

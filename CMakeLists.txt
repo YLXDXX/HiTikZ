@@ -73,3 +73,12 @@ add_executable(test_search
 target_include_directories(test_search PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_search PRIVATE Qt6::Core)
 add_test(NAME Search COMMAND test_search)
+
+add_executable(test_packages_libraries
+    tests/test_packages_libraries.cpp
+    src/latex_compiler.cpp
+    src/snippet_manager.cpp
+)
+target_include_directories(test_packages_libraries PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_packages_libraries PRIVATE Qt6::Core)
+add_test(NAME PackagesLibraries COMMAND test_packages_libraries)

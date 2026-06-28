@@ -29,6 +29,8 @@ private:
     QTextEdit *m_descEdit;
     QLineEdit *m_categoryEdit;
     QLineEdit *m_tagsEdit;
+    QLineEdit *m_packagesEdit;
+    QLineEdit *m_tikzLibrariesEdit;
     QComboBox *m_templateCombo;
     QPushButton *m_saveBtn;
     QPushButton *m_deleteBtn;

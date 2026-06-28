@@ -15,6 +15,8 @@ struct Snippet {
     QString category;
     QStringList tags;
     QString templateId;
+    QString packages;
+    QString tikzLibraries;
     QString code;
     bool isPreset = false;
 };

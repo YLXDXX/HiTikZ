@@ -19,7 +19,7 @@ SnippetPropertiesDialog::SnippetPropertiesDialog(const QString &snippetId,
     : QDialog(parent), m_snippetId(snippetId), m_snippetMgr(mgr)
 {
     setWindowTitle(QStringLiteral("片段属性"));
-    setMinimumSize(450, 380);
+    setMinimumSize(450, 480);
 
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
 
@@ -38,6 +38,14 @@ SnippetPropertiesDialog::SnippetPropertiesDialog(const QString &snippetId,
     m_tagsEdit = new QLineEdit;
     m_tagsEdit->setPlaceholderText(QStringLiteral("标签1, 标签2, ..."));
     form->addRow(QStringLiteral("标签:"), m_tagsEdit);
+
+    m_packagesEdit = new QLineEdit;
+    m_packagesEdit->setPlaceholderText(QStringLiteral("如: tikz-3dplot,[european]circuitikz"));
+    form->addRow(QStringLiteral("额外宏包:"), m_packagesEdit);
+
+    m_tikzLibrariesEdit = new QLineEdit;
+    m_tikzLibrariesEdit->setPlaceholderText(QStringLiteral("如: calc,er,angles"));
+    form->addRow(QStringLiteral("TikZ库:"), m_tikzLibrariesEdit);
 
     m_templateCombo = new QComboBox;
     form->addRow(QStringLiteral("模板:"), m_templateCombo);
@@ -77,6 +85,8 @@ void SnippetPropertiesDialog::loadSnippet()
     m_descEdit->setPlainText(s.description);
     m_categoryEdit->setText(s.category);
     m_tagsEdit->setText(s.tags.join(", "));
+    m_packagesEdit->setText(s.packages);
+    m_tikzLibrariesEdit->setText(s.tikzLibraries);
 
     m_templateCombo->clear();
     QString tplDirPath = QStandardPaths::writableLocation(
@@ -102,6 +112,8 @@ void SnippetPropertiesDialog::onSave()
     s.description = m_descEdit->toPlainText();
     s.category = m_categoryEdit->text();
     s.templateId = m_templateCombo->currentData().toString();
+    s.packages = m_packagesEdit->text();
+    s.tikzLibraries = m_tikzLibrariesEdit->text();
 
     QStringList tags;
     for (const QString &tag : m_tagsEdit->text().split(',')) {

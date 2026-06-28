@@ -120,23 +120,81 @@ QString LatexCompiler::loadTemplate(const QString &templateId) const
     return QString();
 }
 
-QString LatexCompiler::wrapCode(const QString &texCode, const QString &templateId) const
+QString LatexCompiler::wrapCode(const QString &texCode, const QString &templateId,
+                                const QString &packages, const QString &tikzLibraries) const
 {
     QString tmpl = loadTemplate(templateId);
     if (!tmpl.isEmpty() && tmpl.contains("%%% TIKZ_CODE_HERE %%%")) {
-        return QString(tmpl).replace("%%% TIKZ_CODE_HERE %%%", texCode);
+        tmpl = QString(tmpl).replace("%%% TIKZ_CODE_HERE %%%", texCode);
+    } else {
+        tmpl = QString(
+            "\\documentclass[tikz, border=5pt]{standalone}\n"
+            "\\usepackage{tikz}\n"
+            "\\usepackage{xcolor}\n"
+            "\\usepackage{ctex}\n"
+            "\\usetikzlibrary{calc,shapes,arrows,positioning,patterns}\n"
+            "\\begin{document}\n"
+            "%1\n"
+            "\\end{document}\n"
+        ).arg(texCode);
     }
 
-    return QString(
-        "\\documentclass[tikz, border=5pt]{standalone}\n"
-        "\\usepackage{tikz}\n"
-        "\\usepackage{xcolor}\n"
-        "\\usepackage{ctex}\n"
-        "\\usetikzlibrary{calc,shapes,arrows,positioning,patterns}\n"
-        "\\begin{document}\n"
-        "%1\n"
-        "\\end{document}\n"
-    ).arg(texCode);
+    QString extraPreamble;
+
+    if (!packages.isEmpty()) {
+        QStringList items;
+        int depth = 0;
+        int start = 0;
+        for (int i = 0; i < packages.length(); ++i) {
+            QChar ch = packages.at(i);
+            if (ch == '[') {
+                depth++;
+            } else if (ch == ']') {
+                if (depth > 0) depth--;
+            } else if (ch == ',' && depth == 0) {
+                items.append(packages.mid(start, i - start).trimmed());
+                start = i + 1;
+            }
+        }
+        items.append(packages.mid(start).trimmed());
+
+        for (const QString &item : items) {
+            if (item.isEmpty()) continue;
+
+            if (item.startsWith('[')) {
+                int closeBracket = item.indexOf(']');
+                if (closeBracket > 0) {
+                    QString options = item.mid(1, closeBracket - 1);
+                    QString pkgName = item.mid(closeBracket + 1);
+                    extraPreamble += QStringLiteral("\\usepackage[%1]{%2}\n").arg(options, pkgName);
+                }
+            } else {
+                extraPreamble += QStringLiteral("\\usepackage{%1}\n").arg(item);
+            }
+        }
+    }
+
+    if (!tikzLibraries.isEmpty()) {
+        QStringList libs;
+        QStringList parts = tikzLibraries.split(',');
+        for (const QString &part : parts) {
+            QString trimmed = part.trimmed();
+            if (!trimmed.isEmpty())
+                libs.append(trimmed);
+        }
+        if (!libs.isEmpty()) {
+            extraPreamble += QStringLiteral("\\usetikzlibrary{%1}\n").arg(libs.join(','));
+        }
+    }
+
+    if (!extraPreamble.isEmpty()) {
+        int docBegin = tmpl.indexOf(QStringLiteral("\\begin{document}"));
+        if (docBegin >= 0) {
+            tmpl = tmpl.insert(docBegin, extraPreamble);
+        }
+    }
+
+    return tmpl;
 }
 
 void LatexCompiler::cancelCompile()
@@ -146,7 +204,8 @@ void LatexCompiler::cancelCompile()
     }
 }
 
-void LatexCompiler::compile(const QString &texCode, const QString &templateId, const QString &snippetId)
+void LatexCompiler::compile(const QString &texCode, const QString &templateId, const QString &snippetId,
+                            const QString &packages, const QString &tikzLibraries)
 {
     if (process) {
         if (process->state() != QProcess::NotRunning) {
@@ -160,7 +219,7 @@ void LatexCompiler::compile(const QString &texCode, const QString &templateId, c
     currentCompileDir = tempDir + snippetId;
     QDir().mkpath(currentCompileDir);
 
-    QString fullCode = wrapCode(texCode, templateId);
+    QString fullCode = wrapCode(texCode, templateId, packages, tikzLibraries);
 
     QString texFilePath = currentCompileDir + "/output.tex";
     QFile file(texFilePath);
