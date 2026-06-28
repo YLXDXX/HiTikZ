@@ -495,6 +495,72 @@ bool SnippetManager::exportSnippetZip(const QString &id, const QString &zipPath)
     return tar.exitCode() == 0 && QFile::exists(zipPath);
 }
 
+bool SnippetManager::exportSnippetsZip(const QStringList &ids, const QString &zipPath)
+{
+    if (ids.isEmpty()) return false;
+
+    QTemporaryDir tempDir;
+    if (!tempDir.isValid()) return false;
+
+    for (const QString &id : ids) {
+        QString srcDir;
+        if (isPresetId(id))
+            srcDir = getPresetSnippetPath(id);
+        else
+            srcDir = getSnippetPath(id);
+
+        while (srcDir.endsWith('/'))
+            srcDir.chop(1);
+
+        QDir dir(srcDir);
+        if (!dir.exists()) continue;
+
+        QString dstDir = tempDir.path() + "/" + id;
+        QDir().mkpath(dstDir);
+
+        QStringList files = dir.entryList(QDir::Files);
+        for (const QString &file : files) {
+            QFile::copy(srcDir + "/" + file, dstDir + "/" + file);
+        }
+    }
+
+    if (QFile::exists(zipPath))
+        QFile::remove(zipPath);
+
+    QProcess tar;
+    QStringList args;
+    args << "-czf" << zipPath << "-C" << tempDir.path() << ".";
+    tar.start("tar", args);
+    tar.waitForFinished(10000);
+    return tar.exitCode() == 0 && QFile::exists(zipPath);
+}
+
+bool SnippetManager::batchUpdateCategory(const QStringList &ids, const QString &newCategory)
+{
+    if (ids.isEmpty()) return false;
+    int count = 0;
+    for (const QString &id : ids) {
+        Snippet s = loadSnippet(id);
+        if (s.id.isEmpty()) continue;
+        s.category = newCategory;
+        if (saveSnippet(s)) count++;
+    }
+    if (count > 0)
+        emit categoriesChanged();
+    return count > 0;
+}
+
+int SnippetManager::batchDeleteSnippets(const QStringList &ids)
+{
+    int count = 0;
+    for (const QString &id : ids) {
+        if (deleteSnippet(id)) count++;
+    }
+    if (count > 0)
+        emit categoriesChanged();
+    return count;
+}
+
 QStringList SnippetManager::importSnippetsZip(const QString &zipPath)
 {
     QStringList importedIds;

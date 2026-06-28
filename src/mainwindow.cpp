@@ -137,6 +137,7 @@ void MainWindow::setupUI()
     QAction *deleteAct = toolBar->addAction(QStringLiteral("删除片段"));
     QAction *importAct = toolBar->addAction(QStringLiteral("导入(导出)存档"));
     QAction *exportAct = toolBar->addAction(QStringLiteral("存档"));
+    QAction *exportAllAct = toolBar->addAction(QStringLiteral("导出全部"));
     toolBar->addSeparator();
     QAction *copyCodeAct = toolBar->addAction(QStringLiteral("复制代码 (Ctrl+Shift+C)"));
     QAction *copyPngAct = toolBar->addAction(QStringLiteral("复制PNG (Ctrl+Shift+P)"));
@@ -346,6 +347,27 @@ void MainWindow::setupUI()
         }
     });
 
+    connect(exportAllAct, &QAction::triggered, this, [this]() {
+        QList<Snippet> all = snippetMgr->getAllSnippets(true);
+        all.append(snippetMgr->getAllPresets(true));
+        if (all.isEmpty()) {
+            statusBar()->showMessage(QStringLiteral("没有可导出的片段"), 3000);
+            return;
+        }
+        QString filePath = QFileDialog::getSaveFileName(this,
+            QStringLiteral("导出全部存档"), "all_snippets.tar.gz", "TikZ 存档 (*.tar.gz)");
+        if (!filePath.isEmpty()) {
+            QStringList allIds;
+            for (const Snippet &s : all)
+                allIds.append(s.id);
+            if (snippetMgr->exportSnippetsZip(allIds, filePath))
+                statusBar()->showMessage(QStringLiteral("全部导出成功"), 3000);
+            else
+                QMessageBox::warning(this, QStringLiteral("导出失败"),
+                    QStringLiteral("无法导出全部片段。"));
+        }
+    });
+
     auto copyCode = [this]() {
         QString code = applyParams(codeEditor->toPlainText());
         static QRegularExpression paramLine("^%\\s*@param:.*(\n|\r\n?)?", QRegularExpression::MultilineOption);
@@ -489,6 +511,74 @@ void MainWindow::setupConnections()
 
     connect(snippetMgr, &SnippetManager::categoriesChanged,
         this, &MainWindow::refreshCategoryTree);
+
+    connect(searchPanel, &SearchPanel::batchExportRequested, this, [this](const QStringList &ids) {
+        QString filePath = QFileDialog::getSaveFileName(this,
+            QStringLiteral("批量导出"), "selected_snippets.tar.gz", "TikZ 存档 (*.tar.gz)");
+        if (!filePath.isEmpty()) {
+            if (snippetMgr->exportSnippetsZip(ids, filePath))
+                statusBar()->showMessage(QStringLiteral("批量导出成功 (%1 个片段)").arg(ids.size()), 3000);
+            else
+                QMessageBox::warning(this, QStringLiteral("导出失败"),
+                    QStringLiteral("无法批量导出所选片段。"));
+        }
+    });
+
+    connect(searchPanel, &SearchPanel::batchCategoryChangeRequested, this, [this](const QStringList &ids) {
+        bool ok;
+        QString newCat = QInputDialog::getText(this, QStringLiteral("修改分类"),
+            QStringLiteral("输入新分类名称:"), QLineEdit::Normal, "", &ok);
+        if (!ok) return;
+        if (snippetMgr->batchUpdateCategory(ids, newCat)) {
+            statusBar()->showMessage(QStringLiteral("已修改 %1 个片段的分类").arg(ids.size()), 3000);
+            searchPanel->refreshCategoryTree();
+            searchPanel->refreshSearch();
+        }
+    });
+
+    connect(searchPanel, &SearchPanel::batchDeleteRequested, this, [this](const QStringList &ids) {
+        int ret = QMessageBox::warning(this, QStringLiteral("确认删除"),
+            QStringLiteral("确定要删除选中的 %1 个片段吗？\n此操作不可恢复。").arg(ids.size()),
+            QMessageBox::Yes | QMessageBox::No);
+        if (ret != QMessageBox::Yes) return;
+
+        if (ids.contains(currentSnippetId)) {
+            currentSnippetId.clear();
+            codeEditor->clear();
+            nameEdit->clear();
+            tagsEdit->clear();
+            packagesEdit->clear();
+            tikzLibrariesEdit->clear();
+            descEdit->clear();
+            pdfDoc->close();
+        }
+
+        int count = snippetMgr->batchDeleteSnippets(ids);
+        statusBar()->showMessage(QStringLiteral("已删除 %1 个片段").arg(count), 3000);
+        searchPanel->refreshCategoryTree();
+        searchPanel->refreshSearch();
+    });
+
+    connect(searchPanel, &SearchPanel::exportAllRequested, this, [this]() {
+        QList<Snippet> all = snippetMgr->getAllSnippets(true);
+        all.append(snippetMgr->getAllPresets(true));
+        if (all.isEmpty()) {
+            statusBar()->showMessage(QStringLiteral("没有可导出的片段"), 3000);
+            return;
+        }
+        QString filePath = QFileDialog::getSaveFileName(this,
+            QStringLiteral("导出全部存档"), "all_snippets.tar.gz", "TikZ 存档 (*.tar.gz)");
+        if (!filePath.isEmpty()) {
+            QStringList allIds;
+            for (const Snippet &s : all)
+                allIds.append(s.id);
+            if (snippetMgr->exportSnippetsZip(allIds, filePath))
+                statusBar()->showMessage(QStringLiteral("全部导出成功"), 3000);
+            else
+                QMessageBox::warning(this, QStringLiteral("导出失败"),
+                    QStringLiteral("无法导出全部片段。"));
+        }
+    });
 
     connect(templateCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
         this, [this](int) {

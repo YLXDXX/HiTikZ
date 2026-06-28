@@ -6,6 +6,7 @@
 #include <QStandardItemModel>
 #include <QMenu>
 #include <QTimer>
+#include <QStringList>
 
 class SnippetManager;
 
@@ -22,6 +23,10 @@ public:
 signals:
     void snippetSelected(const QString &id);
     void searchQueryChanged(const QString &query);
+    void batchExportRequested(const QStringList &ids);
+    void batchCategoryChangeRequested(const QStringList &ids);
+    void batchDeleteRequested(const QStringList &ids);
+    void exportAllRequested();
 
 protected:
     bool eventFilter(QObject *obj, QEvent *event) override;
@@ -34,6 +39,8 @@ private:
     void renameCategoryItem(QStandardItem *item);
     void deleteCategoryItem(QStandardItem *item);
     void onThumbnailRightClick(const QPoint &pos);
+    void showThumbnailContextMenu(const QPoint &pos);
+    QStringList getSelectedSnippetIds() const;
     QIcon loadThumbnailIcon(const QString &snippetId) const;
 
     SnippetManager *snippetMgr;
@@ -44,5 +51,6 @@ private:
     QStandardItemModel *categoryModel;
     QStandardItemModel *thumbnailModel;
     QMenu *categoryCtxMenu;
+    QMenu *thumbnailCtxMenu;
     QTimer *searchDebounceTimer;
 };

@@ -13,6 +13,7 @@
 #include <QEvent>
 #include <QFileInfo>
 #include <QDir>
+#include <QApplication>
 
 SearchPanel::SearchPanel(SnippetManager *mgr, QWidget *parent)
     : QWidget(parent), snippetMgr(mgr)
@@ -31,6 +32,7 @@ SearchPanel::SearchPanel(SnippetManager *mgr, QWidget *parent)
     connect(thumbnailList->selectionModel(), &QItemSelectionModel::currentChanged,
         this, [this](const QModelIndex &current, const QModelIndex &) {
             if (!current.isValid()) return;
+            if (QApplication::keyboardModifiers() & Qt::ControlModifier) return;
             QString id = current.data(Qt::UserRole).toString();
             if (!id.isEmpty())
                 emit snippetSelected(id);
@@ -76,11 +78,12 @@ void SearchPanel::setupUI()
     thumbnailList->setDragEnabled(true);
     thumbnailList->setDragDropMode(QAbstractItemView::DragOnly);
     thumbnailList->setContextMenuPolicy(Qt::CustomContextMenu);
+    thumbnailList->setSelectionMode(QAbstractItemView::ExtendedSelection);
     thumbnailModel = new QStandardItemModel(this);
     thumbnailList->setModel(thumbnailModel);
 
     connect(thumbnailList, &QListView::customContextMenuRequested,
-        this, &SearchPanel::onThumbnailRightClick);
+        this, &SearchPanel::showThumbnailContextMenu);
 
     categoryCtxMenu = new QMenu(this);
     QAction *renameCatAct = categoryCtxMenu->addAction(QStringLiteral("重命名分类"));
@@ -123,6 +126,33 @@ void SearchPanel::setupUI()
             refreshCategoryTree();
             refreshSearch();
         }
+    });
+
+    thumbnailCtxMenu = new QMenu(this);
+    QAction *batchExportAct = thumbnailCtxMenu->addAction(QStringLiteral("批量导出所选"));
+    QAction *batchCategoryAct = thumbnailCtxMenu->addAction(QStringLiteral("修改分类"));
+    QAction *batchDeleteAct = thumbnailCtxMenu->addAction(QStringLiteral("删除所选"));
+    thumbnailCtxMenu->addSeparator();
+    QAction *selectAllAct = thumbnailCtxMenu->addAction(QStringLiteral("全选"));
+    QAction *exportAllAct = thumbnailCtxMenu->addAction(QStringLiteral("导出所有"));
+
+    connect(batchExportAct, &QAction::triggered, this, [this]() {
+        QStringList ids = getSelectedSnippetIds();
+        if (!ids.isEmpty()) emit batchExportRequested(ids);
+    });
+    connect(batchCategoryAct, &QAction::triggered, this, [this]() {
+        QStringList ids = getSelectedSnippetIds();
+        if (!ids.isEmpty()) emit batchCategoryChangeRequested(ids);
+    });
+    connect(batchDeleteAct, &QAction::triggered, this, [this]() {
+        QStringList ids = getSelectedSnippetIds();
+        if (!ids.isEmpty()) emit batchDeleteRequested(ids);
+    });
+    connect(selectAllAct, &QAction::triggered, this, [this]() {
+        thumbnailList->selectAll();
+    });
+    connect(exportAllAct, &QAction::triggered, this, [this]() {
+        emit exportAllRequested();
     });
 
     layout->addWidget(searchBox);
@@ -321,6 +351,44 @@ void SearchPanel::onThumbnailRightClick(const QPoint &pos)
         refreshCategoryTree();
         refreshSearch();
     }
+}
+
+void SearchPanel::showThumbnailContextMenu(const QPoint &pos)
+{
+    QModelIndex idx = thumbnailList->indexAt(pos);
+    QStringList selectedIds = getSelectedSnippetIds();
+
+    if (selectedIds.size() > 1) {
+        QList<QAction*> actions = thumbnailCtxMenu->actions();
+        for (QAction *act : actions) {
+            act->setVisible(true);
+        }
+        thumbnailCtxMenu->popup(thumbnailList->viewport()->mapToGlobal(pos));
+    } else if (idx.isValid()) {
+        QString id = idx.data(Qt::UserRole).toString();
+        if (!id.isEmpty()) {
+            SnippetPropertiesDialog dlg(id, snippetMgr, this);
+            if (dlg.exec() == QDialog::Accepted) {
+                refreshCategoryTree();
+                refreshSearch();
+            }
+        }
+    }
+}
+
+QStringList SearchPanel::getSelectedSnippetIds() const
+{
+    QStringList ids;
+    QModelIndexList selected = thumbnailList->selectionModel()->selectedIndexes();
+    QSet<QString> seen;
+    for (const QModelIndex &idx : selected) {
+        QString id = idx.data(Qt::UserRole).toString();
+        if (!id.isEmpty() && !seen.contains(id)) {
+            ids.append(id);
+            seen.insert(id);
+        }
+    }
+    return ids;
 }
 
 QIcon SearchPanel::loadThumbnailIcon(const QString &snippetId) const
