@@ -178,7 +178,6 @@ void MainWindow::setupUI()
     logPanel->setReadOnly(true);
     logPanel->setMaximumBlockCount(2000);
     logPanel->viewport()->installEventFilter(this);
-    applyAppearanceSettings();
 
     centerSplitter->addWidget(codeEditor);
     centerSplitter->addWidget(logPanel);
@@ -498,6 +497,7 @@ void MainWindow::setupUI()
     mainSplitter->setSizes({250, 600, 350});
 
     setCentralWidget(mainSplitter);
+    applyAppearanceSettings();
     statusBar()->showMessage(QStringLiteral("就绪"), 3000);
 }
 
