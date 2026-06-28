@@ -4,6 +4,7 @@
 #include "latex_compiler.h"
 #include "code_editor.h"
 #include "settings_dialog.h"
+#include "kde_global_shortcut.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QToolBar>
@@ -187,7 +188,7 @@ void MainWindow::setupUI()
     // --- Right Panel ---
     rightPanel = new QWidget;
     QVBoxLayout *rightLayout = new QVBoxLayout(rightPanel);
-    rightLayout->setContentsMargins(4, 4, 4, 4);
+    rightLayout->setContentsMargins(0, 0, 0, 0);
 
     pdfDoc = new QPdfDocument(this);
     pdfView = new QPdfView;
@@ -197,7 +198,17 @@ void MainWindow::setupUI()
     pdfView->viewport()->installEventFilter(this);
     pdfView->viewport()->setCursor(Qt::OpenHandCursor);
 
-    rightLayout->addWidget(pdfView, 2);
+    QWidget *metadataWidget = new QWidget;
+    QVBoxLayout *metaLayout = new QVBoxLayout(metadataWidget);
+    metaLayout->setContentsMargins(4, 4, 4, 4);
+
+    QSplitter *rightSplitter = new QSplitter(Qt::Vertical);
+    rightSplitter->addWidget(pdfView);
+    rightSplitter->addWidget(metadataWidget);
+    rightSplitter->setStretchFactor(0, 3);
+    rightSplitter->setStretchFactor(1, 1);
+    rightSplitter->setSizes({400, 300});
+    rightLayout->addWidget(rightSplitter);
 
     connect(fitPageAct, &QAction::triggered, this, &MainWindow::fitPdfPage);
     connect(fitWidthAct, &QAction::triggered, this, &MainWindow::fitPdfWidth);
@@ -211,25 +222,25 @@ void MainWindow::setupUI()
     descEdit->setPlaceholderText(QStringLiteral("简介"));
     descEdit->setMaximumHeight(80);
 
-    rightLayout->addWidget(new QLabel(QStringLiteral("名称:")));
-    rightLayout->addWidget(nameEdit);
-    rightLayout->addWidget(new QLabel(QStringLiteral("简介:")));
-    rightLayout->addWidget(descEdit, 1);
-    rightLayout->addWidget(new QLabel(QStringLiteral("标签 (逗号分隔):")));
+    metaLayout->addWidget(new QLabel(QStringLiteral("名称:")));
+    metaLayout->addWidget(nameEdit);
+    metaLayout->addWidget(new QLabel(QStringLiteral("简介:")));
+    metaLayout->addWidget(descEdit, 1);
+    metaLayout->addWidget(new QLabel(QStringLiteral("标签 (逗号分隔):")));
     tagsEdit = new QLineEdit;
     tagsEdit->setPlaceholderText(QStringLiteral("标签1, 标签2, ..."));
-    rightLayout->addWidget(tagsEdit);
-    rightLayout->addWidget(new QLabel(QStringLiteral("额外宏包 (逗号分隔):")));
+    metaLayout->addWidget(tagsEdit);
+    metaLayout->addWidget(new QLabel(QStringLiteral("额外宏包 (逗号分隔):")));
     packagesEdit = new QLineEdit;
     packagesEdit->setPlaceholderText(QStringLiteral("如: tikz-3dplot,[european]circuitikz"));
-    rightLayout->addWidget(packagesEdit);
-    rightLayout->addWidget(new QLabel(QStringLiteral("TikZ库 (逗号分隔):")));
+    metaLayout->addWidget(packagesEdit);
+    metaLayout->addWidget(new QLabel(QStringLiteral("TikZ库 (逗号分隔):")));
     tikzLibrariesEdit = new QLineEdit;
     tikzLibrariesEdit->setPlaceholderText(QStringLiteral("如: calc,er,angles"));
-    rightLayout->addWidget(tikzLibrariesEdit);
-    rightLayout->addWidget(new QLabel(QStringLiteral("模板:")));
+    metaLayout->addWidget(tikzLibrariesEdit);
+    metaLayout->addWidget(new QLabel(QStringLiteral("模板:")));
     templateCombo = new QComboBox;
-    rightLayout->addWidget(templateCombo);
+    metaLayout->addWidget(templateCombo);
 
     paramsScrollArea = new QScrollArea;
     paramsScrollArea->setWidgetResizable(true);
@@ -238,8 +249,8 @@ void MainWindow::setupUI()
     paramsLayout = new QVBoxLayout(paramsWidget);
     paramsLayout->setContentsMargins(0, 0, 0, 0);
     paramsScrollArea->setWidget(paramsWidget);
-    rightLayout->addWidget(new QLabel(QStringLiteral("参数:")));
-    rightLayout->addWidget(paramsScrollArea);
+    metaLayout->addWidget(new QLabel(QStringLiteral("参数:")));
+    metaLayout->addWidget(paramsScrollArea);
     // --- Toolbar actions ---
     connect(newAct, &QAction::triggered, this, [this]() {
         QDialog dlg(this);
@@ -1143,15 +1154,33 @@ void MainWindow::applyShortcuts()
 
 void MainWindow::applyGlobalHotkey()
 {
+    QSettings settings("HiTikZ", "TikzManager");
+    QString keyStr = settings.value("shortcuts/globalHotkey", "Ctrl+Alt+T").toString();
+
+#ifdef HAS_KGLOBALACCEL
+    KdeGlobalShortcut *ks = KdeGlobalShortcut::instance();
+    ks->disconnect(this);
+    if (keyStr.isEmpty()) {
+        ks->unregisterShortcut("toggle_window");
+        return;
+    }
+
+    connect(ks, &KdeGlobalShortcut::activated, this, [this](const QString &id) {
+        if (id == "toggle_window") {
+            if (isVisible() && !isMinimized()) hide();
+            else { show(); raise(); activateWindow(); searchPanel->setFocus(); }
+        }
+    });
+    ks->registerShortcut("toggle_window", QStringLiteral("显示/隐藏窗口"), keyStr);
+    return;
+#endif
+
 #ifdef HAS_QHOTKEY
     if (globalHotkey) {
         globalHotkey->disconnect(this);
         delete globalHotkey;
         globalHotkey = nullptr;
     }
-
-    QSettings settings("HiTikZ", "TikzManager");
-    QString keyStr = settings.value("shortcuts/globalHotkey", "Ctrl+Alt+T").toString();
     if (keyStr.isEmpty()) return;
 
     QKeySequence ks(keyStr);
@@ -1160,14 +1189,8 @@ void MainWindow::applyGlobalHotkey()
     globalHotkey = new QHotkey(ks, true, this);
     if (globalHotkey->isRegistered()) {
         connect(globalHotkey, &QHotkey::activated, this, [this]() {
-            if (isVisible() && !isMinimized()) {
-                hide();
-            } else {
-                show();
-                raise();
-                activateWindow();
-                searchPanel->setFocus();
-            }
+            if (isVisible() && !isMinimized()) hide();
+            else { show(); raise(); activateWindow(); searchPanel->setFocus(); }
         });
     }
 #endif

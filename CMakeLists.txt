@@ -10,19 +10,30 @@ set(CMAKE_AUTORCC ON)
 
 find_package(Qt6 REQUIRED COMPONENTS Widgets Pdf PdfWidgets)
 
-include(FetchContent)
-FetchContent_Declare(
-    qhotkey
-    GIT_REPOSITORY https://github.com/Skycoder42/QHotkey.git
-    GIT_TAG master
-)
-set(QHOTKEY_EXAMPLES OFF CACHE BOOL "")
-set(QHOTKEY_INSTALL OFF CACHE BOOL "")
-set(QT_DEFAULT_MAJOR_VERSION 6 CACHE STRING "")
-
+option(WITH_KGLOBALACCEL "Build with KDE KGlobalAccel support" ON)
 option(WITH_QHOTKEY "Build with global hotkey support" ON)
 
-if(WITH_QHOTKEY)
+if(WITH_KGLOBALACCEL)
+    find_package(KF6GlobalAccel QUIET)
+    if(KF6GlobalAccel_FOUND)
+        set(HAS_KGLOBALACCEL ON)
+        message(STATUS "KF6GlobalAccel found — using KDE global shortcuts")
+    else()
+        set(HAS_KGLOBALACCEL OFF)
+        message(STATUS "KF6GlobalAccel not found — will fallback to QHotkey")
+    endif()
+endif()
+
+if(NOT HAS_KGLOBALACCEL AND WITH_QHOTKEY)
+    include(FetchContent)
+    FetchContent_Declare(
+        qhotkey
+        GIT_REPOSITORY https://github.com/Skycoder42/QHotkey.git
+        GIT_TAG master
+    )
+    set(QHOTKEY_EXAMPLES OFF CACHE BOOL "")
+    set(QHOTKEY_INSTALL OFF CACHE BOOL "")
+    set(QT_DEFAULT_MAJOR_VERSION 6 CACHE STRING "")
     FetchContent_MakeAvailable(qhotkey)
 endif()
 
@@ -35,6 +46,7 @@ add_executable(TikzManager
     src/settings_dialog.cpp
     src/search_panel.cpp
     src/snippet_properties_dialog.cpp
+    src/kde_global_shortcut.cpp
 )
 
 target_link_libraries(TikzManager PRIVATE Qt6::Widgets Qt6::Pdf Qt6::PdfWidgets)
@@ -43,7 +55,12 @@ target_compile_definitions(TikzManager PRIVATE
     RESOURCE_DIR=${CMAKE_SOURCE_DIR}/resources
 )
 
-if(WITH_QHOTKEY AND TARGET qhotkey)
+if(HAS_KGLOBALACCEL)
+    target_link_libraries(TikzManager PRIVATE KF6::GlobalAccel)
+    target_compile_definitions(TikzManager PRIVATE HAS_KGLOBALACCEL)
+endif()
+
+if(NOT HAS_KGLOBALACCEL AND WITH_QHOTKEY AND TARGET qhotkey)
     target_link_libraries(TikzManager PRIVATE qhotkey)
     target_compile_definitions(TikzManager PRIVATE HAS_QHOTKEY)
 endif()

@@ -42,9 +42,16 @@ SettingsDialog::SettingsDialog(QWidget *parent)
 
     QGroupBox *shortcutGroup = new QGroupBox(QStringLiteral("快捷键设置"));
     QFormLayout *shortcutLayout = new QFormLayout(shortcutGroup);
+
     copyCodeShortcutEdit = new QKeySequenceEdit;
     copyPngShortcutEdit = new QKeySequenceEdit;
     copySvgShortcutEdit = new QKeySequenceEdit;
+    globalHotkeyEdit = new QKeySequenceEdit;
+
+    for (QKeySequenceEdit *edit : {copyCodeShortcutEdit, copyPngShortcutEdit, copySvgShortcutEdit, globalHotkeyEdit}) {
+        edit->setClearButtonEnabled(true);
+    }
+
     shortcutLayout->addRow(QStringLiteral("复制代码:"), copyCodeShortcutEdit);
     shortcutLayout->addRow(QStringLiteral("复制PNG:"), copyPngShortcutEdit);
     shortcutLayout->addRow(QStringLiteral("复制SVG:"), copySvgShortcutEdit);
