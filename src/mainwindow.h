@@ -66,6 +66,7 @@ private:
     void fitPdfHeight();
     void applyPdfZoomPreference();
     void applyShortcuts();
+    void applyAppearanceSettings();
     void copyFullDocument();
     void setFitPageChecked(bool checked);
     void setFitWidthChecked(bool checked);

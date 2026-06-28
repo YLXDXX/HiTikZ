@@ -31,6 +31,7 @@ private:
     QLineEdit *pdftocairoPathEdit;
     QLineEdit *texInputsEdit;
     QSpinBox *pngDpiSpin;
+    QSpinBox *editorFontSizeSpin;
     QKeySequenceEdit *copyCodeShortcutEdit;
     QKeySequenceEdit *copyPngShortcutEdit;
     QKeySequenceEdit *copySvgShortcutEdit;

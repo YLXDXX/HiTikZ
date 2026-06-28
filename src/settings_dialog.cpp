@@ -33,11 +33,15 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     pngDpiSpin = new QSpinBox;
     pngDpiSpin->setRange(72, 1200);
     pngDpiSpin->setValue(300);
+    editorFontSizeSpin = new QSpinBox;
+    editorFontSizeSpin->setRange(8, 48);
+    editorFontSizeSpin->setValue(10);
 
     formLayout->addRow(QStringLiteral("xelatex 路径:"), xelatexPathEdit);
     formLayout->addRow(QStringLiteral("pdftocairo 路径:"), pdftocairoPathEdit);
     formLayout->addRow(QStringLiteral("TEXINPUTS:"), texInputsEdit);
     formLayout->addRow(QStringLiteral("PNG DPI:"), pngDpiSpin);
+    formLayout->addRow(QStringLiteral("代码字体大小:"), editorFontSizeSpin);
     mainLayout->addLayout(formLayout);
 
     QGroupBox *shortcutGroup = new QGroupBox(QStringLiteral("快捷键设置"));
@@ -181,6 +185,7 @@ void SettingsDialog::loadSettings()
     pdftocairoPathEdit->setText(settings.value("pdftocairo/path", "pdftocairo").toString());
     texInputsEdit->setText(settings.value("paths/texinputs", "").toString());
     pngDpiSpin->setValue(settings.value("png/dpi", 300).toInt());
+    editorFontSizeSpin->setValue(settings.value("editor/fontSize", 10).toInt());
     copyCodeShortcutEdit->setKeySequence(QKeySequence(settings.value("shortcuts/copyCode", "Ctrl+Shift+C").toString()));
     copyPngShortcutEdit->setKeySequence(QKeySequence(settings.value("shortcuts/copyPng", "Ctrl+Shift+P").toString()));
     copySvgShortcutEdit->setKeySequence(QKeySequence(settings.value("shortcuts/copySvg", "Ctrl+Shift+S").toString()));
@@ -197,6 +202,7 @@ void SettingsDialog::saveSettings()
     settings.setValue("pdftocairo/path", pdftocairoPathEdit->text());
     settings.setValue("paths/texinputs", texInputsEdit->text());
     settings.setValue("png/dpi", pngDpiSpin->value());
+    settings.setValue("editor/fontSize", editorFontSizeSpin->value());
     settings.setValue("shortcuts/copyCode", copyCodeShortcutEdit->keySequence().toString());
     settings.setValue("shortcuts/copyPng", copyPngShortcutEdit->keySequence().toString());
     settings.setValue("shortcuts/copySvg", copySvgShortcutEdit->keySequence().toString());

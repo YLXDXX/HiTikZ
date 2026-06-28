@@ -171,15 +171,14 @@ void MainWindow::setupUI()
     // --- Center Panel ---
     QSplitter *centerSplitter = new QSplitter(Qt::Vertical);
     codeEditor = new CodeEditor;
-    codeEditor->setFont(QFont("monospace", 10));
     codeEditor->setTabStopDistance(4 * codeEditor->fontMetrics().horizontalAdvance(' '));
     codeEditor->setLineWrapMode(QPlainTextEdit::NoWrap);
 
     logPanel = new QPlainTextEdit;
     logPanel->setReadOnly(true);
-    logPanel->setFont(QFont("monospace", 9));
     logPanel->setMaximumBlockCount(2000);
     logPanel->viewport()->installEventFilter(this);
+    applyAppearanceSettings();
 
     centerSplitter->addWidget(codeEditor);
     centerSplitter->addWidget(logPanel);
@@ -474,6 +473,7 @@ void MainWindow::setupUI()
             SettingsDialog::applyToCompiler(compiler);
             applyShortcuts();
             applyGlobalHotkey();
+            applyAppearanceSettings();
             statusBar()->showMessage(QStringLiteral("设置已保存"), 3000);
         }
     });
@@ -1255,3 +1255,16 @@ void MainWindow::factoryReset()
 void MainWindow::setFitPageChecked(bool checked) { fitPageAct->setChecked(checked); }
 void MainWindow::setFitWidthChecked(bool checked) { fitWidthAct->setChecked(checked); }
 void MainWindow::setFitHeightChecked(bool checked) { fitHeightAct->setChecked(checked); }
+
+void MainWindow::applyAppearanceSettings()
+{
+    QSettings settings("HiTikZ", "TikzManager");
+    int fontSize = settings.value("editor/fontSize", 10).toInt();
+
+    QFont editorFont("monospace", fontSize);
+    codeEditor->setFont(editorFont);
+    codeEditor->setTabStopDistance(4 * codeEditor->fontMetrics().horizontalAdvance(' '));
+
+    QFont logFont("monospace", qMax(8, fontSize - 1));
+    logPanel->setFont(logFont);
+}
