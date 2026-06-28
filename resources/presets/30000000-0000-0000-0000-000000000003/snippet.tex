@@ -1,0 +1,8 @@
+\begin{circuitikz}[europeanvoltages]
+  \draw (0,2) node[op amp] (oa) {};
+  \draw (oa.-) to[R=$R_1$] (-3,0.5) to[short,-o] (-4,0.5) node[left] {$V_{in}$};
+  \draw (oa.+) to[short] (-2,-0.5) node[ground] {};
+  \draw (oa.-) to[short,*-] (-0.5,0.5) to[R=$R_f$] (1.5,2.5);
+  \draw (1.5,2.5) to[short] (1.5,3) to[short] (oa.out);
+  \draw (oa.out) to[short,-o] (2.5,2) node[right] {$V_{out}$};
+\end{circuitikz}

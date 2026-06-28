@@ -35,6 +35,9 @@
 #include <QWheelEvent>
 #include <QMouseEvent>
 #include <QScrollBar>
+#include <QFormLayout>
+#include <QDialogButtonBox>
+#include <QToolButton>
 
 #define STRINGIFY(x) STRINGIFY_IMPL(x)
 #define STRINGIFY_IMPL(x) #x
@@ -133,20 +136,48 @@ void MainWindow::setupUI()
     setWindowTitle(QStringLiteral("HiTikZ - TikZ 代码合集管理器"));
 
     QToolBar *toolBar = addToolBar(QStringLiteral("工具栏"));
+
     QAction *newAct = toolBar->addAction(QStringLiteral("新建片段"));
     QAction *deleteAct = toolBar->addAction(QStringLiteral("删除片段"));
-    QAction *importAct = toolBar->addAction(QStringLiteral("导入(导出)存档"));
-    QAction *exportAct = toolBar->addAction(QStringLiteral("存档"));
-    QAction *exportAllAct = toolBar->addAction(QStringLiteral("导出全部"));
+
+    QToolButton *importExportBtn = new QToolButton;
+    importExportBtn->setText(QStringLiteral("导入/导出"));
+    importExportBtn->setPopupMode(QToolButton::InstantPopup);
+    QMenu *importExportMenu = new QMenu(importExportBtn);
+    QAction *importMenuAct = importExportMenu->addAction(QStringLiteral("导入存档"));
+    QAction *exportMenuAct = importExportMenu->addAction(QStringLiteral("导出当前"));
+    QAction *exportAllMenuAct = importExportMenu->addAction(QStringLiteral("导出全部"));
+    importExportBtn->setMenu(importExportMenu);
+    toolBar->addWidget(importExportBtn);
+
     toolBar->addSeparator();
-    QAction *copyCodeAct = toolBar->addAction(QStringLiteral("复制代码 (Ctrl+Shift+C)"));
-    QAction *copyPngAct = toolBar->addAction(QStringLiteral("复制PNG (Ctrl+Shift+P)"));
-    QAction *copySvgAct = toolBar->addAction(QStringLiteral("复制SVG (Ctrl+Shift+S)"));
+
+    compileAct = toolBar->addAction(QStringLiteral("编译预览"));
+    applyParamsAct = toolBar->addAction(QStringLiteral("应用参数"));
+    saveAct = toolBar->addAction(QStringLiteral("保存"));
+
     toolBar->addSeparator();
+
+    QAction *copyCodeAct = toolBar->addAction(QStringLiteral("复制代码"));
+    QAction *copyFullAct = toolBar->addAction(QStringLiteral("复制完整文档"));
+    QAction *copyPngAct = toolBar->addAction(QStringLiteral("复制PNG"));
+    QAction *copySvgAct = toolBar->addAction(QStringLiteral("复制SVG"));
+
+    toolBar->addSeparator();
+
+    fitPageAct = toolBar->addAction(QStringLiteral("适应整页"));
+    fitPageAct->setCheckable(true);
+    fitPageAct->setChecked(true);
+    fitWidthAct = toolBar->addAction(QStringLiteral("适应宽度"));
+    fitWidthAct->setCheckable(true);
+    fitHeightAct = toolBar->addAction(QStringLiteral("适应高度"));
+    fitHeightAct->setCheckable(true);
+    zoomOutAct = toolBar->addAction(QStringLiteral("缩小"));
+    zoomInAct = toolBar->addAction(QStringLiteral("放大"));
+
+    toolBar->addSeparator();
+
     QAction *settingsAct = toolBar->addAction(QStringLiteral("设置"));
-    toolBar->addSeparator();
-    QAction *genPreviewAct = toolBar->addAction(QStringLiteral("生成所有预览"));
-    QAction *resetAct = toolBar->addAction(QStringLiteral("重置出厂"));
 
     QSplitter *mainSplitter = new QSplitter(Qt::Horizontal);
 
@@ -182,42 +213,19 @@ void MainWindow::setupUI()
     pdfView->viewport()->installEventFilter(this);
     pdfView->viewport()->setCursor(Qt::OpenHandCursor);
 
-    QHBoxLayout *zoomToolbar = new QHBoxLayout;
-    fitPageBtn = new QPushButton(QStringLiteral("适应整页"));
-    fitWidthBtn = new QPushButton(QStringLiteral("适应宽度"));
-    fitHeightBtn = new QPushButton(QStringLiteral("适应高度"));
-    fitPageBtn->setCheckable(true);
-    fitWidthBtn->setCheckable(true);
-    fitHeightBtn->setCheckable(true);
-    fitPageBtn->setChecked(true);
-    QPushButton *zoomInBtn = new QPushButton(QStringLiteral("+"));
-    QPushButton *zoomOutBtn = new QPushButton(QStringLiteral("−"));
-    zoomInBtn->setFixedWidth(36);
-    zoomOutBtn->setFixedWidth(36);
-    zoomToolbar->addWidget(fitPageBtn);
-    zoomToolbar->addWidget(fitWidthBtn);
-    zoomToolbar->addWidget(fitHeightBtn);
-    zoomToolbar->addStretch();
-    zoomToolbar->addWidget(zoomOutBtn);
-    zoomToolbar->addWidget(zoomInBtn);
-    rightLayout->addLayout(zoomToolbar);
-
     rightLayout->addWidget(pdfView, 2);
 
-    connect(fitPageBtn, &QPushButton::clicked, this, &MainWindow::fitPdfPage);
-    connect(fitWidthBtn, &QPushButton::clicked, this, &MainWindow::fitPdfWidth);
-    connect(fitHeightBtn, &QPushButton::clicked, this, &MainWindow::fitPdfHeight);
-    connect(zoomInBtn, &QPushButton::clicked, this, &MainWindow::zoomPdfIn);
-    connect(zoomOutBtn, &QPushButton::clicked, this, &MainWindow::zoomPdfOut);
+    connect(fitPageAct, &QAction::triggered, this, &MainWindow::fitPdfPage);
+    connect(fitWidthAct, &QAction::triggered, this, &MainWindow::fitPdfWidth);
+    connect(fitHeightAct, &QAction::triggered, this, &MainWindow::fitPdfHeight);
+    connect(zoomInAct, &QAction::triggered, this, &MainWindow::zoomPdfIn);
+    connect(zoomOutAct, &QAction::triggered, this, &MainWindow::zoomPdfOut);
 
     nameEdit = new QLineEdit;
     nameEdit->setPlaceholderText(QStringLiteral("名称"));
     descEdit = new QTextEdit;
     descEdit->setPlaceholderText(QStringLiteral("简介"));
     descEdit->setMaximumHeight(80);
-
-    compileBtn = new QPushButton(QStringLiteral("编译预览"));
-    saveBtn = new QPushButton(QStringLiteral("保存"));
 
     rightLayout->addWidget(new QLabel(QStringLiteral("名称:")));
     rightLayout->addWidget(nameEdit);
@@ -248,21 +256,23 @@ void MainWindow::setupUI()
     paramsScrollArea->setWidget(paramsWidget);
     rightLayout->addWidget(new QLabel(QStringLiteral("参数:")));
     rightLayout->addWidget(paramsScrollArea);
-
-    applyParamsBtn = new QPushButton(QStringLiteral("应用参数"));
-
-    QHBoxLayout *btnRow = new QHBoxLayout;
-    btnRow->addWidget(compileBtn);
-    btnRow->addWidget(applyParamsBtn);
-    btnRow->addWidget(saveBtn);
-    rightLayout->addLayout(btnRow);
     // --- Toolbar actions ---
     connect(newAct, &QAction::triggered, this, [this]() {
-        bool ok;
-        QString name = QInputDialog::getText(this, QStringLiteral("新建片段"),
-            QStringLiteral("片段名称:"), QLineEdit::Normal, "", &ok);
-        if (ok && !name.isEmpty()) {
-            QString id = snippetMgr->createSnippet(name, "");
+        QDialog dlg(this);
+        dlg.setWindowTitle(QStringLiteral("新建片段"));
+        QFormLayout *form = new QFormLayout(&dlg);
+        QLineEdit *nameEdit = new QLineEdit;
+        QLineEdit *catEdit = new QLineEdit;
+        catEdit->setPlaceholderText(QStringLiteral("如: 数学/几何"));
+        form->addRow(QStringLiteral("片段名称:"), nameEdit);
+        form->addRow(QStringLiteral("分类:"), catEdit);
+        QDialogButtonBox *btnBox = new QDialogButtonBox(
+            QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+        form->addRow(btnBox);
+        connect(btnBox, &QDialogButtonBox::accepted, &dlg, &QDialog::accept);
+        connect(btnBox, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);
+        if (dlg.exec() == QDialog::Accepted && !nameEdit->text().isEmpty()) {
+            QString id = snippetMgr->createSnippet(nameEdit->text(), catEdit->text());
             refreshSearch();
             refreshCategoryTree();
             loadSnippetIntoEditor(id);
@@ -311,7 +321,7 @@ void MainWindow::setupUI()
         }
     });
 
-    connect(importAct, &QAction::triggered, this, [this]() {
+    connect(importMenuAct, &QAction::triggered, this, [this]() {
         QString filePath = QFileDialog::getOpenFileName(this,
             QStringLiteral("导入存档"), "", "TikZ 存档 (*.tar.gz *.zip)");
         if (!filePath.isEmpty()) {
@@ -330,7 +340,7 @@ void MainWindow::setupUI()
         }
     });
 
-    connect(exportAct, &QAction::triggered, this, [this]() {
+    connect(exportMenuAct, &QAction::triggered, this, [this]() {
         if (currentSnippetId.isEmpty()) {
             statusBar()->showMessage(QStringLiteral("请先选择一个片段"), 3000);
             return;
@@ -347,7 +357,7 @@ void MainWindow::setupUI()
         }
     });
 
-    connect(exportAllAct, &QAction::triggered, this, [this]() {
+    connect(exportAllMenuAct, &QAction::triggered, this, [this]() {
         QList<Snippet> all = snippetMgr->getAllSnippets(true);
         all.append(snippetMgr->getAllPresets(true));
         if (all.isEmpty()) {
@@ -376,7 +386,27 @@ void MainWindow::setupUI()
         statusBar()->showMessage(QStringLiteral("代码已复制到剪贴板"), 2000);
     };
 
+    auto copyFullDocument = [this]() {
+        if (currentSnippetId.isEmpty()) {
+            QString code = applyParams(codeEditor->toPlainText());
+            static QRegularExpression paramLine("^%\\s*@param:.*(\n|\r\n?)?", QRegularExpression::MultilineOption);
+            code.remove(paramLine);
+            QString fullDoc = compiler->wrapCode(code, QString(), QString(), QString());
+            QApplication::clipboard()->setText(fullDoc);
+            statusBar()->showMessage(QStringLiteral("完整文档已复制到剪贴板"), 2000);
+            return;
+        }
+        Snippet s = snippetMgr->loadSnippet(currentSnippetId);
+        QString code = applyParams(s.code);
+        static QRegularExpression paramLine("^%\\s*@param:.*(\n|\r\n?)?", QRegularExpression::MultilineOption);
+        code.remove(paramLine);
+        QString fullDoc = compiler->wrapCode(code, s.templateId, s.packages, s.tikzLibraries);
+        QApplication::clipboard()->setText(fullDoc);
+        statusBar()->showMessage(QStringLiteral("完整文档已复制到剪贴板"), 2000);
+    };
+
     connect(copyCodeAct, &QAction::triggered, this, copyCode);
+    connect(copyFullAct, &QAction::triggered, this, copyFullDocument);
 
     auto copyPngFromCurrentPreview = [this]() {
         QString pdfPath;
@@ -440,58 +470,18 @@ void MainWindow::setupUI()
         SettingsDialog dlg(this);
         if (dlg.exec() == QDialog::Accepted) {
             SettingsDialog::applyToCompiler(compiler);
+            applyShortcuts();
             statusBar()->showMessage(QStringLiteral("设置已保存"), 3000);
         }
     });
 
-    connect(genPreviewAct, &QAction::triggered, this, &MainWindow::generateAllPreviews);
-
-    connect(resetAct, &QAction::triggered, this, [this]() {
-        QMessageBox::StandardButton reply = QMessageBox::warning(
-            this, QStringLiteral("确认重置"),
-            QStringLiteral("这将删除所有用户创建的片段和修改，恢复为初始状态。\n\n建议重启程序以生效。\n\n确定要继续吗？"),
-            QMessageBox::Yes | QMessageBox::No);
-        if (reply != QMessageBox::Yes) return;
-
-        QString dataLocation = QStandardPaths::writableLocation(
-            QStandardPaths::AppDataLocation);
-        QDir(dataLocation + "/snippets").removeRecursively();
-        QDir(dataLocation + "/presets").removeRecursively();
-        QDir(dataLocation + "/templates").removeRecursively();
-        QDir().mkpath(dataLocation + "/snippets");
-        QDir().mkpath(dataLocation + "/presets");
-        QDir().mkpath(dataLocation + "/templates");
-
-        QString resourceDir = QStringLiteral(RES_DIR);
-        SettingsDialog::ensureTemplatesCopied(resourceDir + "/templates");
-        SnippetManager::copyPresetsFromResources(
-            resourceDir + "/presets",
-            dataLocation + "/presets/");
-        SettingsDialog::applyToCompiler(compiler);
-
-        currentSnippetId.clear();
-        codeEditor->clear();
-        nameEdit->clear();
-        descEdit->clear();
-        tagsEdit->clear();
-        packagesEdit->clear();
-        tikzLibrariesEdit->clear();
-        clearPdfPreview();
-        refreshCategoryTree();
-        refreshSearch();
-
-        QMessageBox::information(this, QStringLiteral("重置完成"),
-            QStringLiteral("已恢复到出厂设置。"));
-    });
-
-    QShortcut *copyCodeShortcut = new QShortcut(QKeySequence("Ctrl+Shift+C"), this);
+    copyCodeShortcut = new QShortcut(this);
+    copyPngShortcut = new QShortcut(this);
+    copySvgShortcut = new QShortcut(this);
     connect(copyCodeShortcut, &QShortcut::activated, this, copyCode);
-
-    QShortcut *copyPngShortcut = new QShortcut(QKeySequence("Ctrl+Shift+P"), this);
     connect(copyPngShortcut, &QShortcut::activated, this, copyPngFromCurrentPreview);
-
-    QShortcut *copySvgShortcut = new QShortcut(QKeySequence("Ctrl+Shift+S"), this);
     connect(copySvgShortcut, &QShortcut::activated, this, copySvgFromCurrentPreview);
+    applyShortcuts();
 
     mainSplitter->addWidget(searchPanel);
     mainSplitter->addWidget(centerSplitter);
@@ -588,7 +578,7 @@ void MainWindow::setupConnections()
             snippetMgr->saveSnippet(s);
         });
 
-    connect(compileBtn, &QPushButton::clicked, this, [this]() {
+    connect(compileAct, &QAction::triggered, this, [this]() {
         saveCurrentSnippet();
         QString code;
         QString templateId;
@@ -617,7 +607,7 @@ void MainWindow::setupConnections()
         compiler->compile(code, templateId, snippetId, packages, tikzLibraries);
     });
 
-    connect(applyParamsBtn, &QPushButton::clicked, this, [this]() {
+    connect(applyParamsAct, &QAction::triggered, this, [this]() {
         if (currentSnippetId.isEmpty()) return;
         Snippet s = snippetMgr->loadSnippet(currentSnippetId);
         QString code = applyParams(s.code);
@@ -625,7 +615,7 @@ void MainWindow::setupConnections()
         compiler->compile(code, s.templateId, currentSnippetId, s.packages, s.tikzLibraries);
     });
 
-    connect(saveBtn, &QPushButton::clicked, this, [this]() {
+    connect(saveAct, &QAction::triggered, this, [this]() {
         saveCurrentSnippet();
         refreshSearch();
     });
@@ -1100,18 +1090,18 @@ void MainWindow::zoomPdfOut()
 void MainWindow::fitPdfPage()
 {
     m_pdfZoomPref = 0;
-    fitPageBtn->setChecked(true);
-    fitWidthBtn->setChecked(false);
-    fitHeightBtn->setChecked(false);
+    fitPageAct->setChecked(true);
+    fitWidthAct->setChecked(false);
+    fitHeightAct->setChecked(false);
     pdfView->setZoomMode(QPdfView::ZoomMode::FitInView);
 }
 
 void MainWindow::fitPdfWidth()
 {
     m_pdfZoomPref = 1;
-    fitPageBtn->setChecked(false);
-    fitWidthBtn->setChecked(true);
-    fitHeightBtn->setChecked(false);
+    fitPageAct->setChecked(false);
+    fitWidthAct->setChecked(true);
+    fitHeightAct->setChecked(false);
     pdfView->setZoomMode(QPdfView::ZoomMode::FitToWidth);
 }
 
@@ -1131,9 +1121,9 @@ void MainWindow::fitPdfHeight()
     qreal ratio = vpSize.height() / pagePixels;
 
     m_pdfZoomPref = 2;
-    fitPageBtn->setChecked(false);
-    fitWidthBtn->setChecked(false);
-    fitHeightBtn->setChecked(true);
+    fitPageAct->setChecked(false);
+    fitWidthAct->setChecked(false);
+    fitHeightAct->setChecked(true);
     pdfView->setZoomMode(QPdfView::ZoomMode::Custom);
     pdfView->setZoomFactor(ratio);
 }
@@ -1143,9 +1133,9 @@ void MainWindow::applyPdfZoomPreference()
     if (!pdfDoc || pdfDoc->status() != QPdfDocument::Status::Ready)
         return;
 
-    fitPageBtn->setChecked(m_pdfZoomPref == 0);
-    fitWidthBtn->setChecked(m_pdfZoomPref == 1);
-    fitHeightBtn->setChecked(m_pdfZoomPref == 2);
+    fitPageAct->setChecked(m_pdfZoomPref == 0);
+    fitWidthAct->setChecked(m_pdfZoomPref == 1);
+    fitHeightAct->setChecked(m_pdfZoomPref == 2);
 
     switch (m_pdfZoomPref) {
     case 0: pdfView->setZoomMode(QPdfView::ZoomMode::FitInView); break;
@@ -1153,3 +1143,49 @@ void MainWindow::applyPdfZoomPreference()
     case 2: fitPdfHeight(); break;
     }
 }
+
+void MainWindow::applyShortcuts()
+{
+    QSettings settings("HiTikZ", "TikzManager");
+    QString codeShortcut = settings.value("shortcuts/copyCode", "Ctrl+Shift+C").toString();
+    QString pngShortcut = settings.value("shortcuts/copyPng", "Ctrl+Shift+P").toString();
+    QString svgShortcut = settings.value("shortcuts/copySvg", "Ctrl+Shift+S").toString();
+
+    copyCodeShortcut->setKey(codeShortcut.isEmpty() ? QKeySequence() : QKeySequence(codeShortcut));
+    copyPngShortcut->setKey(pngShortcut.isEmpty() ? QKeySequence() : QKeySequence(pngShortcut));
+    copySvgShortcut->setKey(svgShortcut.isEmpty() ? QKeySequence() : QKeySequence(svgShortcut));
+}
+
+void MainWindow::factoryReset()
+{
+    QString dataLocation = QStandardPaths::writableLocation(
+        QStandardPaths::AppDataLocation);
+    QDir(dataLocation + "/snippets").removeRecursively();
+    QDir(dataLocation + "/presets").removeRecursively();
+    QDir(dataLocation + "/templates").removeRecursively();
+    QDir().mkpath(dataLocation + "/snippets");
+    QDir().mkpath(dataLocation + "/presets");
+    QDir().mkpath(dataLocation + "/templates");
+
+    QString resourceDir = QStringLiteral(RES_DIR);
+    SettingsDialog::ensureTemplatesCopied(resourceDir + "/templates");
+    SnippetManager::copyPresetsFromResources(
+        resourceDir + "/presets",
+        dataLocation + "/presets/");
+    SettingsDialog::applyToCompiler(compiler);
+
+    currentSnippetId.clear();
+    codeEditor->clear();
+    nameEdit->clear();
+    descEdit->clear();
+    tagsEdit->clear();
+    packagesEdit->clear();
+    tikzLibrariesEdit->clear();
+    clearPdfPreview();
+    refreshCategoryTree();
+    refreshSearch();
+}
+
+void MainWindow::setFitPageChecked(bool checked) { fitPageAct->setChecked(checked); }
+void MainWindow::setFitWidthChecked(bool checked) { fitWidthAct->setChecked(checked); }
+void MainWindow::setFitHeightChecked(bool checked) { fitHeightAct->setChecked(checked); }

@@ -1,0 +1,17 @@
+\begin{tikzpicture}[scale=1.5]
+  \coordinate (A) at (0,0);
+  \coordinate (B) at (4,0);
+  \coordinate (C) at (1.5,2);
+  \draw[thick] (A) -- (B) -- (C) -- cycle;
+  \draw[thick] (A) -- (B);
+  \fill[pattern=north east lines] (-0.1,-0.3) rectangle (4.1,0);
+  \draw[thick] (-0.1,0) -- (4.1,0);
+  \node[below] at (2,0) {地面};
+  \draw (3.2,0) arc (0:53:0.6);
+  \node at (3.0,0.35) {$\theta$};
+  \pgfmathsetmacro{\ang}{atan2(2,2.5)}
+  \fill[red!60] (2.2,1.1) rectangle (2.8,1.5);
+  \draw[->,blue,very thick] (2.5,2.0) -- (2.5,0.7) node[midway,right] {$mg$};
+  \draw[->,green!40!black,very thick] (2.5,1.3) -- (3.6,1.3) node[right] {$mg\sin\theta$};
+  \draw[->,purple,very thick] (2.5,1.9) -- (3.1,2.7) node[above] {$N$};
+\end{tikzpicture}

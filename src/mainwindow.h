@@ -19,6 +19,9 @@
 #include <QComboBox>
 #include <QTimer>
 #include <QMap>
+#include <QShortcut>
+#include <QSettings>
+#include <QToolButton>
 
 #ifdef HAS_QHOTKEY
 #include <QHotkey>
@@ -41,6 +44,9 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
+    void generateAllPreviews();
+    void factoryReset();
+
 protected:
     void closeEvent(QCloseEvent *event) override;
     bool eventFilter(QObject *obj, QEvent *event) override;
@@ -58,6 +64,11 @@ private:
     void fitPdfWidth();
     void fitPdfHeight();
     void applyPdfZoomPreference();
+    void applyShortcuts();
+    void copyFullDocument();
+    void setFitPageChecked(bool checked);
+    void setFitWidthChecked(bool checked);
+    void setFitHeightChecked(bool checked);
     void refreshCategoryTree();
     void onCurrentSnippetChanged();
     void jumpToErrorLine(const QString &logText);
@@ -67,7 +78,6 @@ private:
     void savePreviewData(const QString &pdfPath, const QString &snippetId);
     void loadPreviewForSnippet(const QString &id);
     void clearPdfPreview();
-    void generateAllPreviews();
     void setFormattedLog(const QString &log);
     void handleLogDoubleClick();
     void checkSystemDependencies();
@@ -86,23 +96,30 @@ private:
     QWidget *rightPanel;
     QPdfView *pdfView;
     QPdfDocument *pdfDoc;
-    QPushButton *fitPageBtn;
-    QPushButton *fitWidthBtn;
-    QPushButton *fitHeightBtn;
     QLineEdit *nameEdit;
     QTextEdit *descEdit;
     QLineEdit *tagsEdit;
     QLineEdit *packagesEdit;
     QLineEdit *tikzLibrariesEdit;
     QComboBox *templateCombo;
-    QPushButton *compileBtn;
-    QPushButton *saveBtn;
 
     QScrollArea *paramsScrollArea;
     QWidget *paramsWidget;
     QVBoxLayout *paramsLayout;
-    QPushButton *applyParamsBtn;
     QList<ParamInfo> currentParams;
+
+    QShortcut *copyCodeShortcut;
+    QShortcut *copyPngShortcut;
+    QShortcut *copySvgShortcut;
+
+    QAction *fitPageAct;
+    QAction *fitWidthAct;
+    QAction *fitHeightAct;
+    QAction *zoomInAct;
+    QAction *zoomOutAct;
+    QAction *compileAct;
+    QAction *applyParamsAct;
+    QAction *saveAct;
 
     QSystemTrayIcon *trayIcon;
     QMenu *trayMenu;

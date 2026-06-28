@@ -1,0 +1,23 @@
+\begin{tikzpicture}[scale=1.5]
+  \coordinate (A) at (0,0);
+  \coordinate (B) at (1.5,0.5);
+  \coordinate (C) at (1.5,2);
+  \coordinate (D) at (0,1.5);
+  \coordinate (A1) at (2,0);
+  \coordinate (B1) at (3.5,0.5);
+  \coordinate (C1) at (3.5,2);
+  \coordinate (D1) at (2,1.5);
+  \draw[thick] (A) -- (B) -- (C) -- (D) -- cycle;
+  \draw[thick] (A1) -- (B1) -- (C1) -- (D1) -- cycle;
+  \draw[thick] (A) -- (A1);
+  \draw[thick] (B) -- (B1);
+  \draw[thick] (C) -- (C1);
+  \draw[thick] (D) -- (D1);
+  \fill[blue!15] (A) -- (B) -- (B1) -- (A1) -- cycle;
+  \fill[red!15] (B) -- (C) -- (C1) -- (B1) -- cycle;
+  \fill[green!15] (C) -- (D) -- (D1) -- (C1) -- cycle;
+  \node[below] at (A) {$A$};
+  \node[below right] at (B) {$B$};
+  \node[above] at (C) {$C$};
+  \node[above left] at (D) {$D$};
+\end{tikzpicture}

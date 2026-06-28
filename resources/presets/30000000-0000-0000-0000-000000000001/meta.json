@@ -1,0 +1,8 @@
+{
+  "id": "30000000-0000-0000-0000-000000000001",
+  "name": "RLC串联电路",
+  "description": "RLC串联谐振电路：电阻、电感、电容和交流电源",
+  "category": "电路/基础",
+  "tags": ["RLC","串联","谐振"],
+  "templateId": "default_circuit"
+}

@@ -1,0 +1,22 @@
+\begin{tikzpicture}[scale=0.8]
+  \coordinate (A) at (0,0);
+  \coordinate (B) at (4,0);
+  \coordinate (C) at (0,3);
+  \draw[thick] (A) -- (B) -- (C) -- cycle;
+  \draw[thick] (A) rectangle (0.3,0.3);
+  \node[below left] at (A) {$A$};
+  \node[below right] at (B) {$B$};
+  \node[above left] at (C) {$C$};
+  \node at (2,-0.2) {$a$};
+  \node at (-0.2,1.5) {$b$};
+  \node at (2.2,1.7) {$c$};
+  \fill[red!20] (0,0) -- (4,0) -- (4,-3) -- (0,-3) -- cycle;
+  \draw[red,thick] (0,0) -- (4,0) -- (4,-3) -- (0,-3) -- cycle;
+  \node[red] at (2,-1.5) {$a^2$};
+  \fill[blue!20] (0,0) -- (0,3) -- (-3,3) -- (-3,0) -- cycle;
+  \draw[blue,thick] (0,0) -- (0,3) -- (-3,3) -- (-3,0) -- cycle;
+  \node[blue] at (-1.5,1.5) {$b^2$};
+  \fill[green!20] (4,0) -- (0,3) -- (0+3*3/5,3+4*3/5) -- (4+3*3/5,0+4*3/5) -- cycle;
+  \draw[green,thick] (4,0) -- (0,3) -- (0+3*3/5,3+4*3/5) -- (4+3*3/5,0+4*3/5) -- cycle;
+  \node[green!60!black] at (2.8,2.8) {$c^2$};
+\end{tikzpicture}

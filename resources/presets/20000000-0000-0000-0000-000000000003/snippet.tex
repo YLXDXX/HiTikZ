@@ -1,0 +1,11 @@
+\begin{tikzpicture}[scale=1.5]
+  \fill[pattern=north east lines] (-0.1,-0.5) rectangle (0.2,0.5);
+  \draw[thick] (0,-0.5) -- (0,0.5);
+  \node[left] at (0,0) {墙};
+  \draw[thick,decorate,decoration={coil,amplitude=0.2cm,segment length=2mm}] (0,0) -- (2,0);
+  \fill[red!60] (2,-0.3) rectangle (2.6,0.3);
+  \node[above] at (2.3,0.3) {$m$};
+  \draw[dashed] (2.3,-0.6) -- (2.3,0.6);
+  \node[below] at (2.3,-0.6) {平衡位置};
+  \draw[<->] (0,-0.7) -- (2,-0.7) node[midway,below] {$x$};
+\end{tikzpicture}

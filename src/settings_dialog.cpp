@@ -1,5 +1,6 @@
 #include "settings_dialog.h"
 #include "latex_compiler.h"
+#include "mainwindow.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QFormLayout>
@@ -14,6 +15,7 @@
 #include <QDebug>
 #include <QInputDialog>
 #include <QMessageBox>
+#include <QGroupBox>
 
 SettingsDialog::SettingsDialog(QWidget *parent)
     : QDialog(parent)
@@ -37,6 +39,64 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     formLayout->addRow(QStringLiteral("TEXINPUTS:"), texInputsEdit);
     formLayout->addRow(QStringLiteral("PNG DPI:"), pngDpiSpin);
     mainLayout->addLayout(formLayout);
+
+    QGroupBox *shortcutGroup = new QGroupBox(QStringLiteral("快捷键设置"));
+    QFormLayout *shortcutLayout = new QFormLayout(shortcutGroup);
+    copyCodeShortcutEdit = new QKeySequenceEdit;
+    copyPngShortcutEdit = new QKeySequenceEdit;
+    copySvgShortcutEdit = new QKeySequenceEdit;
+    shortcutLayout->addRow(QStringLiteral("复制代码:"), copyCodeShortcutEdit);
+    shortcutLayout->addRow(QStringLiteral("复制PNG:"), copyPngShortcutEdit);
+    shortcutLayout->addRow(QStringLiteral("复制SVG:"), copySvgShortcutEdit);
+    mainLayout->addWidget(shortcutGroup);
+
+    QGroupBox *actionsGroup = new QGroupBox(QStringLiteral("工具"));
+    QVBoxLayout *actionsLayout = new QVBoxLayout(actionsGroup);
+    QPushButton *genPreviewBtn = new QPushButton(QStringLiteral("生成所有预览"));
+    QPushButton *resetBtn = new QPushButton(QStringLiteral("恢复出厂设置"));
+    resetBtn->setStyleSheet("QPushButton { color: red; }");
+    actionsLayout->addWidget(genPreviewBtn);
+    actionsLayout->addWidget(resetBtn);
+    mainLayout->addWidget(actionsGroup);
+
+    connect(genPreviewBtn, &QPushButton::clicked, this, [this]() {
+        auto *mw = qobject_cast<MainWindow*>(parentWidget());
+        if (mw) {
+            mw->generateAllPreviews();
+            QMessageBox::information(this, QStringLiteral("完成"),
+                QStringLiteral("所有预览生成完毕。"));
+        }
+    });
+
+    connect(resetBtn, &QPushButton::clicked, this, [this]() {
+        QMessageBox::StandardButton reply = QMessageBox::warning(
+            this, QStringLiteral("⚠ 危险操作"),
+            QStringLiteral("这将永久删除所有用户创建的片段和修改！\n\n"
+                           "请在下方输入 \"确定重置\" 来确认此操作："),
+            QMessageBox::Yes | QMessageBox::No);
+        if (reply != QMessageBox::Yes) return;
+
+        bool ok;
+        QString confirm = QInputDialog::getText(this, QStringLiteral("确认重置"),
+            QStringLiteral("请输入 \"确定重置\" 以确认:"),
+            QLineEdit::Normal, "", &ok);
+        if (!ok || confirm != QStringLiteral("确定重置")) {
+            QMessageBox::information(this, QStringLiteral("取消"),
+                QStringLiteral("重置操作已取消。"));
+            return;
+        }
+
+        auto *mw = qobject_cast<MainWindow*>(parentWidget());
+        if (mw) {
+            mw->factoryReset();
+            QMessageBox::information(this, QStringLiteral("完成"),
+                QStringLiteral("已恢复到出厂设置，建议重启程序。"));
+
+            saveSettings();
+            saveTemplateContent();
+            accept();
+        }
+    });
 
     QLabel *templateLabel = new QLabel(QStringLiteral("LaTeX 模板管理:"));
     mainLayout->addWidget(templateLabel);
@@ -104,6 +164,9 @@ void SettingsDialog::loadSettings()
     pdftocairoPathEdit->setText(settings.value("pdftocairo/path", "pdftocairo").toString());
     texInputsEdit->setText(settings.value("paths/texinputs", "").toString());
     pngDpiSpin->setValue(settings.value("png/dpi", 300).toInt());
+    copyCodeShortcutEdit->setKeySequence(QKeySequence(settings.value("shortcuts/copyCode", "Ctrl+Shift+C").toString()));
+    copyPngShortcutEdit->setKeySequence(QKeySequence(settings.value("shortcuts/copyPng", "Ctrl+Shift+P").toString()));
+    copySvgShortcutEdit->setKeySequence(QKeySequence(settings.value("shortcuts/copySvg", "Ctrl+Shift+S").toString()));
 }
 
 void SettingsDialog::saveSettings()
@@ -113,6 +176,9 @@ void SettingsDialog::saveSettings()
     settings.setValue("pdftocairo/path", pdftocairoPathEdit->text());
     settings.setValue("paths/texinputs", texInputsEdit->text());
     settings.setValue("png/dpi", pngDpiSpin->value());
+    settings.setValue("shortcuts/copyCode", copyCodeShortcutEdit->keySequence().toString());
+    settings.setValue("shortcuts/copyPng", copyPngShortcutEdit->keySequence().toString());
+    settings.setValue("shortcuts/copySvg", copySvgShortcutEdit->keySequence().toString());
 }
 
 void SettingsDialog::applyToCompiler(LatexCompiler *compiler)

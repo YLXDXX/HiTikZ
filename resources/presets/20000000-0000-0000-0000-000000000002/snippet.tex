@@ -1,0 +1,12 @@
+\begin{tikzpicture}[scale=1.5]
+  \coordinate (O) at (0,3);
+  \fill (O) circle (1.5pt) node[left] {$O$};
+  \coordinate (P) at (1.2,1.8);
+  \draw[thick] (O) -- (P);
+  \draw[dashed] (O) -- (0,1.2);
+  \shade[ball color=red] (P) circle (0.2);
+  \draw (0,2.5) arc (270:325:0.5);
+  \node at (0.35,2.45) {$\theta$};
+  \draw[->,thick,blue] (P) -- +(0,-1.2) node[right] {$mg$};
+  \draw[->,thick,green!40!black] (P) -- +(-0.7,-0.5) node[left] {$T$};
+\end{tikzpicture}

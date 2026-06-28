@@ -7,6 +7,7 @@
 #include <QListWidget>
 #include <QSettings>
 #include <QStringList>
+#include <QKeySequenceEdit>
 
 class SettingsDialog : public QDialog {
     Q_OBJECT
@@ -30,6 +31,9 @@ private:
     QLineEdit *pdftocairoPathEdit;
     QLineEdit *texInputsEdit;
     QSpinBox *pngDpiSpin;
+    QKeySequenceEdit *copyCodeShortcutEdit;
+    QKeySequenceEdit *copyPngShortcutEdit;
+    QKeySequenceEdit *copySvgShortcutEdit;
     QListWidget *templateListWidget;
     QPlainTextEdit *templateEdit;
 
