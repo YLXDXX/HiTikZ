@@ -48,6 +48,8 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     shortcutLayout->addRow(QStringLiteral("复制代码:"), copyCodeShortcutEdit);
     shortcutLayout->addRow(QStringLiteral("复制PNG:"), copyPngShortcutEdit);
     shortcutLayout->addRow(QStringLiteral("复制SVG:"), copySvgShortcutEdit);
+    globalHotkeyEdit = new QKeySequenceEdit;
+    shortcutLayout->addRow(QStringLiteral("全局快捷键:"), globalHotkeyEdit);
     mainLayout->addWidget(shortcutGroup);
 
     QGroupBox *actionsGroup = new QGroupBox(QStringLiteral("工具"));
@@ -167,6 +169,7 @@ void SettingsDialog::loadSettings()
     copyCodeShortcutEdit->setKeySequence(QKeySequence(settings.value("shortcuts/copyCode", "Ctrl+Shift+C").toString()));
     copyPngShortcutEdit->setKeySequence(QKeySequence(settings.value("shortcuts/copyPng", "Ctrl+Shift+P").toString()));
     copySvgShortcutEdit->setKeySequence(QKeySequence(settings.value("shortcuts/copySvg", "Ctrl+Shift+S").toString()));
+    globalHotkeyEdit->setKeySequence(QKeySequence(settings.value("shortcuts/globalHotkey", "Ctrl+Alt+T").toString()));
 }
 
 void SettingsDialog::saveSettings()
@@ -179,6 +182,7 @@ void SettingsDialog::saveSettings()
     settings.setValue("shortcuts/copyCode", copyCodeShortcutEdit->keySequence().toString());
     settings.setValue("shortcuts/copyPng", copyPngShortcutEdit->keySequence().toString());
     settings.setValue("shortcuts/copySvg", copySvgShortcutEdit->keySequence().toString());
+    settings.setValue("shortcuts/globalHotkey", globalHotkeyEdit->keySequence().toString());
 }
 
 void SettingsDialog::applyToCompiler(LatexCompiler *compiler)

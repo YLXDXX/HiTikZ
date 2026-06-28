@@ -34,6 +34,7 @@ private:
     QKeySequenceEdit *copyCodeShortcutEdit;
     QKeySequenceEdit *copyPngShortcutEdit;
     QKeySequenceEdit *copySvgShortcutEdit;
+    QKeySequenceEdit *globalHotkeyEdit;
     QListWidget *templateListWidget;
     QPlainTextEdit *templateEdit;
 

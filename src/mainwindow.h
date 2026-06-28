@@ -46,6 +46,7 @@ public:
 
     void generateAllPreviews();
     void factoryReset();
+    void applyGlobalHotkey();
 
 protected:
     void closeEvent(QCloseEvent *event) override;
@@ -111,6 +112,9 @@ private:
     QShortcut *copyCodeShortcut;
     QShortcut *copyPngShortcut;
     QShortcut *copySvgShortcut;
+#ifdef HAS_QHOTKEY
+    QHotkey *globalHotkey = nullptr;
+#endif
 
     QAction *fitPageAct;
     QAction *fitWidthAct;

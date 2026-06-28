@@ -98,23 +98,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), currentSnippetId(
         checkSystemDependencies();
     });
 
-#ifdef HAS_QHOTKEY
-    QHotkey *hotkey = new QHotkey(QKeySequence("Ctrl+Alt+T"), true, this);
-    if (hotkey->isRegistered()) {
-        connect(hotkey, &QHotkey::activated, this, [this]() {
-            if (isVisible() && !isMinimized()) {
-                hide();
-            } else {
-                show();
-                raise();
-                activateWindow();
-                searchPanel->setFocus();
-            }
-        });
-    } else {
-        qWarning() << "Global hotkey (Ctrl+Alt+T) unavailable (not supported on this platform)";
-    }
-#endif
+    applyGlobalHotkey();
 }
 
 MainWindow::~MainWindow()
@@ -471,6 +455,7 @@ void MainWindow::setupUI()
         if (dlg.exec() == QDialog::Accepted) {
             SettingsDialog::applyToCompiler(compiler);
             applyShortcuts();
+            applyGlobalHotkey();
             statusBar()->showMessage(QStringLiteral("设置已保存"), 3000);
         }
     });
@@ -1154,6 +1139,38 @@ void MainWindow::applyShortcuts()
     copyCodeShortcut->setKey(codeShortcut.isEmpty() ? QKeySequence() : QKeySequence(codeShortcut));
     copyPngShortcut->setKey(pngShortcut.isEmpty() ? QKeySequence() : QKeySequence(pngShortcut));
     copySvgShortcut->setKey(svgShortcut.isEmpty() ? QKeySequence() : QKeySequence(svgShortcut));
+}
+
+void MainWindow::applyGlobalHotkey()
+{
+#ifdef HAS_QHOTKEY
+    if (globalHotkey) {
+        globalHotkey->disconnect(this);
+        delete globalHotkey;
+        globalHotkey = nullptr;
+    }
+
+    QSettings settings("HiTikZ", "TikzManager");
+    QString keyStr = settings.value("shortcuts/globalHotkey", "Ctrl+Alt+T").toString();
+    if (keyStr.isEmpty()) return;
+
+    QKeySequence ks(keyStr);
+    if (ks.isEmpty()) return;
+
+    globalHotkey = new QHotkey(ks, true, this);
+    if (globalHotkey->isRegistered()) {
+        connect(globalHotkey, &QHotkey::activated, this, [this]() {
+            if (isVisible() && !isMinimized()) {
+                hide();
+            } else {
+                show();
+                raise();
+                activateWindow();
+                searchPanel->setFocus();
+            }
+        });
+    }
+#endif
 }
 
 void MainWindow::factoryReset()
