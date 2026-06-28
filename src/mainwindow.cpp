@@ -197,10 +197,12 @@ void MainWindow::setupUI()
     pdfView->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     pdfView->viewport()->installEventFilter(this);
     pdfView->viewport()->setCursor(Qt::OpenHandCursor);
+    pdfView->setMinimumHeight(0);
 
     QWidget *metadataWidget = new QWidget;
     QVBoxLayout *metaLayout = new QVBoxLayout(metadataWidget);
     metaLayout->setContentsMargins(4, 4, 4, 4);
+    metadataWidget->setMinimumHeight(0);
 
     QSplitter *rightSplitter = new QSplitter(Qt::Vertical);
     rightSplitter->addWidget(pdfView);
@@ -208,6 +210,7 @@ void MainWindow::setupUI()
     rightSplitter->setStretchFactor(0, 3);
     rightSplitter->setStretchFactor(1, 1);
     rightSplitter->setSizes({400, 300});
+    rightSplitter->setChildrenCollapsible(false);
     rightLayout->addWidget(rightSplitter);
 
     connect(fitPageAct, &QAction::triggered, this, &MainWindow::fitPdfPage);
@@ -474,9 +477,15 @@ void MainWindow::setupUI()
     copyCodeShortcut = new QShortcut(this);
     copyPngShortcut = new QShortcut(this);
     copySvgShortcut = new QShortcut(this);
+    compileShortcut = new QShortcut(this);
+    applyParamsShortcut = new QShortcut(this);
+    saveShortcut = new QShortcut(this);
     connect(copyCodeShortcut, &QShortcut::activated, this, copyCode);
     connect(copyPngShortcut, &QShortcut::activated, this, copyPngFromCurrentPreview);
     connect(copySvgShortcut, &QShortcut::activated, this, copySvgFromCurrentPreview);
+    connect(compileShortcut, &QShortcut::activated, this, [this]() { compileAct->trigger(); });
+    connect(applyParamsShortcut, &QShortcut::activated, this, [this]() { applyParamsAct->trigger(); });
+    connect(saveShortcut, &QShortcut::activated, this, [this]() { saveAct->trigger(); });
     applyShortcuts();
 
     mainSplitter->addWidget(searchPanel);
@@ -1143,13 +1152,18 @@ void MainWindow::applyPdfZoomPreference()
 void MainWindow::applyShortcuts()
 {
     QSettings settings("HiTikZ", "TikzManager");
-    QString codeShortcut = settings.value("shortcuts/copyCode", "Ctrl+Shift+C").toString();
-    QString pngShortcut = settings.value("shortcuts/copyPng", "Ctrl+Shift+P").toString();
-    QString svgShortcut = settings.value("shortcuts/copySvg", "Ctrl+Shift+S").toString();
 
-    copyCodeShortcut->setKey(codeShortcut.isEmpty() ? QKeySequence() : QKeySequence(codeShortcut));
-    copyPngShortcut->setKey(pngShortcut.isEmpty() ? QKeySequence() : QKeySequence(pngShortcut));
-    copySvgShortcut->setKey(svgShortcut.isEmpty() ? QKeySequence() : QKeySequence(svgShortcut));
+    auto setShortcut = [&](QShortcut *sc, const QString &key) {
+        QString val = settings.value(key).toString();
+        sc->setKey(val.isEmpty() ? QKeySequence() : QKeySequence(val));
+    };
+
+    setShortcut(copyCodeShortcut, "shortcuts/copyCode");
+    setShortcut(copyPngShortcut, "shortcuts/copyPng");
+    setShortcut(copySvgShortcut, "shortcuts/copySvg");
+    setShortcut(compileShortcut, "shortcuts/compile");
+    setShortcut(applyParamsShortcut, "shortcuts/applyParams");
+    setShortcut(saveShortcut, "shortcuts/save");
 }
 
 void MainWindow::applyGlobalHotkey()

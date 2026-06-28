@@ -112,6 +112,9 @@ private:
     QShortcut *copyCodeShortcut;
     QShortcut *copyPngShortcut;
     QShortcut *copySvgShortcut;
+    QShortcut *compileShortcut;
+    QShortcut *applyParamsShortcut;
+    QShortcut *saveShortcut;
 #ifdef HAS_QHOTKEY
     QHotkey *globalHotkey = nullptr;
 #endif

@@ -46,16 +46,17 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     copyCodeShortcutEdit = new QKeySequenceEdit;
     copyPngShortcutEdit = new QKeySequenceEdit;
     copySvgShortcutEdit = new QKeySequenceEdit;
+    compileShortcutEdit = new QKeySequenceEdit;
+    applyParamsShortcutEdit = new QKeySequenceEdit;
+    saveShortcutEdit = new QKeySequenceEdit;
     globalHotkeyEdit = new QKeySequenceEdit;
-
-    for (QKeySequenceEdit *edit : {copyCodeShortcutEdit, copyPngShortcutEdit, copySvgShortcutEdit, globalHotkeyEdit}) {
-        edit->setClearButtonEnabled(true);
-    }
 
     shortcutLayout->addRow(QStringLiteral("复制代码:"), copyCodeShortcutEdit);
     shortcutLayout->addRow(QStringLiteral("复制PNG:"), copyPngShortcutEdit);
     shortcutLayout->addRow(QStringLiteral("复制SVG:"), copySvgShortcutEdit);
-    globalHotkeyEdit = new QKeySequenceEdit;
+    shortcutLayout->addRow(QStringLiteral("编译预览:"), compileShortcutEdit);
+    shortcutLayout->addRow(QStringLiteral("应用参数:"), applyParamsShortcutEdit);
+    shortcutLayout->addRow(QStringLiteral("保存:"), saveShortcutEdit);
     shortcutLayout->addRow(QStringLiteral("全局快捷键:"), globalHotkeyEdit);
     mainLayout->addWidget(shortcutGroup);
 
@@ -176,6 +177,9 @@ void SettingsDialog::loadSettings()
     copyCodeShortcutEdit->setKeySequence(QKeySequence(settings.value("shortcuts/copyCode", "Ctrl+Shift+C").toString()));
     copyPngShortcutEdit->setKeySequence(QKeySequence(settings.value("shortcuts/copyPng", "Ctrl+Shift+P").toString()));
     copySvgShortcutEdit->setKeySequence(QKeySequence(settings.value("shortcuts/copySvg", "Ctrl+Shift+S").toString()));
+    compileShortcutEdit->setKeySequence(QKeySequence(settings.value("shortcuts/compile", "").toString()));
+    applyParamsShortcutEdit->setKeySequence(QKeySequence(settings.value("shortcuts/applyParams", "").toString()));
+    saveShortcutEdit->setKeySequence(QKeySequence(settings.value("shortcuts/save", "").toString()));
     globalHotkeyEdit->setKeySequence(QKeySequence(settings.value("shortcuts/globalHotkey", "Ctrl+Alt+T").toString()));
 }
 
@@ -189,6 +193,9 @@ void SettingsDialog::saveSettings()
     settings.setValue("shortcuts/copyCode", copyCodeShortcutEdit->keySequence().toString());
     settings.setValue("shortcuts/copyPng", copyPngShortcutEdit->keySequence().toString());
     settings.setValue("shortcuts/copySvg", copySvgShortcutEdit->keySequence().toString());
+    settings.setValue("shortcuts/compile", compileShortcutEdit->keySequence().toString());
+    settings.setValue("shortcuts/applyParams", applyParamsShortcutEdit->keySequence().toString());
+    settings.setValue("shortcuts/save", saveShortcutEdit->keySequence().toString());
     settings.setValue("shortcuts/globalHotkey", globalHotkeyEdit->keySequence().toString());
 }
 
