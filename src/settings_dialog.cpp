@@ -51,6 +51,13 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     saveShortcutEdit = new QKeySequenceEdit;
     globalHotkeyEdit = new QKeySequenceEdit;
 
+    QList<QKeySequenceEdit*> allEdits = {copyCodeShortcutEdit, copyPngShortcutEdit,
+        copySvgShortcutEdit, compileShortcutEdit, applyParamsShortcutEdit,
+        saveShortcutEdit, globalHotkeyEdit};
+    for (QKeySequenceEdit *edit : allEdits) {
+        edit->setClearButtonEnabled(true);
+    }
+
     shortcutLayout->addRow(QStringLiteral("复制代码:"), copyCodeShortcutEdit);
     shortcutLayout->addRow(QStringLiteral("复制PNG:"), copyPngShortcutEdit);
     shortcutLayout->addRow(QStringLiteral("复制SVG:"), copySvgShortcutEdit);

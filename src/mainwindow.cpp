@@ -202,11 +202,15 @@ void MainWindow::setupUI()
     QWidget *metadataWidget = new QWidget;
     QVBoxLayout *metaLayout = new QVBoxLayout(metadataWidget);
     metaLayout->setContentsMargins(4, 4, 4, 4);
-    metadataWidget->setMinimumHeight(0);
+
+    QScrollArea *metaScroll = new QScrollArea;
+    metaScroll->setWidgetResizable(true);
+    metaScroll->setWidget(metadataWidget);
+    metaScroll->setMinimumHeight(0);
 
     QSplitter *rightSplitter = new QSplitter(Qt::Vertical);
     rightSplitter->addWidget(pdfView);
-    rightSplitter->addWidget(metadataWidget);
+    rightSplitter->addWidget(metaScroll);
     rightSplitter->setStretchFactor(0, 3);
     rightSplitter->setStretchFactor(1, 1);
     rightSplitter->setSizes({400, 300});
@@ -804,12 +808,20 @@ void MainWindow::savePreviewData(const QString &pdfPath, const QString &snippetI
         QFile::remove(previewPdf);
     QFile::copy(pdfPath, previewPdf);
 
-    QProcess *pngProc = new QProcess(this);
-    connect(pngProc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
-        pngProc, &QProcess::deleteLater);
-    QStringList args;
-    args << "-png" << "-r" << "150" << "-singlefile" << pdfPath << (basePath + "/preview");
-    pngProc->start("pdftocairo", args);
+    if (m_batchGenerating) {
+        QProcess pngProc;
+        QStringList args;
+        args << "-png" << "-r" << "150" << "-singlefile" << pdfPath << (basePath + "/preview");
+        pngProc.start("pdftocairo", args);
+        pngProc.waitForFinished(10000);
+    } else {
+        QProcess *pngProc = new QProcess(this);
+        connect(pngProc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+            pngProc, &QProcess::deleteLater);
+        QStringList args;
+        args << "-png" << "-r" << "150" << "-singlefile" << pdfPath << (basePath + "/preview");
+        pngProc->start("pdftocairo", args);
+    }
 }
 
 void MainWindow::loadPreviewForSnippet(const QString &id)
