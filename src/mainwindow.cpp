@@ -120,9 +120,62 @@ void MainWindow::closeEvent(QCloseEvent *event)
     if (trayIcon && trayIcon->isVisible()) {
         hide();
         event->ignore();
-    } else {
-        event->accept();
+        return;
     }
+
+    bool hasUnsaved = false;
+    if (!currentSnippetId.isEmpty()) {
+        Snippet saved = snippetMgr->loadSnippet(currentSnippetId);
+        QString savedCode = saved.code;
+        QString savedName = saved.name;
+        QString currentCode = codeEditor->toPlainText();
+        if (currentCode != savedCode)
+            hasUnsaved = true;
+    } else {
+        if (!codeEditor->toPlainText().trimmed().isEmpty())
+            hasUnsaved = true;
+    }
+
+    if (hasUnsaved) {
+        QMessageBox::StandardButton btn = QMessageBox::warning(this,
+            QStringLiteral("未保存的更改"),
+            QStringLiteral("当前片段有未保存的更改。\n\n是否在退出前保存？"),
+            QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel);
+        if (btn == QMessageBox::Save) {
+            saveCurrentSnippet();
+            if (currentSnippetId.isEmpty() && !codeEditor->toPlainText().trimmed().isEmpty()) {
+                QDialog dlg(this);
+                dlg.setWindowTitle(QStringLiteral("保存新片段"));
+                QFormLayout *form = new QFormLayout(&dlg);
+                QLineEdit *nameEdit = new QLineEdit;
+                QLineEdit *catEdit = new QLineEdit;
+                catEdit->setPlaceholderText(QStringLiteral("如: 数学/几何"));
+                form->addRow(QStringLiteral("片段名称:"), nameEdit);
+                form->addRow(QStringLiteral("分类:"), catEdit);
+                QDialogButtonBox *btnBox = new QDialogButtonBox(
+                    QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+                form->addRow(btnBox);
+                connect(btnBox, &QDialogButtonBox::accepted, &dlg, &QDialog::accept);
+                connect(btnBox, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);
+                if (dlg.exec() == QDialog::Accepted && !nameEdit->text().isEmpty()) {
+                    QString id = snippetMgr->createSnippet(nameEdit->text(), catEdit->text());
+                    currentSnippetId = id;
+                    saveCurrentSnippet();
+                } else {
+                    event->ignore();
+                    return;
+                }
+            }
+            event->accept();
+        } else if (btn == QMessageBox::Discard) {
+            event->accept();
+        } else {
+            event->ignore();
+        }
+        return;
+    }
+
+    event->accept();
 }
 
 void MainWindow::setupUI()
