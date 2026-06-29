@@ -668,6 +668,7 @@ QStringList SnippetManager::importSnippetsZip(const QString &zipPath)
                 if (doc.isObject()) {
                     QJsonObject obj = doc.object();
                     obj["id"] = newId;
+                    obj.remove("isPreset");
                     QJsonDocument newDoc(obj);
                     if (metaFile.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
                         metaFile.write(newDoc.toJson());
@@ -675,6 +676,11 @@ QStringList SnippetManager::importSnippetsZip(const QString &zipPath)
                     }
                 }
             }
+        } else {
+            Snippet newSnip;
+            newSnip.id = newId;
+            newSnip.name = subDir;
+            saveSnippet(newSnip);
         }
 
         importedIds.append(newId);
