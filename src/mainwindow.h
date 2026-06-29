@@ -131,6 +131,7 @@ private:
 
     QString currentSnippetId;
     bool m_batchGenerating = false;
+    bool m_forceQuit = false;
     QTimer *searchDebounceTimer = nullptr;
     QTimer *autoSaveTimer = nullptr;
 };

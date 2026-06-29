@@ -82,7 +82,10 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), currentSnippetId(
         searchPanel->setFocus();
     });
     connect(hideAct, &QAction::triggered, this, &QMainWindow::hide);
-    connect(quitAct, &QAction::triggered, qApp, &QApplication::quit);
+    connect(quitAct, &QAction::triggered, this, [this]() {
+        m_forceQuit = true;
+        close();
+    });
     connect(trayIcon, &QSystemTrayIcon::activated, this, [this](QSystemTrayIcon::ActivationReason reason) {
         if (reason == QSystemTrayIcon::DoubleClick || reason == QSystemTrayIcon::Trigger) {
             if (isVisible() && !isMinimized()) {
@@ -117,11 +120,13 @@ MainWindow::~MainWindow()
 
 void MainWindow::closeEvent(QCloseEvent *event)
 {
-    if (trayIcon && trayIcon->isVisible()) {
+    if (trayIcon && trayIcon->isVisible() && !m_forceQuit) {
         hide();
         event->ignore();
         return;
     }
+
+    m_forceQuit = false;
 
     bool hasUnsaved = false;
     if (!currentSnippetId.isEmpty()) {

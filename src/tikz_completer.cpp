@@ -72,6 +72,8 @@ void TikzCompleter::initCompleters()
 
     QStringList allWords = TikzWords::allCompletableWords();
     makeCompleter(TkzCtxWord, allWords);
+
+    makeCompleter(TkzCtxAt, {});
 }
 
 void TikzCompleter::setModelForContext(Context ctx, const QStringList &words)
