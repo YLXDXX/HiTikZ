@@ -414,13 +414,23 @@ bool SearchPanel::eventFilter(QObject *obj, QEvent *event)
         if (mime->hasFormat("application/x-qabstractitemmodeldatalist")) {
             QByteArray data = mime->data("application/x-qabstractitemmodeldatalist");
             QDataStream stream(&data, QIODevice::ReadOnly);
-            int row, col;
-            QMap<int, QVariant> roleData;
-            stream >> row >> col >> roleData;
-            QString snippetId = roleData[Qt::UserRole].toString();
+            QSet<QString> seen;
+            bool anyUpdated = false;
 
-            if (!snippetId.isEmpty()) {
-                snippetMgr->updateSnippetCategory(snippetId, targetCat);
+            while (!stream.atEnd()) {
+                int row, col;
+                QMap<int, QVariant> roleData;
+                stream >> row >> col >> roleData;
+                QString snippetId = roleData[Qt::UserRole].toString();
+
+                if (!snippetId.isEmpty() && !seen.contains(snippetId)) {
+                    seen.insert(snippetId);
+                    snippetMgr->updateSnippetCategory(snippetId, targetCat);
+                    anyUpdated = true;
+                }
+            }
+
+            if (anyUpdated) {
                 refreshCategoryTree();
                 refreshSearch();
                 de->accept();
