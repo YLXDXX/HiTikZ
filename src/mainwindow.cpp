@@ -145,6 +145,13 @@ void MainWindow::setupUI()
 
     toolBar->addSeparator();
 
+    QAction *undoAct = toolBar->addAction(QStringLiteral("撤销"));
+    undoAct->setShortcut(QKeySequence::Undo);
+    QAction *redoAct = toolBar->addAction(QStringLiteral("重做"));
+    redoAct->setShortcut(QKeySequence::Redo);
+
+    toolBar->addSeparator();
+
     QAction *copyCodeAct = toolBar->addAction(QStringLiteral("复制代码"));
     QAction *copyFullAct = toolBar->addAction(QStringLiteral("复制完整文档"));
     QAction *copyPngAct = toolBar->addAction(QStringLiteral("复制PNG"));
@@ -409,6 +416,8 @@ void MainWindow::setupUI()
         statusBar()->showMessage(QStringLiteral("完整文档已复制到剪贴板"), 2000);
     };
 
+    connect(undoAct, &QAction::triggered, codeEditor, &QPlainTextEdit::undo);
+    connect(redoAct, &QAction::triggered, codeEditor, &QPlainTextEdit::redo);
     connect(copyCodeAct, &QAction::triggered, this, copyCode);
     connect(copyFullAct, &QAction::triggered, this, copyFullDocument);
 
