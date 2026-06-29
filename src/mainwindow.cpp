@@ -957,15 +957,15 @@ void MainWindow::generateAllPreviews()
     m_batchGenerating = true;
     statusBar()->showMessage(QStringLiteral("正在生成所有预览..."), 0);
 
-    int done = 0;
+    auto done = std::make_shared<int>(0);
     int total = all.size();
 
     for (const Snippet &s : all) {
-        QEventLoop loop;
+        auto loop = std::make_shared<QEventLoop>();
         QTimer timeoutTimer;
         timeoutTimer.setSingleShot(true);
         QMetaObject::Connection timeoutConn =
-            QObject::connect(&timeoutTimer, &QTimer::timeout, &loop, &QEventLoop::quit);
+            QObject::connect(&timeoutTimer, &QTimer::timeout, loop.get(), &QEventLoop::quit);
 
         QString snippetId = s.id;
         QString code = resolveParamsFromCode(s.code);
@@ -974,20 +974,20 @@ void MainWindow::generateAllPreviews()
         QMetaObject::Connection compileConn =
             QObject::connect(compiler, &LatexCompiler::compilationFinished,
                 this,
-                [this, snippetId, total, &done, &loop, alive](bool success, const QString &pdfPath, const QString &) {
+                [this, snippetId, total, done, loop, alive](bool success, const QString &pdfPath, const QString &) {
                     if (!*alive) return;
                     if (success) {
                         savePreviewData(pdfPath, snippetId);
                     }
-                    done++;
+                    (*done)++;
                     statusBar()->showMessage(
-                        QStringLiteral("生成预览: %1/%2").arg(done).arg(total), 0);
-                    loop.quit();
+                        QStringLiteral("生成预览: %1/%2").arg(*done).arg(total), 0);
+                    loop->quit();
                 });
 
         timeoutTimer.start(30000);
         compiler->compile(code, s.templateId, snippetId, s.packages, s.tikzLibraries);
-        loop.exec();
+        loop->exec();
 
         QObject::disconnect(timeoutConn);
         QObject::disconnect(compileConn);
