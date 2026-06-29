@@ -77,6 +77,10 @@ private:
     void handleLogDoubleClick();
     void checkSystemDependencies();
     void updateFitActionStates();
+    void startAutoSave();
+    void performAutoSave();
+    void clearDraft();
+    void checkDraftsOnStartup();
 
     QString snippetDataPath(const QString &id) const;
 
@@ -128,4 +132,5 @@ private:
     QString currentSnippetId;
     bool m_batchGenerating = false;
     QTimer *searchDebounceTimer = nullptr;
+    QTimer *autoSaveTimer = nullptr;
 };

@@ -41,6 +41,8 @@
 #include <QDialogButtonBox>
 #include <QToolButton>
 #include <memory>
+#include <QJsonDocument>
+#include <QJsonObject>
 
 #define STRINGIFY(x) STRINGIFY_IMPL(x)
 #define STRINGIFY_IMPL(x) #x
@@ -101,7 +103,12 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), currentSnippetId(
         checkSystemDependencies();
     });
 
+    QTimer::singleShot(200, this, [this]() {
+        checkDraftsOnStartup();
+    });
+
     applyGlobalHotkey();
+    startAutoSave();
 }
 
 MainWindow::~MainWindow()
@@ -720,6 +727,7 @@ void MainWindow::saveCurrentSnippet()
     }
     s.tags = tags;
     snippetMgr->saveSnippet(s);
+    clearDraft();
 }
 
 void MainWindow::onCurrentSnippetChanged()
@@ -1160,4 +1168,94 @@ void MainWindow::applyAppearanceSettings()
 
     QFont logFont("monospace", qMax(8, fontSize - 1));
     logPanel->setFont(logFont);
+}
+
+void MainWindow::startAutoSave()
+{
+    autoSaveTimer = new QTimer(this);
+    autoSaveTimer->setInterval(60000);
+    connect(autoSaveTimer, &QTimer::timeout, this, &MainWindow::performAutoSave);
+    autoSaveTimer->start();
+}
+
+void MainWindow::performAutoSave()
+{
+    if (codeEditor->toPlainText().trimmed().isEmpty()) return;
+
+    QString draftDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/drafts/";
+    QDir().mkpath(draftDir);
+
+    QString draftPath = draftDir + (currentSnippetId.isEmpty() ? "scratch" : currentSnippetId) + ".json";
+
+    QJsonObject obj;
+    obj["snippetId"] = currentSnippetId;
+    obj["code"] = codeEditor->toPlainText();
+    obj["name"] = nameEdit->text();
+    obj["description"] = descEdit->toPlainText();
+    obj["tags"] = tagsEdit->text();
+    obj["packages"] = packagesEdit->text();
+    obj["tikzLibraries"] = tikzLibrariesEdit->text();
+    if (templateCombo->currentIndex() >= 0)
+        obj["templateId"] = templateCombo->currentData().toString();
+
+    QFile file(draftPath);
+    if (file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+        file.write(QJsonDocument(obj).toJson());
+        file.close();
+    }
+}
+
+void MainWindow::clearDraft()
+{
+    QString draftDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/drafts/";
+    QString draftPath = draftDir + (currentSnippetId.isEmpty() ? "scratch" : currentSnippetId) + ".json";
+    QFile::remove(draftPath);
+}
+
+void MainWindow::checkDraftsOnStartup()
+{
+    QString draftDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/drafts/";
+    QDir d(draftDir);
+    if (!d.exists()) return;
+
+    QStringList drafts = d.entryList(QStringList() << "*.json", QDir::Files);
+    if (drafts.isEmpty()) return;
+
+    int count = drafts.size();
+    int ret = QMessageBox::question(this, QStringLiteral("恢复草稿"),
+        QStringLiteral("发现 %1 个未保存的草稿。\n\n是否恢复最近编辑的内容？").arg(count),
+        QMessageBox::Yes | QMessageBox::No);
+
+    if (ret != QMessageBox::Yes) {
+        for (const QString &draft : drafts)
+            QFile::remove(draftDir + draft);
+        return;
+    }
+
+    QStringList paths = d.entryList(QStringList() << "*.json", QDir::Files, QDir::Time);
+    if (paths.isEmpty()) return;
+
+    QString latestPath = draftDir + paths.first();
+    QFile file(latestPath);
+    if (!file.open(QIODevice::ReadOnly)) return;
+
+    QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
+    file.close();
+
+    if (!doc.isObject()) return;
+
+    QJsonObject obj = doc.object();
+    QString sid = obj.value("snippetId").toString();
+
+    if (!sid.isEmpty() && sid != "scratch" && snippetMgr->snippetExists(sid)) {
+        loadSnippetIntoEditor(sid);
+    }
+    codeEditor->setPlainText(obj.value("code").toString());
+
+    if (nameEdit->text().isEmpty())
+        nameEdit->setText(obj.value("name").toString());
+    if (descEdit->toPlainText().isEmpty())
+        descEdit->setPlainText(obj.value("description").toString());
+
+    statusBar()->showMessage(QStringLiteral("已恢复草稿"), 3000);
 }
