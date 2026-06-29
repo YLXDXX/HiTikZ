@@ -10,6 +10,7 @@
 #include <QDebug>
 #include <QEventLoop>
 #include <QTimer>
+#include <QSaveFile>
 #include <algorithm>
 
 SnippetManager::SnippetManager(QObject *parent)
@@ -105,18 +106,21 @@ bool SnippetManager::saveSnippet(const Snippet &s)
 
     QJsonObject json = snippetToJson(s);
     QJsonDocument doc(json);
-    QFile metaFile(path + "meta.json");
-    if (metaFile.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+    QSaveFile metaFile(path + "meta.json");
+    if (metaFile.open(QIODevice::WriteOnly)) {
         metaFile.write(doc.toJson());
-        metaFile.close();
+        if (!metaFile.commit())
+            return false;
     } else {
         return false;
     }
 
-    QFile texFile(path + "snippet.tex");
-    if (texFile.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate)) {
+    QSaveFile texFile(path + "snippet.tex");
+    if (texFile.open(QIODevice::WriteOnly)) {
         texFile.write(s.code.toUtf8());
-        texFile.close();
+        if (!texFile.commit()) {
+            return false;
+        }
         removeSnippetFromSearchIndex(s.id);
         addSnippetToSearchIndex(s);
         invalidateCachesLight();
@@ -726,9 +730,10 @@ QStringList SnippetManager::importSnippetsZip(const QString &zipPath)
                     obj["id"] = newId;
                     obj.remove("isPreset");
                     QJsonDocument newDoc(obj);
-                    if (metaFile.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
-                        metaFile.write(newDoc.toJson());
-                        metaFile.close();
+                    QSaveFile saveFile(destDir + "meta.json");
+                    if (saveFile.open(QIODevice::WriteOnly)) {
+                        saveFile.write(newDoc.toJson());
+                        saveFile.commit();
                     }
                 }
             }
