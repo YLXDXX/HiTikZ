@@ -280,25 +280,115 @@ int SnippetManager::fuzzyMatchScore(const QString &query, const QString &target)
     return (qi == normQuery.length()) ? score : 0;
 }
 
+void SnippetManager::ensureSearchIndexBuilt() const
+{
+    if (m_searchIndex.built) return;
+
+    m_searchIndex.bigramIndex.clear();
+    m_searchIndex.allTexts.clear();
+    m_searchIndex.allIds.clear();
+
+    QList<Snippet> all = getAllSnippets();
+    QList<Snippet> presets = getAllPresets();
+    all.append(presets);
+
+    for (int idx = 0; idx < all.size(); ++idx) {
+        const Snippet &s = all.at(idx);
+        m_searchIndex.allIds.append(s.id);
+
+        QString text = (s.name + " " + s.description)
+            .normalized(QString::NormalizationForm_C)
+            .toCaseFolded();
+        m_searchIndex.allTexts.append(text);
+
+        for (int i = 0; i < text.length() - 1; ++i) {
+            QString bigram = text.mid(i, 2);
+            m_searchIndex.bigramIndex[bigram].insert(idx);
+        }
+    }
+
+    m_searchIndex.built = true;
+}
+
 QList<SearchResult> SnippetManager::searchSnippets(const QString &query, bool includePresets) const
 {
     QList<SearchResult> results;
-    QList<Snippet> all = getAllSnippets();
 
+    if (query.isEmpty() || query.length() < 2) {
+        QList<Snippet> all = getAllSnippets();
+        if (includePresets) {
+            QList<Snippet> presets = getAllPresets();
+            all.append(presets);
+        }
+        for (const Snippet &s : all) {
+            if (query.isEmpty()) {
+                SearchResult r;
+                r.snippet = s;
+                r.score = 0;
+                results.append(r);
+            } else {
+                int nameScore = fuzzyMatchScore(query, s.name);
+                int descScore = fuzzyMatchScore(query, s.description) / 3;
+                int totalScore = nameScore * 2 + descScore;
+                if (totalScore > 0) {
+                    SearchResult r;
+                    r.snippet = s;
+                    r.score = totalScore;
+                    results.append(r);
+                }
+            }
+        }
+        std::sort(results.begin(), results.end(),
+            [](const SearchResult &a, const SearchResult &b) {
+                return a.score > b.score;
+            });
+        return results;
+    }
+
+    ensureSearchIndexBuilt();
+
+    QString normQuery = query.normalized(QString::NormalizationForm_C).toCaseFolded();
+    QSet<int> candidates;
+
+    bool firstBigram = true;
+    for (int i = 0; i < normQuery.length() - 1; ++i) {
+        QString bigram = normQuery.mid(i, 2);
+        if (m_searchIndex.bigramIndex.contains(bigram)) {
+            if (firstBigram) {
+                candidates = m_searchIndex.bigramIndex[bigram];
+                firstBigram = false;
+            } else {
+                candidates.intersect(m_searchIndex.bigramIndex[bigram]);
+            }
+        }
+    }
+
+    if (candidates.isEmpty() && firstBigram) return results;
+
+    QList<Snippet> all = getAllSnippets();
     if (includePresets) {
         QList<Snippet> presets = getAllPresets();
         all.append(presets);
     }
 
-    for (const Snippet &s : all) {
+    QHash<QString, Snippet> idToSnippet;
+    for (const Snippet &s : all)
+        idToSnippet[s.id] = s;
+
+    for (int idx : candidates) {
+        if (idx >= m_searchIndex.allIds.size()) continue;
+        QString sid = m_searchIndex.allIds[idx];
+        if (!idToSnippet.contains(sid)) continue;
+        Snippet s = idToSnippet[sid];
+
         int nameScore = fuzzyMatchScore(query, s.name);
         int descScore = fuzzyMatchScore(query, s.description) / 3;
         int totalScore = nameScore * 2 + descScore;
 
-        if (totalScore > 0 || query.isEmpty()) {
+        if (totalScore > 0) {
             SearchResult r;
             r.snippet = s;
-            r.score = totalScore > 0 ? totalScore : 0;
+            r.score = totalScore;
             results.append(r);
         }
     }
@@ -636,6 +726,10 @@ void SnippetManager::invalidateCaches()
     m_cachedCategoryCounts.clear();
     presetIdsCached = false;
     presetIdsCache.clear();
+    m_searchIndex.built = false;
+    m_searchIndex.bigramIndex.clear();
+    m_searchIndex.allTexts.clear();
+    m_searchIndex.allIds.clear();
 }
 
 void SnippetManager::ensureCountsCached() const

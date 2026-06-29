@@ -7,6 +7,7 @@
 #include <QJsonArray>
 #include <QSet>
 #include <QMap>
+#include <QHash>
 
 struct Snippet {
     QString id;
@@ -86,4 +87,12 @@ private:
     void loadCodeForSnippet(const QString &dirPath, Snippet &s) const;
     mutable QMap<QString, int> m_cachedCategoryCounts;
     mutable bool m_countsCached = false;
+    struct SearchIndex {
+        QHash<QString, QSet<int>> bigramIndex;
+        QStringList allTexts;
+        QStringList allIds;
+        bool built = false;
+    };
+    mutable SearchIndex m_searchIndex;
+    void ensureSearchIndexBuilt() const;
 };
