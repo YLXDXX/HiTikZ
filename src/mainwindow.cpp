@@ -48,6 +48,15 @@
 #define STRINGIFY_IMPL(x) #x
 #define RES_DIR STRINGIFY(RESOURCE_DIR)
 
+static constexpr int kAutoSaveIntervalMs = 60000;
+static constexpr int kStatusBarShortMs = 3000;
+static constexpr int kStatusBarLongMs = 5000;
+static constexpr int kPreviewDpi = 150;
+static constexpr int kBatchCompileTimeoutMs = 30000;
+static constexpr int kPngConvertTimeoutMs = 15000;
+static constexpr int kZoomApplyDelayMs = 200;
+static constexpr int kDefaultFontSize = 10;
+
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), currentSnippetId("")
 {
     QString resourceDir = QStringLiteral(RES_DIR);
@@ -366,7 +375,7 @@ void MainWindow::setupUI()
         bool isAllCat = cat.isEmpty();
 
         if (cat == "__uncategorized__") {
-            statusBar()->showMessage(QStringLiteral("未分类是虚拟分类，无法删除"), 3000);
+            statusBar()->showMessage(QStringLiteral("未分类是虚拟分类，无法删除"), kStatusBarShortMs);
             return;
         }
 
@@ -376,7 +385,7 @@ void MainWindow::setupUI()
                 QMessageBox::Yes | QMessageBox::No);
             if (ret == QMessageBox::Yes) {
                 int count = snippetMgr->deleteCategory(cat);
-                statusBar()->showMessage(QStringLiteral("已删除 %1 个片段").arg(count), 3000);
+                statusBar()->showMessage(QStringLiteral("已删除 %1 个片段").arg(count), kStatusBarShortMs);
                 codeEditor->clear();
                 nameEdit->clear();
                 tagsEdit->clear();
@@ -417,7 +426,7 @@ void MainWindow::setupUI()
                 QMessageBox::warning(this, QStringLiteral("导入失败"),
                     QStringLiteral("未能从ZIP文件中导入任何片段。请确认文件格式正确。"));
             } else {
-                statusBar()->showMessage(QStringLiteral("成功导入 %1 个片段").arg(imported.size()), 5000);
+                statusBar()->showMessage(QStringLiteral("成功导入 %1 个片段").arg(imported.size()), kStatusBarLongMs);
                 refreshCategoryTree();
                 refreshSearch();
                 if (!imported.isEmpty()) {
@@ -429,14 +438,14 @@ void MainWindow::setupUI()
 
     connect(exportMenuAct, &QAction::triggered, this, [this]() {
         if (currentSnippetId.isEmpty()) {
-            statusBar()->showMessage(QStringLiteral("请先选择一个片段"), 3000);
+            statusBar()->showMessage(QStringLiteral("请先选择一个片段"), kStatusBarShortMs);
             return;
         }
         QString filePath = QFileDialog::getSaveFileName(this,
             QStringLiteral("导出存档"), "", "TikZ 存档 (*.tar.gz)");
         if (!filePath.isEmpty()) {
             if (snippetMgr->exportSnippetZip(currentSnippetId, filePath)) {
-                statusBar()->showMessage(QStringLiteral("导出成功"), 3000);
+                statusBar()->showMessage(QStringLiteral("导出成功"), kStatusBarShortMs);
             } else {
                 QMessageBox::warning(this, QStringLiteral("导出失败"),
                     QStringLiteral("无法导出当前片段。"));
@@ -448,7 +457,7 @@ void MainWindow::setupUI()
         QList<Snippet> all = snippetMgr->getAllSnippets(true);
         all.append(snippetMgr->getAllPresets(true));
         if (all.isEmpty()) {
-            statusBar()->showMessage(QStringLiteral("没有可导出的片段"), 3000);
+            statusBar()->showMessage(QStringLiteral("没有可导出的片段"), kStatusBarShortMs);
             return;
         }
         QString filePath = QFileDialog::getSaveFileName(this,
@@ -458,7 +467,7 @@ void MainWindow::setupUI()
             for (const Snippet &s : all)
                 allIds.append(s.id);
             if (snippetMgr->exportSnippetsZip(allIds, filePath))
-                statusBar()->showMessage(QStringLiteral("全部导出成功"), 3000);
+                statusBar()->showMessage(QStringLiteral("全部导出成功"), kStatusBarShortMs);
             else
                 QMessageBox::warning(this, QStringLiteral("导出失败"),
                     QStringLiteral("无法导出全部片段。"));
@@ -518,7 +527,7 @@ void MainWindow::setupUI()
                     }
                 }, Qt::SingleShotConnection);
         } else {
-            statusBar()->showMessage(QStringLiteral("请先编译生成PDF预览"), 3000);
+            statusBar()->showMessage(QStringLiteral("请先编译生成PDF预览"), kStatusBarShortMs);
         }
     };
 
@@ -548,7 +557,7 @@ void MainWindow::setupUI()
                     }
                 }, Qt::SingleShotConnection);
         } else {
-            statusBar()->showMessage(QStringLiteral("请先编译生成PDF预览"), 3000);
+            statusBar()->showMessage(QStringLiteral("请先编译生成PDF预览"), kStatusBarShortMs);
         }
     };
 
@@ -562,7 +571,7 @@ void MainWindow::setupUI()
             applyShortcuts();
             applyGlobalHotkey();
             applyAppearanceSettings();
-            statusBar()->showMessage(QStringLiteral("设置已保存"), 3000);
+            statusBar()->showMessage(QStringLiteral("设置已保存"), kStatusBarShortMs);
         }
     });
 
@@ -587,7 +596,7 @@ void MainWindow::setupUI()
 
     setCentralWidget(mainSplitter);
     applyAppearanceSettings();
-    statusBar()->showMessage(QStringLiteral("就绪"), 3000);
+    statusBar()->showMessage(QStringLiteral("就绪"), kStatusBarShortMs);
 }
 
 void MainWindow::setupConnections()
@@ -605,7 +614,7 @@ void MainWindow::setupConnections()
             QStringLiteral("批量导出"), "selected_snippets.tar.gz", "TikZ 存档 (*.tar.gz)");
         if (!filePath.isEmpty()) {
             if (snippetMgr->exportSnippetsZip(ids, filePath))
-                statusBar()->showMessage(QStringLiteral("批量导出成功 (%1 个片段)").arg(ids.size()), 3000);
+                statusBar()->showMessage(QStringLiteral("批量导出成功 (%1 个片段)").arg(ids.size()), kStatusBarShortMs);
             else
                 QMessageBox::warning(this, QStringLiteral("导出失败"),
                     QStringLiteral("无法批量导出所选片段。"));
@@ -618,7 +627,7 @@ void MainWindow::setupConnections()
             QStringLiteral("输入新分类名称:"), QLineEdit::Normal, "", &ok);
         if (!ok) return;
         if (snippetMgr->batchUpdateCategory(ids, newCat)) {
-            statusBar()->showMessage(QStringLiteral("已修改 %1 个片段的分类").arg(ids.size()), 3000);
+            statusBar()->showMessage(QStringLiteral("已修改 %1 个片段的分类").arg(ids.size()), kStatusBarShortMs);
             searchPanel->refreshCategoryTree();
             searchPanel->refreshSearch();
         }
@@ -642,7 +651,7 @@ void MainWindow::setupConnections()
         }
 
         int count = snippetMgr->batchDeleteSnippets(ids);
-        statusBar()->showMessage(QStringLiteral("已删除 %1 个片段").arg(count), 3000);
+        statusBar()->showMessage(QStringLiteral("已删除 %1 个片段").arg(count), kStatusBarShortMs);
         searchPanel->refreshCategoryTree();
         searchPanel->refreshSearch();
     });
@@ -651,7 +660,7 @@ void MainWindow::setupConnections()
         QList<Snippet> all = snippetMgr->getAllSnippets(true);
         all.append(snippetMgr->getAllPresets(true));
         if (all.isEmpty()) {
-            statusBar()->showMessage(QStringLiteral("没有可导出的片段"), 3000);
+            statusBar()->showMessage(QStringLiteral("没有可导出的片段"), kStatusBarShortMs);
             return;
         }
         QString filePath = QFileDialog::getSaveFileName(this,
@@ -661,7 +670,7 @@ void MainWindow::setupConnections()
             for (const Snippet &s : all)
                 allIds.append(s.id);
             if (snippetMgr->exportSnippetsZip(allIds, filePath))
-                statusBar()->showMessage(QStringLiteral("全部导出成功"), 3000);
+                statusBar()->showMessage(QStringLiteral("全部导出成功"), kStatusBarShortMs);
             else
                 QMessageBox::warning(this, QStringLiteral("导出失败"),
                     QStringLiteral("无法导出全部片段。"));
@@ -697,7 +706,7 @@ void MainWindow::setupConnections()
         }
 
         if (code.trimmed().isEmpty()) {
-            statusBar()->showMessage(QStringLiteral("请先输入 TikZ 代码"), 3000);
+            statusBar()->showMessage(QStringLiteral("请先输入 TikZ 代码"), kStatusBarShortMs);
             return;
         }
 
@@ -725,13 +734,13 @@ void MainWindow::setupConnections()
             if (success) {
                 pdfPreview->clearDocument();
                 pdfPreview->document()->load(QFileInfo(pdfPath).absoluteFilePath());
-                QTimer::singleShot(200, pdfPreview, &PdfPreviewWidget::applyZoomPreference);
+    QTimer::singleShot(kZoomApplyDelayMs, pdfPreview, &PdfPreviewWidget::applyZoomPreference);
                 savePreviewData(pdfPath, currentSnippetId);
-                statusBar()->showMessage(QStringLiteral("编译成功"), 3000);
+                statusBar()->showMessage(QStringLiteral("编译成功"), kStatusBarShortMs);
             } else {
                 pdfPreview->clearDocument();
                 jumpToErrorLine(log);
-                statusBar()->showMessage(QStringLiteral("编译失败，详见日志"), 3000);
+                statusBar()->showMessage(QStringLiteral("编译失败，详见日志"), kStatusBarShortMs);
             }
         });
 
@@ -904,7 +913,7 @@ void MainWindow::savePreviewData(const QString &pdfPath, const QString &snippetI
     if (m_batchGenerating) {
         QProcess pngProc;
         QStringList args;
-        args << "-png" << "-r" << "150" << "-singlefile" << pdfPath << (basePath + "/preview");
+        args << "-png" << "-r" << QString::number(kPreviewDpi) << "-singlefile" << pdfPath << (basePath + "/preview");
         pngProc.start("pdftocairo", args);
         pngProc.waitForFinished(10000);
     } else {
@@ -922,7 +931,7 @@ void MainWindow::savePreviewData(const QString &pdfPath, const QString &snippetI
             timeout, &QTimer::stop);
         timeout->start(15000);
         QStringList args;
-        args << "-png" << "-r" << "150" << "-singlefile" << pdfPath << (basePath + "/preview");
+        args << "-png" << "-r" << QString::number(kPreviewDpi) << "-singlefile" << pdfPath << (basePath + "/preview");
         pngProc->start("pdftocairo", args);
     }
 }
@@ -938,7 +947,7 @@ void MainWindow::loadPreviewForSnippet(const QString &id)
     if (QFile::exists(previewPdf)) {
         pdfPreview->clearDocument();
         pdfPreview->document()->load(QFileInfo(previewPdf).absoluteFilePath());
-        QTimer::singleShot(200, pdfPreview, &PdfPreviewWidget::applyZoomPreference);
+        QTimer::singleShot(kZoomApplyDelayMs, pdfPreview, &PdfPreviewWidget::applyZoomPreference);
     } else {
         clearPdfPreview();
     }
@@ -950,7 +959,7 @@ void MainWindow::generateAllPreviews()
     all.append(snippetMgr->getAllPresets(true));
 
     if (all.isEmpty()) {
-        statusBar()->showMessage(QStringLiteral("没有可生成预览的条目"), 3000);
+        statusBar()->showMessage(QStringLiteral("没有可生成预览的条目"), kStatusBarShortMs);
         return;
     }
 
@@ -985,7 +994,7 @@ void MainWindow::generateAllPreviews()
                     loop->quit();
                 });
 
-        timeoutTimer.start(30000);
+        timeoutTimer.start(kBatchCompileTimeoutMs);
         compiler->compile(code, s.templateId, snippetId, s.packages, s.tikzLibraries);
         loop->exec();
 
@@ -994,7 +1003,7 @@ void MainWindow::generateAllPreviews()
         *alive = false;
     }
 
-    statusBar()->showMessage(QStringLiteral("预览生成完毕: %1 个条目").arg(total), 5000);
+    statusBar()->showMessage(QStringLiteral("预览生成完毕: %1 个条目").arg(total), kStatusBarLongMs);
     m_batchGenerating = false;
     refreshSearch();
 }
@@ -1241,7 +1250,7 @@ void MainWindow::setFitHeightChecked(bool checked) { fitHeightAct->setChecked(ch
 void MainWindow::applyAppearanceSettings()
 {
     QSettings settings("HiTikZ", "TikzManager");
-    int fontSize = settings.value("editor/fontSize", 10).toInt();
+    int fontSize = settings.value("editor/fontSize", kDefaultFontSize).toInt();
 
     QFont editorFont("monospace", fontSize);
     codeEditor->setFont(editorFont);
@@ -1254,7 +1263,7 @@ void MainWindow::applyAppearanceSettings()
 void MainWindow::startAutoSave()
 {
     autoSaveTimer = new QTimer(this);
-    autoSaveTimer->setInterval(60000);
+    autoSaveTimer->setInterval(kAutoSaveIntervalMs);
     connect(autoSaveTimer, &QTimer::timeout, this, &MainWindow::performAutoSave);
     autoSaveTimer->start();
 }
@@ -1338,5 +1347,5 @@ void MainWindow::checkDraftsOnStartup()
     if (descEdit->toPlainText().isEmpty())
         descEdit->setPlainText(obj.value("description").toString());
 
-    statusBar()->showMessage(QStringLiteral("已恢复草稿"), 3000);
+    statusBar()->showMessage(QStringLiteral("已恢复草稿"), kStatusBarShortMs);
 }
