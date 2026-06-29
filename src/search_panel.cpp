@@ -2,6 +2,7 @@
 #include "snippet_properties_dialog.h"
 #include "snippet_manager.h"
 #include <QVBoxLayout>
+#include <QHBoxLayout>
 #include <QHeaderView>
 #include <QRegularExpression>
 #include <QInputDialog>
@@ -14,6 +15,8 @@
 #include <QFileInfo>
 #include <QDir>
 #include <QApplication>
+#include <QPushButton>
+#include <QScrollArea>
 
 SearchPanel::SearchPanel(SnippetManager *mgr, QWidget *parent)
     : QWidget(parent), snippetMgr(mgr)
@@ -156,6 +159,12 @@ void SearchPanel::setupUI()
     });
 
     layout->addWidget(searchBox);
+
+    tagFilterWidget = new QWidget;
+    QVBoxLayout *tagFilterLayout = new QVBoxLayout(tagFilterWidget);
+    tagFilterLayout->setContentsMargins(0, 2, 0, 2);
+    layout->addWidget(tagFilterWidget);
+
     layout->addWidget(categoryTree, 1);
     layout->addWidget(thumbnailList, 2);
 }
@@ -167,6 +176,17 @@ void SearchPanel::refreshSearch()
 
     QList<SearchResult> results = snippetMgr->searchSnippets(query);
     for (const SearchResult &r : results) {
+        if (!m_selectedTags.isEmpty()) {
+            bool hasAllTags = true;
+            for (const QString &tag : m_selectedTags) {
+                if (!r.snippet.tags.contains(tag)) {
+                    hasAllTags = false;
+                    break;
+                }
+            }
+            if (!hasAllTags) continue;
+        }
+
         QString label = r.snippet.isPreset ? QStringLiteral("[预设] ") + r.snippet.name : r.snippet.name;
         QStandardItem *item = new QStandardItem(label);
         item->setData(r.snippet.id, Qt::UserRole);
@@ -180,6 +200,59 @@ void SearchPanel::refreshSearch()
 
         thumbnailModel->appendRow(item);
     }
+}
+
+void SearchPanel::refreshTagFilter()
+{
+    QLayout *existingLayout = tagFilterWidget->layout();
+    QLayoutItem *child;
+    while ((child = existingLayout->takeAt(0)) != nullptr) {
+        if (child->widget())
+            child->widget()->deleteLater();
+        delete child;
+    }
+
+    QSet<QString> allTags;
+    QList<Snippet> all = snippetMgr->getAllSnippets(true);
+    QList<Snippet> presets = snippetMgr->getAllPresets(true);
+    all.append(presets);
+    for (const Snippet &s : all) {
+        for (const QString &tag : s.tags) {
+            if (!tag.trimmed().isEmpty())
+                allTags.insert(tag.trimmed());
+        }
+    }
+
+    if (allTags.isEmpty()) return;
+
+    QStringList sortedTags = allTags.values();
+    sortedTags.sort(Qt::CaseInsensitive);
+
+    QWidget *buttonContainer = new QWidget;
+    QHBoxLayout *btnLayout = new QHBoxLayout(buttonContainer);
+    btnLayout->setContentsMargins(0, 0, 0, 0);
+    btnLayout->setSpacing(4);
+
+    for (const QString &tag : sortedTags) {
+        QPushButton *btn = new QPushButton(tag);
+        btn->setCheckable(true);
+        btn->setChecked(m_selectedTags.contains(tag));
+        btn->setFlat(true);
+        btn->setStyleSheet(QStringLiteral(
+            "QPushButton { padding: 2px 8px; border: 1px solid #ccc; border-radius: 10px; background: #eee; }"
+            "QPushButton:checked { background: #4a90d9; color: white; border-color: #4a90d9; }"));
+        connect(btn, &QPushButton::toggled, this, [this, tag](bool checked) {
+            if (checked)
+                m_selectedTags.insert(tag);
+            else
+                m_selectedTags.remove(tag);
+            refreshSearch();
+        });
+        btnLayout->addWidget(btn);
+    }
+    btnLayout->addStretch();
+
+    existingLayout->addWidget(buttonContainer);
 }
 
 void SearchPanel::refreshThumbnailList()

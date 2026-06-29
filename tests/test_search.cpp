@@ -117,6 +117,51 @@ int main(int argc, char *argv[]) {
         mgr.deleteSnippet(id3);
     }
 
+    // Test 9: Tag-based filtering
+    {
+        SnippetManager mgr;
+        QString id1 = mgr.createSnippet("TagTest1", "test/tags");
+        QString id2 = mgr.createSnippet("TagTest2", "test/tags");
+        QString id3 = mgr.createSnippet("TagTest3", "test/tags");
+
+        Snippet s1 = mgr.loadSnippet(id1);
+        s1.tags = QStringList{"math", "geometry"};
+        mgr.saveSnippet(s1);
+
+        Snippet s2 = mgr.loadSnippet(id2);
+        s2.tags = QStringList{"math", "trigonometry"};
+        mgr.saveSnippet(s2);
+
+        Snippet s3 = mgr.loadSnippet(id3);
+        s3.tags = QStringList{"physics"};
+        mgr.saveSnippet(s3);
+
+        QList<SearchResult> allResults = mgr.searchSnippets("");
+        int filterMath = 0;
+        int filterPhysics = 0;
+        int filterMathGeo = 0;
+        for (const auto &r : allResults) {
+            if (r.snippet.tags.contains("math")) filterMath++;
+            if (r.snippet.tags.contains("physics")) filterPhysics++;
+            if (r.snippet.tags.contains("math") && r.snippet.tags.contains("geometry")) filterMathGeo++;
+        }
+        fprintf(stderr, "%s: Test 9a - 'math' tag filter matches %d snippets (expected >=2)\n",
+            filterMath >= 2 ? "PASS" : "FAIL", filterMath);
+        if (filterMath < 2) failed++;
+
+        fprintf(stderr, "%s: Test 9b - 'physics' tag filter matches %d snippets (expected >=1)\n",
+            filterPhysics >= 1 ? "PASS" : "FAIL", filterPhysics);
+        if (filterPhysics < 1) failed++;
+
+        fprintf(stderr, "%s: Test 9c - 'math+geometry' AND filter matches %d snippets (expected >=1)\n",
+            filterMathGeo >= 1 ? "PASS" : "FAIL", filterMathGeo);
+        if (filterMathGeo < 1) failed++;
+
+        mgr.deleteSnippet(id1);
+        mgr.deleteSnippet(id2);
+        mgr.deleteSnippet(id3);
+    }
+
     if (failed > 0) {
         fprintf(stderr, "\n%d test(s) failed!\n", failed);
         return 1;

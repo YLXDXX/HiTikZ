@@ -7,6 +7,7 @@
 #include <QMenu>
 #include <QTimer>
 #include <QStringList>
+#include <QSet>
 
 class SnippetManager;
 
@@ -18,6 +19,7 @@ public:
     void refreshCategoryTree();
     void refreshSearch();
     void refreshThumbnailList();
+    void refreshTagFilter();
     QString currentCategory() const;
 
 signals:
@@ -53,4 +55,6 @@ private:
     QMenu *categoryCtxMenu;
     QMenu *thumbnailCtxMenu;
     QTimer *searchDebounceTimer;
+    QWidget *tagFilterWidget;
+    QSet<QString> m_selectedTags;
 };

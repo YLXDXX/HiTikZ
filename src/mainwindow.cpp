@@ -757,6 +757,7 @@ void MainWindow::refreshSearch()
 void MainWindow::refreshCategoryTree()
 {
     searchPanel->refreshCategoryTree();
+    searchPanel->refreshTagFilter();
 }
 
 void MainWindow::loadSnippetIntoEditor(const QString &id)
