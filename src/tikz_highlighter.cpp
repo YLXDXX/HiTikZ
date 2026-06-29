@@ -51,9 +51,15 @@ void TikzHighlighter::highlightBlock(const QString &text)
     int prevState = previousBlockState();
     if (prevState == InComment) {
         setFormat(0, text.length(), m_commentFormat);
-        bool hasEnd = text.contains(QRegularExpression(QStringLiteral("[^\\\\]?\\\\end\\{")));
+        static const QRegularExpression endCommentRe(
+            QString::fromUtf8(R"(\\end\{comment\})"));
+        bool hasEnd = endCommentRe.match(text).hasMatch();
         setCurrentBlockState(hasEnd ? Normal : InComment);
         if (!hasEnd) return;
+        int afterEnd = text.indexOf(endCommentRe) + endCommentRe.match(text).capturedLength();
+        if (afterEnd < text.length())
+            applyRules(text.mid(afterEnd));
+        return;
     }
 
     if (text.trimmed().startsWith('%')) {
@@ -64,7 +70,22 @@ void TikzHighlighter::highlightBlock(const QString &text)
 
     applyRules(text);
 
-    setCurrentBlockState(Normal);
+    static const QRegularExpression beginCommentRe(
+        QString::fromUtf8(R"(\\begin\{comment\})"));
+    QRegularExpressionMatchIterator it = beginCommentRe.globalMatch(text);
+    bool endsInComment = false;
+    while (it.hasNext()) {
+        QRegularExpressionMatch m = it.next();
+        static const QRegularExpression endCommentRe(
+            QString::fromUtf8(R"(\\end\{comment\})"));
+        QString afterBegin = text.mid(m.capturedEnd());
+        if (!endCommentRe.match(afterBegin).hasMatch()) {
+            setFormat(m.capturedStart(), text.length() - m.capturedStart(), m_commentFormat);
+            endsInComment = true;
+            break;
+        }
+    }
+    setCurrentBlockState(endsInComment ? InComment : Normal);
 }
 
 void TikzHighlighter::applyRules(const QString &text)
