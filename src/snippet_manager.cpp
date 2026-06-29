@@ -117,7 +117,9 @@ bool SnippetManager::saveSnippet(const Snippet &s)
     if (texFile.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate)) {
         texFile.write(s.code.toUtf8());
         texFile.close();
-        invalidateCaches();
+        removeSnippetFromSearchIndex(s.id);
+        addSnippetToSearchIndex(s);
+        invalidateCachesLight();
         emit snippetModified(s.id);
         return true;
     }
@@ -163,7 +165,8 @@ bool SnippetManager::deleteSnippet(const QString &id)
         return false;
     dir.removeRecursively();
 
-    invalidateCaches();
+    removeSnippetFromSearchIndex(id);
+    invalidateCachesLight();
     emit snippetDeleted(id);
     return true;
 }
@@ -308,6 +311,59 @@ void SnippetManager::ensureSearchIndexBuilt() const
     }
 
     m_searchIndex.built = true;
+}
+
+void SnippetManager::addSnippetToSearchIndex(const Snippet &s) const
+{
+    if (!m_searchIndex.built) return;
+
+    QString text = (s.name + " " + s.description)
+        .normalized(QString::NormalizationForm_C)
+        .toCaseFolded();
+
+    int idx = m_searchIndex.allTexts.size();
+    m_searchIndex.allIds.append(s.id);
+    m_searchIndex.allTexts.append(text);
+
+    for (int i = 0; i < text.length() - 1; ++i) {
+        QString bigram = text.mid(i, 2);
+        m_searchIndex.bigramIndex[bigram].insert(idx);
+    }
+}
+
+void SnippetManager::removeSnippetFromSearchIndex(const QString &id) const
+{
+    if (!m_searchIndex.built) return;
+
+    int targetIdx = -1;
+    for (int i = 0; i < m_searchIndex.allIds.size(); ++i) {
+        if (m_searchIndex.allIds[i] == id) {
+            targetIdx = i;
+            break;
+        }
+    }
+    if (targetIdx < 0) return;
+
+    const QString &text = m_searchIndex.allTexts[targetIdx];
+    for (int i = 0; i < text.length() - 1; ++i) {
+        QString bigram = text.mid(i, 2);
+        m_searchIndex.bigramIndex[bigram].remove(targetIdx);
+    }
+
+    int lastIdx = m_searchIndex.allTexts.size() - 1;
+    if (targetIdx != lastIdx) {
+        const QString &lastText = m_searchIndex.allTexts[lastIdx];
+        const QString &lastId = m_searchIndex.allIds[lastIdx];
+        for (int i = 0; i < lastText.length() - 1; ++i) {
+            QString bigram = lastText.mid(i, 2);
+            m_searchIndex.bigramIndex[bigram].remove(lastIdx);
+            m_searchIndex.bigramIndex[bigram].insert(targetIdx);
+        }
+        m_searchIndex.allTexts[targetIdx] = lastText;
+        m_searchIndex.allIds[targetIdx] = lastId;
+    }
+    m_searchIndex.allTexts.removeLast();
+    m_searchIndex.allIds.removeLast();
 }
 
 QList<SearchResult> SnippetManager::searchSnippets(const QString &query, bool includePresets) const
@@ -736,6 +792,14 @@ void SnippetManager::invalidateCaches()
     m_searchIndex.bigramIndex.clear();
     m_searchIndex.allTexts.clear();
     m_searchIndex.allIds.clear();
+}
+
+void SnippetManager::invalidateCachesLight() const
+{
+    m_countsCached = false;
+    m_cachedCategoryCounts.clear();
+    presetIdsCached = false;
+    presetIdsCache.clear();
 }
 
 void SnippetManager::ensureCountsCached() const

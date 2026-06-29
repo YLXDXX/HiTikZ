@@ -83,6 +83,7 @@ private:
     void ensurePresetIdsCached() const;
     void ensureCountsCached() const;
     void invalidateCaches();
+    void invalidateCachesLight() const;
     Snippet loadMetaFromDir(const QString &dirPath) const;
     void loadCodeForSnippet(const QString &dirPath, Snippet &s) const;
     mutable QMap<QString, int> m_cachedCategoryCounts;
@@ -95,4 +96,6 @@ private:
     };
     mutable SearchIndex m_searchIndex;
     void ensureSearchIndexBuilt() const;
+    void addSnippetToSearchIndex(const Snippet &s) const;
+    void removeSnippetFromSearchIndex(const QString &id) const;
 };
