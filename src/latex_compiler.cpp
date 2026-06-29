@@ -224,13 +224,12 @@ void LatexCompiler::cancelCompile()
 void LatexCompiler::compile(const QString &texCode, const QString &templateId, const QString &snippetId,
                             const QString &packages, const QString &tikzLibraries)
 {
-    if (process) {
-        if (process->state() != QProcess::NotRunning) {
+    if (!process) {
+        process = new QProcess(this);
+    } else {
+        if (process->state() != QProcess::NotRunning)
             process->kill();
-        }
-        process->disconnect(this);
-        process->deleteLater();
-        process = nullptr;
+        process->disconnect();
     }
 
     currentCompileDir = tempDir + snippetId;
@@ -246,8 +245,6 @@ void LatexCompiler::compile(const QString &texCode, const QString &templateId, c
     }
     file.write(fullCode.toUtf8());
     file.close();
-
-    process = new QProcess(this);
 
     QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
     if (!texInputs.isEmpty()) {
