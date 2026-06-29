@@ -258,12 +258,15 @@ int SnippetManager::fuzzyMatchScore(const QString &query, const QString &target)
 {
     if (query.isEmpty()) return 100;
 
+    QString normQuery = query.normalized(QString::NormalizationForm_C).toCaseFolded();
+    QString normTarget = target.normalized(QString::NormalizationForm_C).toCaseFolded();
+
     int score = 0;
     int qi = 0;
     int consecutive = 0;
 
-    for (int ti = 0; ti < target.length() && qi < query.length(); ++ti) {
-        if (query[qi].toLower() == target[ti].toLower()) {
+    for (int ti = 0; ti < normTarget.length() && qi < normQuery.length(); ++ti) {
+        if (normQuery[qi] == normTarget[ti]) {
             score += 10 + consecutive * 5;
             consecutive++;
             qi++;
@@ -272,7 +275,7 @@ int SnippetManager::fuzzyMatchScore(const QString &query, const QString &target)
         }
     }
 
-    return (qi == query.length()) ? score : 0;
+    return (qi == normQuery.length()) ? score : 0;
 }
 
 QList<SearchResult> SnippetManager::searchSnippets(const QString &query, bool includePresets) const
