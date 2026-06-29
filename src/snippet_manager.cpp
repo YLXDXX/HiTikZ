@@ -8,6 +8,8 @@
 #include <QProcess>
 #include <QTemporaryDir>
 #include <QDebug>
+#include <QEventLoop>
+#include <QTimer>
 #include <algorithm>
 
 SnippetManager::SnippetManager(QObject *parent)
@@ -394,6 +396,21 @@ int SnippetManager::deleteCategory(const QString &category)
     return count;
 }
 
+static bool runProcessSync(QProcess &proc, int timeoutMs = 30000)
+{
+    QEventLoop loop;
+    QTimer timer;
+    timer.setSingleShot(true);
+    QObject::connect(&timer, &QTimer::timeout, &loop, &QEventLoop::quit);
+    QObject::connect(&proc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+                     &loop, &QEventLoop::quit);
+    timer.start(timeoutMs);
+    if (proc.state() == QProcess::NotRunning)
+        return false;
+    loop.exec();
+    return proc.state() == QProcess::NotRunning;
+}
+
 bool SnippetManager::exportSnippetZip(const QString &id, const QString &zipPath)
 {
     QString srcDir;
@@ -417,7 +434,7 @@ bool SnippetManager::exportSnippetZip(const QString &id, const QString &zipPath)
     QStringList args;
     args << "-czf" << zipPath << "-C" << parentDir << dirName;
     tar.start("tar", args);
-    tar.waitForFinished(10000);
+    runProcessSync(tar, 10000);
     return tar.exitCode() == 0 && QFile::exists(zipPath);
 }
 
@@ -460,7 +477,7 @@ bool SnippetManager::exportSnippetsZip(const QStringList &ids, const QString &zi
     QStringList args;
     args << "-czf" << zipPath << "-C" << tempDir.path() << ".";
     tar.start("tar", args);
-    tar.waitForFinished(10000);
+    runProcessSync(tar, 10000);
     return tar.exitCode() == 0 && QFile::exists(zipPath);
 }
 
@@ -501,12 +518,12 @@ QStringList SnippetManager::importSnippetsZip(const QString &zipPath)
 
     QProcess unzip;
     unzip.start("tar", QStringList() << "-xzf" << zipPath << "-C" << tempDir.path());
-    unzip.waitForFinished(10000);
+    runProcessSync(unzip, 10000);
 
     if (unzip.exitCode() != 0) {
         QProcess unzipFallback;
         unzipFallback.start("unzip", QStringList() << "-o" << zipPath << "-d" << tempDir.path());
-        unzipFallback.waitForFinished(10000);
+        runProcessSync(unzipFallback, 10000);
         if (unzipFallback.exitCode() != 0)
             return importedIds;
     }
