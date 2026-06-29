@@ -29,7 +29,10 @@ void TikzCompleter::initCompleters()
         m_completers[ctx] = comp;
     };
 
-    makeCompleter(TkzCtxCmd,     TikzWords::tikzCommands());
+    QStringList cmdWords;
+    for (const QString &c : TikzWords::tikzCommands())
+        cmdWords << ("\\" + c);
+    makeCompleter(TkzCtxCmd, cmdWords);
     makeCompleter(TkzCtxBeg, TikzWords::tikzEnvironments());
     makeCompleter(TkzCtxBrk,      TikzWords::tikzOptions());
     makeCompleter(TkzCtxDot,      TikzWords::tikzAnchors());
@@ -221,15 +224,30 @@ void TikzCompleter::tryComplete()
         if (lastSlash >= 0) prefix = textBefore.mid(lastSlash);
         break;
     }
-    case TkzCtxBeg:
+    case TkzCtxBeg: {
+        int lastBrace = textBefore.lastIndexOf('{');
+        if (lastBrace >= 0) {
+            int closePos = textBefore.indexOf('}', lastBrace);
+            QString inner;
+            if (closePos < 0)
+                inner = textBefore.mid(lastBrace + 1);
+            else
+                inner = textBefore.mid(lastBrace + 1, closePos - lastBrace - 1);
+            prefix = inner.trimmed();
+        }
+        break;
+    }
     case TkzCtxLib: {
         int lastBrace = textBefore.lastIndexOf('{');
         if (lastBrace >= 0) {
             int closePos = textBefore.indexOf('}', lastBrace);
+            QString inner;
             if (closePos < 0)
-                prefix = textBefore.mid(lastBrace + 1);
+                inner = textBefore.mid(lastBrace + 1);
             else
-                prefix = textBefore.mid(lastBrace + 1, closePos - lastBrace - 1);
+                inner = textBefore.mid(lastBrace + 1, closePos - lastBrace - 1);
+            int lastComma = inner.lastIndexOf(',');
+            prefix = (lastComma >= 0) ? inner.mid(lastComma + 1).trimmed() : inner.trimmed();
         }
         break;
     }

@@ -285,8 +285,7 @@ inline QVector<WordPair> tikzValueHints() {
 
 inline QStringList allCompletableWords() {
     QStringList result;
-    result << tikzCommands() << tikzEnvironments()
-           << tikzOptions() << tikzAnchors()
+    result << tikzCommands() << tikzOptions() << tikzAnchors()
            << tikzColors() << tikzArrows()
            << tikzLineTypes() << tikzLineWidths()
            << tikzMathFunctions() << tikzArrowValues()
