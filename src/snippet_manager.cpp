@@ -411,6 +411,22 @@ static bool runProcessSync(QProcess &proc, int timeoutMs = 30000)
     return proc.state() == QProcess::NotRunning;
 }
 
+int SnippetManager::getUncategorizedCount(bool includePresets) const
+{
+    int count = 0;
+    QList<Snippet> all = getAllSnippets();
+    for (const Snippet &s : all) {
+        if (s.category.isEmpty()) count++;
+    }
+    if (includePresets) {
+        QList<Snippet> presets = getAllPresets();
+        for (const Snippet &s : presets) {
+            if (s.category.isEmpty()) count++;
+        }
+    }
+    return count;
+}
+
 bool SnippetManager::exportSnippetZip(const QString &id, const QString &zipPath)
 {
     QString srcDir;

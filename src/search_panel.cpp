@@ -191,8 +191,11 @@ void SearchPanel::refreshThumbnailList()
 
     QList<SearchResult> results = snippetMgr->searchSnippets("");
     for (const SearchResult &r : results) {
-        if (!category.isEmpty() && !r.snippet.category.startsWith(category))
+        if (category == "__uncategorized__") {
+            if (!r.snippet.category.isEmpty()) continue;
+        } else if (!category.isEmpty() && !r.snippet.category.startsWith(category)) {
             continue;
+        }
         QString label = r.snippet.isPreset ? QStringLiteral("[预设] ") + r.snippet.name : r.snippet.name;
         QStandardItem *item = new QStandardItem(label);
         item->setData(r.snippet.id, Qt::UserRole);
@@ -223,10 +226,20 @@ void SearchPanel::refreshCategoryTree()
     for (auto it = catCounts.constBegin(); it != catCounts.constEnd(); ++it)
         totalCount += it.value();
 
+    int uncategorizedCount = snippetMgr->getUncategorizedCount(true);
+    totalCount += uncategorizedCount;
+
     QStandardItem *allItem = new QStandardItem(QStringLiteral("全部 (%1)").arg(totalCount));
     allItem->setData("", Qt::UserRole);
     allItem->setEditable(false);
     rootItem->appendRow(allItem);
+
+    if (uncategorizedCount > 0) {
+        QStandardItem *uncatItem = new QStandardItem(QStringLiteral("未分类 (%1)").arg(uncategorizedCount));
+        uncatItem->setData("__uncategorized__", Qt::UserRole);
+        uncatItem->setEditable(false);
+        rootItem->appendRow(uncatItem);
+    }
 
     QStringList categories = snippetMgr->getAllCategories();
     for (const QString &cat : categories) {

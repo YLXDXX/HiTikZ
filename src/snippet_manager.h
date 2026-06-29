@@ -54,6 +54,7 @@ public:
     QList<SearchResult> searchSnippets(const QString &query, bool includePresets = true) const;
     QStringList getAllCategories(bool includePresets = true) const;
     QMap<QString, int> getCategoryCounts(bool includePresets = true) const;
+    int getUncategorizedCount(bool includePresets = true) const;
 
     bool exportSnippetZip(const QString &id, const QString &zipPath);
     bool exportSnippetsZip(const QStringList &ids, const QString &zipPath);

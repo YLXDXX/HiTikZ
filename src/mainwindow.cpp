@@ -301,6 +301,11 @@ void MainWindow::setupUI()
         QString cat = searchPanel->currentCategory();
         bool isAllCat = cat.isEmpty();
 
+        if (cat == "__uncategorized__") {
+            statusBar()->showMessage(QStringLiteral("未分类是虚拟分类，无法删除"), 3000);
+            return;
+        }
+
         if (currentSnippetId.isEmpty() && !cat.isEmpty() && !isAllCat) {
             int ret = QMessageBox::warning(this, QStringLiteral("删除分类"),
                 QStringLiteral("确定删除分类 \"%1\" 及其全部内容吗？").arg(cat),
