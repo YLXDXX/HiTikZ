@@ -321,8 +321,8 @@ void SettingsDialog::createTemplate()
     }
 
     loadTemplateList();
-    int idx = templateListWidget->findItems(name, Qt::MatchExactly).value(0) ?
-        templateListWidget->row(templateListWidget->findItems(name, Qt::MatchExactly).first()) : 0;
+    const QList<QListWidgetItem *> found = templateListWidget->findItems(name, Qt::MatchExactly);
+    int idx = found.isEmpty() ? 0 : templateListWidget->row(found.first());
     templateListWidget->setCurrentRow(idx >= 0 ? idx : 0);
 }
 
