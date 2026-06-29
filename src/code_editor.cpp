@@ -128,6 +128,7 @@ void CodeEditor::highlightCurrentLine()
     }
 
     QTextCursor cursor = textCursor();
+    cursor.clearSelection();
     cursor.select(QTextCursor::WordUnderCursor);
     QString word = cursor.selectedText().trimmed();
 

@@ -291,6 +291,10 @@ void TikzCompleter::tryComplete()
     cr.setWidth(comp->popup()->sizeHintForColumn(0)
                 + comp->popup()->verticalScrollBar()->sizeHint().width() + 30);
     comp->complete(cr);
+
+    if (comp->completionCount() > 0 && comp->popup()) {
+        comp->popup()->setCurrentIndex(comp->completionModel()->index(0, 0));
+    }
 }
 
 bool TikzCompleter::handleCompletionKey(QKeyEvent *event)
@@ -304,9 +308,21 @@ bool TikzCompleter::handleCompletionKey(QKeyEvent *event)
     case Qt::Key_Enter:
     case Qt::Key_Return:
     case Qt::Key_Tab: {
-        if (comp->popup()->currentIndex().isValid()) {
+        QModelIndex idx = comp->popup()->currentIndex();
+        if (!idx.isValid())
+            idx = comp->completionModel()->index(0, 0);
+        if (idx.isValid()) {
+            QString completion = comp->completionModel()->data(idx).toString();
+            QString prefix = comp->completionPrefix();
+            int prefixLen = prefix.length();
+
+            QTextCursor cursor = m_editor->textCursor();
+            cursor.movePosition(QTextCursor::Left, QTextCursor::KeepAnchor, prefixLen);
+            cursor.insertText(completion);
+
             comp->popup()->hide();
             m_activeContext = TkzCtxNone;
+            m_editor->setTextCursor(cursor);
             return true;
         }
         break;
