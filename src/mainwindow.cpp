@@ -131,10 +131,7 @@ void MainWindow::closeEvent(QCloseEvent *event)
     bool hasUnsaved = false;
     if (!currentSnippetId.isEmpty()) {
         Snippet saved = snippetMgr->loadSnippet(currentSnippetId);
-        QString savedCode = saved.code;
-        QString savedName = saved.name;
-        QString currentCode = codeEditor->toPlainText();
-        if (currentCode != savedCode)
+        if (codeEditor->toPlainText() != saved.code)
             hasUnsaved = true;
     } else {
         if (!codeEditor->toPlainText().trimmed().isEmpty())
@@ -142,11 +139,18 @@ void MainWindow::closeEvent(QCloseEvent *event)
     }
 
     if (hasUnsaved) {
-        QMessageBox::StandardButton btn = QMessageBox::warning(this,
-            QStringLiteral("未保存的更改"),
-            QStringLiteral("当前片段有未保存的更改。\n\n是否在退出前保存？"),
-            QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel);
-        if (btn == QMessageBox::Save) {
+        QMessageBox msgBox(this);
+        msgBox.setWindowTitle(QStringLiteral("未保存的更改"));
+        msgBox.setText(QStringLiteral("当前片段有未保存的更改。\n\n是否在退出前保存？"));
+        msgBox.setIcon(QMessageBox::Warning);
+        QPushButton *saveBtn = msgBox.addButton(QStringLiteral("保存"), QMessageBox::AcceptRole);
+        QPushButton *discardBtn = msgBox.addButton(QStringLiteral("不保存"), QMessageBox::DestructiveRole);
+        QPushButton *cancelBtn = msgBox.addButton(QStringLiteral("取消"), QMessageBox::RejectRole);
+        msgBox.setDefaultButton(saveBtn);
+        msgBox.exec();
+
+        QAbstractButton *clicked = msgBox.clickedButton();
+        if (clicked == saveBtn) {
             saveCurrentSnippet();
             if (currentSnippetId.isEmpty() && !codeEditor->toPlainText().trimmed().isEmpty()) {
                 QDialog dlg(this);
@@ -171,16 +175,18 @@ void MainWindow::closeEvent(QCloseEvent *event)
                     return;
                 }
             }
-            event->accept();
-        } else if (btn == QMessageBox::Discard) {
-            event->accept();
+        } else if (clicked == discardBtn) {
+            // discard, proceed to quit
         } else {
             event->ignore();
+            return;
         }
-        return;
     }
 
+    if (trayIcon)
+        trayIcon->hide();
     event->accept();
+    QTimer::singleShot(0, qApp, &QApplication::quit);
 }
 
 void MainWindow::setupUI()
