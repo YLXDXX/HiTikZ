@@ -59,8 +59,7 @@ void TikzCompleter::initCompleters()
                                 "pgfplots.groupplots","pgfplots.dateplot",
                                 "pgfplots.polar","pgfplots.smithchart",
                                 "pgfplots.statistics","pgfplots.ternary",
-                                "pgfplots.units","profiler","shadings",
-                                "svg.path","through","tikzmark","transparency"});
+                                "profiler","shadings","transparency"});
 
     QStringList valueWords;
     valueWords << TikzWords::tikzColors()
