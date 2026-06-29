@@ -40,5 +40,7 @@ private:
     QHash<Context, QCompleter *> m_completers;
     QHash<Context, QStringListModel *> m_models;
     Context m_activeContext = TkzCtxNone;
+    mutable QString m_lastTextBeforeCursor;
+    mutable Context m_lastContext = TkzCtxNone;
 };
 

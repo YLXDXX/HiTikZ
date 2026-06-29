@@ -209,7 +209,15 @@ void TikzCompleter::tryComplete()
             textBefore = lineBefore;
     }
 
-    Context ctx = detectContext(textBefore);
+    Context ctx;
+    if (textBefore == m_lastTextBeforeCursor) {
+        ctx = m_lastContext;
+    } else {
+        ctx = detectContext(textBefore);
+        m_lastTextBeforeCursor = textBefore;
+        m_lastContext = ctx;
+    }
+
     if (ctx == TkzCtxNone) {
         for (auto *comp : m_completers)
             comp->popup()->hide();
