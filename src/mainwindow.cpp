@@ -806,7 +806,10 @@ void MainWindow::savePreviewData(const QString &pdfPath, const QString &snippetI
 
     if (QFile::exists(previewPdf))
         QFile::remove(previewPdf);
-    QFile::copy(pdfPath, previewPdf);
+    if (!QFile::copy(pdfPath, previewPdf)) {
+        qWarning() << "Failed to save preview PDF:" << previewPdf;
+        return;
+    }
 
     if (m_batchGenerating) {
         QProcess pngProc;

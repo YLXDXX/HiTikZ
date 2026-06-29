@@ -321,7 +321,9 @@ void SnippetManager::copyPresetsFromResources(const QString &resourceDir, const 
 
         QStringList files = QDir(srcDir).entryList(QDir::Files);
         for (const QString &file : files) {
-            QFile::copy(srcDir + "/" + file, dstDir + "/" + file);
+            if (!QFile::copy(srcDir + "/" + file, dstDir + "/" + file)) {
+                qWarning() << "Failed to copy preset file:" << srcDir + "/" + file;
+            }
         }
     }
 }
@@ -525,7 +527,10 @@ bool SnippetManager::exportSnippetsZip(const QStringList &ids, const QString &zi
 
         QStringList files = dir.entryList(QDir::Files);
         for (const QString &file : files) {
-            QFile::copy(srcDir + "/" + file, dstDir + "/" + file);
+            if (!QFile::copy(srcDir + "/" + file, dstDir + "/" + file)) {
+                qWarning() << "Failed to copy file for export:" << srcDir + "/" + file;
+                return false;
+            }
         }
     }
 
@@ -602,9 +607,15 @@ QStringList SnippetManager::importSnippetsZip(const QString &zipPath)
         QDir().mkpath(destDir);
 
         QStringList files = QDir(tempDir.path() + "/" + subDir).entryList(QDir::Files);
+        bool importOk = true;
         for (const QString &file : files) {
-            QFile::copy(tempDir.path() + "/" + subDir + "/" + file, destDir + file);
+            if (!QFile::copy(tempDir.path() + "/" + subDir + "/" + file, destDir + file)) {
+                qWarning() << "Failed to import file:" << tempDir.path() + "/" + subDir + "/" + file;
+                importOk = false;
+                break;
+            }
         }
+        if (!importOk) continue;
 
         if (QFile::exists(destDir + "meta.json")) {
             QFile metaFile(destDir + "meta.json");

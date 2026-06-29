@@ -239,7 +239,8 @@ void SettingsDialog::ensureTemplatesCopied(const QString &resourceTemplateDir)
     for (const QString &tpl : templates) {
         QString destPath = destDir + tpl;
         if (!QFile::exists(destPath)) {
-            QFile::copy(resourceTemplateDir + "/" + tpl, destPath);
+            if (!QFile::copy(resourceTemplateDir + "/" + tpl, destPath))
+                qWarning() << "Failed to copy template:" << tpl;
         }
     }
 }
