@@ -128,12 +128,17 @@ void CodeEditor::highlightCurrentLine()
     }
 
     QTextCursor cursor = textCursor();
-    cursor.clearSelection();
-    cursor.select(QTextCursor::WordUnderCursor);
-    QString word = cursor.selectedText().trimmed();
+    QString word;
+    if (cursor.hasSelection()) {
+        word = cursor.selectedText().trimmed();
+    } else {
+        cursor.clearSelection();
+        cursor.select(QTextCursor::WordUnderCursor);
+        word = cursor.selectedText().trimmed();
+    }
 
     if (word.length() > 1 && !word.contains(' ') && !word.contains('\n')
-        && !word.contains('\t') && !word.contains('\\')) {
+        && !word.contains('\t')) {
         QColor wordColor(255, 230, 180);
 
         QTextDocument *doc = document();

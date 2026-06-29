@@ -140,6 +140,15 @@ TikzCompleter::Context TikzCompleter::detectContext(const QString &textBefore) c
             return TkzCtxDot;
     }
 
+    {
+        int atIdx = text.lastIndexOf("@@");
+        if (atIdx >= 0) {
+            QString afterAt = text.mid(atIdx + 2);
+            if (!afterAt.contains("@@"))
+                return TkzCtxAt;
+        }
+    }
+
     int bracketDepth = 0;
     int braceDepth = 0;
     for (int i = len - 1; i >= 0; --i) {
@@ -171,7 +180,8 @@ TikzCompleter::Context TikzCompleter::detectContext(const QString &textBefore) c
         }
         QString word;
         int j = len - 1;
-        while (j >= 0 && (text.at(j).isLetterOrNumber() || text.at(j) == '_' || text.at(j) == '-'))
+        while (j >= 0 && (text.at(j).isLetterOrNumber() || text.at(j) == '_'
+                          || text.at(j) == '-' || text.at(j) == '@'))
             j--;
         word = text.mid(j + 1);
         if (word.length() >= 2)
@@ -206,11 +216,21 @@ void TikzCompleter::tryComplete()
 
     QString prefix;
     switch (ctx) {
-    case TkzCtxCmd:
-    case TkzCtxBeg:
-    case TkzCtxLib: {
+    case TkzCtxCmd: {
         int lastSlash = textBefore.lastIndexOf('\\');
         if (lastSlash >= 0) prefix = textBefore.mid(lastSlash);
+        break;
+    }
+    case TkzCtxBeg:
+    case TkzCtxLib: {
+        int lastBrace = textBefore.lastIndexOf('{');
+        if (lastBrace >= 0) {
+            int closePos = textBefore.indexOf('}', lastBrace);
+            if (closePos < 0)
+                prefix = textBefore.mid(lastBrace + 1);
+            else
+                prefix = textBefore.mid(lastBrace + 1, closePos - lastBrace - 1);
+        }
         break;
     }
     case TkzCtxDot: {
@@ -254,13 +274,16 @@ void TikzCompleter::tryComplete()
         break;
     }
     case TkzCtxAt: {
-        prefix = "@@";
+        int atIdx = textBefore.lastIndexOf("@@");
+        if (atIdx >= 0)
+            prefix = textBefore.mid(atIdx + 2);
         break;
     }
     case TkzCtxWord: {
         int j = textBefore.length() - 1;
         while (j >= 0 && (textBefore.at(j).isLetterOrNumber()
-                          || textBefore.at(j) == '_' || textBefore.at(j) == '-'))
+                          || textBefore.at(j) == '_' || textBefore.at(j) == '-'
+                          || textBefore.at(j) == '@'))
             j--;
         prefix = textBefore.mid(j + 1);
         break;
