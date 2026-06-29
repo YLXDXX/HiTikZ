@@ -189,6 +189,11 @@ bool SnippetManager::deleteSnippet(const QString &id)
     if (!dir.exists())
         return false;
     dir.removeRecursively();
+
+    if (presetIdsCached && presetIdsCache.contains(id)) {
+        presetIdsCache.remove(id);
+    }
+
     emit snippetDeleted(id);
     return true;
 }
