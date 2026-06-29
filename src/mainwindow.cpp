@@ -672,9 +672,7 @@ void MainWindow::setupConnections()
         });
 
     connect(codeEditor, &QPlainTextEdit::textChanged, this, [this]() {
-        if (!currentSnippetId.isEmpty()) {
-            onCurrentSnippetChanged();
-        }
+        onCurrentSnippetChanged();
     });
 }
 

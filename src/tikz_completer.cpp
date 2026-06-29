@@ -84,10 +84,7 @@ void TikzCompleter::setModelForContext(Context ctx, const QStringList &words)
 void TikzCompleter::refreshParamWords(const QStringList &params)
 {
     if (params.isEmpty()) return;
-    QStringList words;
-    for (const QString &p : params)
-        words << ("@@" + p + "@@");
-    setModelForContext(TkzCtxAt, words);
+    setModelForContext(TkzCtxAt, params);
 }
 
 bool TikzCompleter::isPopupVisible() const
@@ -144,12 +141,9 @@ TikzCompleter::Context TikzCompleter::detectContext(const QString &textBefore) c
     }
 
     {
-        int atIdx = text.lastIndexOf("@@");
-        if (atIdx >= 0) {
-            QString afterAt = text.mid(atIdx + 2);
-            if (!afterAt.contains("@@"))
-                return TkzCtxAt;
-        }
+        int atCount = text.count("@@");
+        if (atCount > 0 && atCount % 2 == 1)
+            return TkzCtxAt;
     }
 
     int bracketDepth = 0;

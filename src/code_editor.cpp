@@ -92,6 +92,39 @@ void CodeEditor::keyPressEvent(QKeyEvent *event)
         return;
     }
 
+    if (event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter) {
+        QTextCursor cursor = textCursor();
+        cursor.movePosition(QTextCursor::StartOfBlock, QTextCursor::KeepAnchor);
+        QString currentLine = cursor.selectedText();
+
+        int indentEnd = 0;
+        while (indentEnd < currentLine.length()
+               && (currentLine.at(indentEnd) == ' ' || currentLine.at(indentEnd) == '\t')) {
+            indentEnd++;
+        }
+        QString indent = currentLine.left(indentEnd);
+
+        QString trimmed = currentLine.trimmed();
+        bool extraIndent = false;
+        if (trimmed.endsWith('{')
+            || (trimmed.startsWith("\\begin") && !trimmed.contains("\\end"))) {
+            extraIndent = true;
+        }
+
+        QPlainTextEdit::keyPressEvent(event);
+
+        cursor = textCursor();
+        cursor.insertText(indent);
+        if (extraIndent)
+            cursor.insertText("    ");
+        setTextCursor(cursor);
+
+        if (m_completer) {
+            QTimer::singleShot(0, this, [this]() { m_completer->tryComplete(); });
+        }
+        return;
+    }
+
     QPlainTextEdit::keyPressEvent(event);
 
     if (m_completer && !event->text().isEmpty()) {
