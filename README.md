@@ -15,8 +15,11 @@
   - [片段管理](#片段管理)
   - [分类系统](#分类系统)
   - [模糊搜索](#模糊搜索)
+  - [代码编辑器](#代码编辑器)
+  - [代码补全](#代码补全)
   - [LaTeX 编译与 PDF 预览](#latex-编译与-pdf-预览)
   - [参数化系统](#参数化系统)
+  - [自动保存与草稿恢复](#自动保存与草稿恢复)
   - [模板系统](#模板系统)
   - [宏包与 TikZ 库](#宏包与-tikz-库)
   - [完整文档复制](#完整文档复制)
@@ -37,22 +40,28 @@
 ## 功能概览
 
 - **TikZ 片段管理**：创建、编辑、保存、删除 TikZ 代码片段，附带名称 / 简介 / 分类 / 标签 / 宏包 / TikZ 库 / 模板元数据
+- **语法高亮**：TikZ/LaTeX 代码彩色高亮（命令蓝色、环境紫色、注释灰色、坐标橙色、数学模式绿色等 12 类语法元素）
+- **选中词高亮**：光标置于某单词或双击选中时，文档中所有相同单词自动高亮，快速定位变量/命令的使用位置
+- **智能代码补全**：9 种上下文感知补全（命令 `\`、环境 `\begin{`、选项 `[...]`、锚点 `.`、值 `=`、参数 `@@`、库 `\usetikzlibrary{` 等），含值提示（颜色、线宽、箭头等）
+- **自动缩进**：换行时继承上一行缩进，`{` 或 `\begin` 结尾的行自动增加一级缩进
+- **撤销/重做**：支持 Ctrl+Z / Ctrl+Shift+Z，工具栏有独立按钮
 - **实时编译预览**：调用系统 `xelatex` 编译片段，通过 `QPdfView` 实时渲染高清 PDF 矢量预览
 - **可拆分预览面板**：右侧 PDF 预览与元数据编辑区之间可拖动分割条，PDF 可放大至占满整个面板
 - **适应式缩放**：支持适应整页 / 适应宽度 / 适应高度三种显示模式，滚轮缩放以鼠标位置为中心，左键拖拽平移
 - **预览持久化**：编译成功后自动保存 PDF 和缩略图 PNG，下次切换片段即时展示预览
 - **批量预览生成**：设置面板中一键生成所有片段预览（同步 pdftocairo 确保不丢图）
 - **彩色日志面板**：错误行红色高亮、警告橙色，双击错误行跳转到编辑器对应行
-- **模糊搜索**：UTF-8 子序列匹配，支持名称和简介搜索，连续匹配高分、间隔扣分
-- **树形分类**：支持层级分类（如 `数学/几何`），显示每个分类的片段数量，拖拽片段到分类节点即可重新分类
+- **模糊搜索**：Unicode 子序列匹配，双字索引加速，支持名称和简介搜索，连续匹配高分、间隔扣分
+- **树形分类**：支持层级分类（如 `数学/几何`），含"未分类"节点，拖拽片段到分类节点即可重新分类
 - **多选批量操作**：Ctrl+点击多选缩略图，右键弹出批量导出 / 改分类 / 删除菜单，支持全选、导出全部
 - **属性编辑对话框**：右键缩略图（单选时）弹出属性对话框，可编辑全部元数据字段
-- **参数化功能**：通过 `% @param: var=默认值` 声明变量，代码中使用 `@@var@@` 占位，右栏动态生成参数控件
+- **参数化功能**：通过 `% @param: var=默认值` 声明变量，代码中使用 `@@var@@` 占位，右栏动态生成参数控件，编辑器内 `@@` 可触发参数补全
+- **自动保存**：每 60 秒自动保存当前编辑状态为草稿，关闭时有未保存更改则会弹出保存/放弃/取消提示
 - **模板系统（极简）**：三个内置 LaTeX 模板仅含必要宏包（数学 / 物理 / 电路），额外宏包和 TikZ 库由每个片段自行声明
 - **完整文档复制**：一键复制含模板头部 + 片段的完整可编译 LaTeX 文档
 - **格式导出**：编译生成的 PDF 可通过 `pdftocairo` 转换并复制为 PNG/SVG 到剪贴板
 - **存档导入/导出**：片段以 tar.gz 格式打包，支持单选 / 多选批量 / 全部导出
-- **系统托盘**：最小化到托盘，全局快捷键一键呼出/隐藏
+- **系统托盘**：最小化到托盘，全局快捷键一键呼出/隐藏，托盘菜单"退出"触发关闭前保存提示
 - **可配置快捷键**：全部快捷键可在设置面板中自定义键序列，支持清空禁用
 - **全局快捷键（KDE）**：KDE 桌面通过 KGlobalAccel 注册系统级快捷键
 - **代码字体调节**：设置面板中可调代码编辑区字体大小（8-48 pt）
@@ -143,6 +152,7 @@ CMake 选项：
 | 编译预览 | 编译 TikZ 代码并渲染 PDF |
 | 应用参数 | 应用参数值后编译 |
 | 保存 | 保存当前片段 |
+| 撤销 / 重做 | Ctrl+Z 撤销编辑，Ctrl+Shift+Z 重做 |
 | 复制代码 | 复制参数替换后的 TikZ 核心代码 |
 | 复制完整文档 | 复制含模板头部的完整 LaTeX 文档 |
 | 复制PNG | 复制 300 DPI PNG 到剪贴板 |
@@ -155,6 +165,7 @@ CMake 选项：
 
 - **搜索框**：输入关键词实时搜索（150ms 防抖延迟），按名称 + 简介模糊匹配
 - **分类树**：层级分类导航，节点显示片段数量，点击分类过滤缩略图列表
+  - 含"全部"和"未分类"两个特殊节点
   - 右键分类节点：重命名 / 删除 / 新建子分类
   - 右键"全部"：新建顶级分类
 - **缩略图列表**：网格视图展示搜索结果 / 分类筛选结果
@@ -162,11 +173,11 @@ CMake 选项：
   - **Ctrl+点击**：多选（不触发编辑器加载）
   - 右键点击（单选）：弹出属性编辑对话框
   - 右键点击（多选）：弹出批量操作菜单（批量导出 / 修改分类 / 删除所选 / 全选 / 导出全部）
-  - 拖拽到分类节点：移动片段到目标分类
+  - 拖拽到分类节点：移动片段到目标分类（支持多选拖拽）
 
 ### 中栏
 
-- **代码编辑器**：基于 `QPlainTextEdit`，等宽字体（字号可调，默认 10pt）、行号显示、当前行高亮
+- **代码编辑器**：基于 `QPlainTextEdit`，等宽字体（字号可调，默认 10pt），行号显示，当前行高亮，**TikZ/LaTeX 语法彩色高亮**，**选中词全文档高亮**，**智能代码补全**
 - **编译日志**：显示 xelatex 的编译输出，红色 = 错误、橙色 = 警告、灰色 = 信息
   - 双击日志行中的 `l.<行号>` 跳转编辑器对应行
 
@@ -196,10 +207,10 @@ CMake 选项：
 │       └── preview.png     # 最后一次编译成功的缩略图
 ├── presets/                # 系统预置片段（首次启动从 resources/presets/ 拷贝）
 │   └── <uuid>/ ...
-└── templates/              # LaTeX 模板（首次启动从 resources/templates/ 拷贝）
-    ├── default_math.tex
-    ├── default_physics.tex
-    └── default_circuit.tex
+├── templates/              # LaTeX 模板（首次启动从 resources/templates/ 拷贝）
+│   └── *.tex
+└── drafts/                 # 自动保存的草稿（JSON 格式）
+    └── *.json
 ```
 
 **meta.json 格式示例**：
@@ -221,16 +232,60 @@ CMake 选项：
 
 - 支持层级分类，使用 `/` 分隔（如 `数学/几何`）
 - 创建新片段时可同时指定名称和分类
-- 拖拽缩略图到分类树节点即可重新归类
+- 拖拽缩略图到分类树节点即可重新归类（支持多选拖拽）
 - 支持批量修改多个片段的分类
 - 分类树节点显示片段数量（含子分类汇总数）
+- "全部"节点显示所有片段总数，"未分类"节点显示无分类的片段数
 
 ### 模糊搜索
 
-- 基于 UTF-8 子序列匹配，不依赖拼音转换
+- 基于 Unicode 子序列匹配，使用 NFC 归一化和 case-folding 进行大小写不敏感匹配
+- 双字（bigram）倒排索引：查询长度 ≥2 时通过索引快速筛选候选，再对候选做全匹配打分
 - 打分规则：连续匹配字符得高分（`10 + consecutive * 5`），间隔匹配低分
 - 名称匹配权重是简介的 2 倍
 - 空搜索显示所有片段
+
+### 代码编辑器
+
+- **语法高亮**（`TikzHighlighter`）：基于 `QSyntaxHighlighter`，12 条优先正则规则
+  - 注释 `%` → 灰色斜体
+  - 字符串 `"..."` → 橙黄色
+  - 参数 `@@var@@` → 绿色斜体
+  - 环境 `\begin{...}` / `\end{...}` → 紫色加粗
+  - 命令 `\draw`、`\node` 等 → 蓝色加粗
+  - 数学模式 `$...$` → 绿色
+  - 坐标 `(x,y)` → 橙色
+  - 选项 `[...]` → 青色
+  - 数字（含单位）→ 紫色
+  - 括号 `{` `}` → 红色
+
+- **选中词高亮**：光标置于单词上或双击选中时，文档中所有相同单词以浅橙色背景高亮，辅助查看变量/命令的使用位置
+
+- **自动缩进**：按 Enter 换行时自动继承上一行的前导空白，若行尾为 `{` 或以 `\begin` 开头则额外增加 4 空格缩进
+
+- **撤销/重做**：标准 Ctrl+Z / Ctrl+Shift+Z，工具栏有独立按钮
+
+### 代码补全
+
+智能补全（`TikzCompleter`）根据光标上下文自动给出建议，覆盖 9 种场景：
+
+| 上下文 | 触发条件 | 补全内容 | 示例 |
+|--------|---------|---------|------|
+| 命令 | 输入 `\` 后接字母 | ~150 个 TikZ 命令 | `\draw`、`\node`、`\coordinate`、`\foreach` |
+| 环境 | `\begin{` 未闭合 | ~30 个 LaTeX/TikZ 环境 | `tikzpicture`、`scope`、`axis`、`groupplot` |
+| 选项 | `[...]` 内 | ~200 个 TikZ 选项 | `thick`、`left color`、`rounded corners`、`yshift` |
+| 锚点 | 单词后跟 `.` | ~30 个节点锚点 | `north`、`south east`、`center`、`base` |
+| 值 | `=` 后 | 颜色 / 线型 / 箭头的值提示 | 输入 `color=` 后列出全部颜色名 |
+| 参数 | `@@` 未闭合 | 代码中声明的参数变量 | 输入 `@@` 后显示 `angle`、`width` 等 |
+| TikZ 库 | `\usetikzlibrary{` 内 | ~100 个 TikZ 库名 | `calc`、`arrows`、`patterns`、`3d` |
+| 通用词 | 输入任意已知词 | 命令、选项、锚点、颜色的并集 | 连续输入 2 个以上字母时触发 |
+
+**补全交互**：
+- 自动弹出：检测到对应上下文时自动显示补全列表
+- 默认选中第一个候选项
+- ↑↓ 键切换选中项，Enter / Tab 上屏
+- Esc 关闭列表
+- 上下文检测使用轻量前缀扫描，将来可替换为完整 AST 扫描器
 
 ### LaTeX 编译与 PDF 预览
 
@@ -259,6 +314,16 @@ CMake 选项：
 - **应用参数**：将 `@@var@@` 替换为输入框中的当前值后触发编译
 - **批量预览**：生成所有预览时自动使用默认值替换参数
 - **复制代码**：复制的代码为参数替换后的最终代码（注释行已移除）
+- **参数补全**：编辑器内输入 `@@` 可触发参数名补全（显示当前代码中声明的所有参数名）
+
+### 自动保存与草稿恢复
+
+- **定时保存**：每 60 秒自动保存当前编辑器状态（代码+元数据）为 JSON 草稿文件
+- **关闭提示**：关闭窗口或退出程序时，如有未保存更改则弹出"保存 / 不保存 / 取消"对话框
+  - 临时片段（无关联保存片段）选择保存时弹出新建片段对话框
+  - 托盘"退出"菜单触发完整的关闭流程（包含未保存检查）
+  - 窗口 X 按钮仅隐藏到托盘（不触发保存检查）
+- **启动恢复**：启动时检测 `drafts/` 目录中的草稿文件，询问是否恢复最近编辑的内容
 
 ### 模板系统
 
@@ -290,6 +355,8 @@ tikz-3dplot,[european,nosiunitx]circuitikz,tikz-cd
 \usepackage[european,nosiunitx]{circuitikz}
 \usepackage{tikz-cd}
 ```
+
+解析器正确处理嵌套括号 `{}` 和 `[]`，如 `[option={val1,val2}]` 中的逗号不会错误分割。
 
 **TikZ 库**（`tikzLibraries` 字段）：
 
@@ -329,9 +396,9 @@ calc,er,angles,patterns,decorations.pathmorphing
 
 ### 导入与导出
 
-**导出**：支持三种粒度 — 导出当前片段 / 批量导出所选 / 导出全部片段，保存为 `.tar.gz` 文件。
+**导出**：使用异步进程（非阻塞）调用 `tar` 打包，支持三种粒度 — 导出当前片段 / 批量导出所选 / 导出全部片段，保存为 `.tar.gz` 文件。
 
-**导入**：选择 `.tar.gz` 或 `.zip` 文件 → 自动解压并为每个片段分配新 UUID → 刷新列表。
+**导入**：选择 `.tar.gz` 或 `.zip` 文件 → 异步解压并为每个片段分配新 UUID → 刷新列表。
 
 ---
 
@@ -342,6 +409,8 @@ calc,er,angles,patterns,decorations.pathmorphing
 | 功能 | 默认快捷键 |
 |------|----------|
 | 全局快捷键：显示/隐藏窗口 | `Ctrl+Alt+T`（KDE 通过 KGlobalAccel 注册） |
+| 撤销 | `Ctrl+Z` |
+| 重做 | `Ctrl+Shift+Z` |
 | 复制 TikZ 代码 | `Ctrl+Shift+C` |
 | 复制 PNG | `Ctrl+Shift+P` |
 | 复制 SVG | `Ctrl+Shift+S` |
@@ -382,8 +451,10 @@ calc,er,angles,patterns,decorations.pathmorphing
 │       └── preview.png
 ├── presets/                # 系统预置（首次运行拷贝自 resources/presets/）
 │   └── <uuid>/ ...
-└── templates/              # 用户自定义模板（首次运行拷贝自 resources/templates/）
-    └── *.tex
+├── templates/              # 用户自定义模板（首次运行拷贝自 resources/templates/）
+│   └── *.tex
+└── drafts/                 # 自动保存的草稿
+    └── *.json
 ```
 
 程序配置通过 `QSettings` 存储，包括：
@@ -451,13 +522,17 @@ CMake 选项：
 src/
 ├── main.cpp                         # 入口（QApplication 初始化）
 ├── mainwindow.h / mainwindow.cpp    # 主窗口（UI 编排、信号槽、业务逻辑）
-├── search_panel.h / search_panel.cpp # 左栏组件（搜索框、分类树、缩略图列表、多选与右键菜单）
-├── snippet_manager.h / .cpp         # 数据模型与文件系统 CRUD（含批量操作）
-├── latex_compiler.h / .cpp          # xelatex 编译 + pdftocairo 转换 + 宏包/库注入
-├── code_editor.h / .cpp             # 带行号的代码编辑器
-├── settings_dialog.h / .cpp         # 设置面板与模板管理（含快捷键配置、重置）
-├── snippet_properties_dialog.h / .cpp # 属性编辑对话框
-├── kde_global_shortcut.h / .cpp     # KDE KGlobalAccel 全局快捷键
+├── search_panel.h / search_panel.cpp # 左栏组件（搜索框、分类树、缩略图、多选/右键菜单）
+├── snippet_manager.h / .cpp         # 数据层（JSON CRUD、模糊搜索含双字索引、分类缓存、批量操作）
+├── latex_compiler.h / .cpp          # 编译引擎（xelatex + pdftocairo + 宏包/库注入）
+├── code_editor.h / .cpp             # 编辑器（行号、当前行+选中词高亮、自动缩进、补全/高亮器集成）
+├── tikz_highlighter.h / .cpp        # TikZ/LaTeX 语法高亮（QSyntaxHighlighter 子类，12 条优先规则）
+├── tikz_completer.h / .cpp          # 智能代码补全（9 种上下文检测 + 多 QCompleter + 值提示）
+├── tikz_words.h                     # TikZ 关键词库（命令/环境/选项/锚点/颜色/箭头/线型/值提示）
+├── pdf_preview_widget.h / .cpp      # PDF 预览组件（缩放/平移/适应模式，从 MainWindow 抽出）
+├── settings_dialog.h / .cpp         # 设置面板（路径/快捷键/模板管理/工厂重置）
+├── snippet_properties_dialog.h / .cpp # 片段属性编辑对话框
+├── kde_global_shortcut.h / .cpp     # KDE KGlobalAccel 全局快捷键（或 QHotkey 回退）
 resources/
 ├── templates/                       # 出厂模板（3 个极简模板）
 │   ├── default_math.tex            # tikz, amsmath, xcolor
@@ -479,32 +554,38 @@ tests/
 ```
 MainWindow
 ├── SearchPanel          ← SnippetManager
-│   ├── QLineEdit        搜索框
-│   ├── QTreeView        分类树
+│   ├── QLineEdit        搜索框（150ms 防抖）
+│   ├── QTreeView        分类树（含"未分类"节点）
 │   └── QListView        缩略图网格（ExtendedSelection 多选）
-├── CodeEditor           代码编辑器（带行号，字号可调）
-├── QPlainTextEdit       编译日志面板
+├── CodeEditor           代码编辑器
+│   ├── TikzHighlighter  语法彩色高亮（12 条规则）
+│   ├── TikzCompleter    智能补全（9 种上下文）
+│   └── LineNumberArea   行号显示
+├── QPlainTextEdit       编译日志面板（彩色格式化）
 ├── QSplitter（垂直）    PDF 预览与元数据区可调分割
-│   ├── QPdfView         PDF 矢量预览
-│   └── QScrollArea      元数据编辑表单
-├── LatexCompiler        编译引擎（xelatex + pdftocairo + 宏包/库解析注入）
-├── SnippetManager       数据层（JSON 读写、搜索、分类、批量操作）
-├── SettingsDialog       设置面板（含快捷键配置、模板管理）
+│   ├── PdfPreviewWidget PDF 矢量预览（缩放/平移/适应，独立组件）
+│   └── QScrollArea      元数据编辑表单 + 参数控件
+├── LatexCompiler        编译引擎（xelatex + pdftocairo + 嵌套括号解析）
+├── SnippetManager       数据层（JSON 读写、双字索引搜索、分类缓存、批量操作）
+├── SettingsDialog       设置面板（路径/快捷键/模板管理/工厂重置）
 └── KdeGlobalShortcut    KDE 全局快捷键（或 QHotkey 回退）
 ```
 
-### 信号关键路径
+### 编辑器信号关键路径
 
 ```
-搜索/分类变化 → SearchPanel::snippetSelected(id)
-              → MainWindow::loadSnippetIntoEditor(id)
+光标移动    → highlightCurrentLine()
+             → ExtraSelection（当前行 + 选中词全部出现位置）
 
-编译按钮 → saveCurrentSnippet() → compiler->compile()
-         → compilationFinished(success, pdf, log)
-         → QPdfView 加载 PDF + savePreviewData() 生成缩略图
+用户输入    → keyPressEvent()
+             → handleCompletionKey()（Enter/Tab 上屏，↑↓ 导航）
+             → QPlainTextEdit::keyPressEvent()
+             → tryComplete()（上下文检测 → 切换 Completer）
+             → parseParams()（扫描 @param → 更新参数控件 + 参数补全词库）
 
-批量操作 → SearchPanel::batchExportRequested / batchDeleteRequested / ...
-          → MainWindow 处理对话框 → SnippetManager 批量方法
+文本变更    → textChanged
+             → onCurrentSnippetChanged() → parseParams()
+             → autoSaveTimer（60s） → performAutoSave()
 ```
 
 ---
@@ -518,7 +599,7 @@ MainWindow
 | `test_snippet_manager` | 片段创建/读取/更新/删除，loadCode，renameCategory，ZIP 导入/导出往返 |
 | `test_latex_compiler` | xelatex 可用性检测，基本编译，PDF 生成，PNG 转换，SVG 转换，错误编译日志验证 |
 | `test_search` | 精确匹配、子序列匹配、连续加分、中文搜索、分类统计 |
-| `test_packages_libraries` | 宏包字符串解析（含中括号选项），TikZ 库解析，模板注入正确性，往返序列化 |
+| `test_packages_libraries` | 宏包字符串解析（含嵌套括号选项），TikZ 库解析，模板注入正确性，往返序列化 |
 
 运行测试：
 ```bash
@@ -532,7 +613,7 @@ cd build && ctest --output-on-failure
 | 技术 | 用途 |
 |------|------|
 | **C++17** | 核心语言 |
-| **Qt 6** | Widgets (UI), Pdf (PDF 渲染), PdfWidgets (QPdfView) |
+| **Qt 6** | Widgets (UI), Gui (QSyntaxHighlighter), Pdf (PDF 渲染), PdfWidgets (QPdfView) |
 | **CMake** | 构建系统 |
 | **KF6GlobalAccel** | KDE 原生全局快捷键 |
 | **QHotkey** (fallback) | 非 KDE 环境的全局快捷键 |
