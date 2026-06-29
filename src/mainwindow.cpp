@@ -1010,7 +1010,8 @@ void MainWindow::refreshTemplateCombo()
         QString id = QFileInfo(f).completeBaseName();
         templateCombo->addItem(id, id);
     }
-    templateCombo->setCurrentIndex(0);
+    if (templateCombo->count() > 0)
+        templateCombo->setCurrentIndex(0);
 }
 
 void MainWindow::setFormattedLog(const QString &log)
