@@ -214,6 +214,9 @@ void MainWindow::setupUI()
     QAction *importMenuAct = importExportMenu->addAction(QStringLiteral("导入存档"));
     QAction *exportMenuAct = importExportMenu->addAction(QStringLiteral("导出当前"));
     QAction *exportAllMenuAct = importExportMenu->addAction(QStringLiteral("导出全部"));
+    importExportMenu->addSeparator();
+    QAction *exportTexAct = importExportMenu->addAction(QStringLiteral("导出为 .tex 文档"));
+    QAction *exportPdfAct = importExportMenu->addAction(QStringLiteral("导出 PDF"));
     importExportBtn->setMenu(importExportMenu);
     toolBar->addWidget(importExportBtn);
 
@@ -503,6 +506,58 @@ void MainWindow::setupUI()
 
     connect(undoAct, &QAction::triggered, codeEditor, &QPlainTextEdit::undo);
     connect(redoAct, &QAction::triggered, codeEditor, &QPlainTextEdit::redo);
+    connect(exportTexAct, &QAction::triggered, this, [this]() {
+        if (currentSnippetId.isEmpty()) {
+            statusBar()->showMessage(QStringLiteral("请先选择一个片段"), kStatusBarShortMs);
+            return;
+        }
+        Snippet s = snippetMgr->loadSnippet(currentSnippetId);
+        QString code = applyParams(s.code);
+        static QRegularExpression paramLine("^%\\s*@param:.*(\n|\r\n?)?", QRegularExpression::MultilineOption);
+        code.remove(paramLine);
+        QString fullDoc = compiler->wrapCode(code, s.templateId, s.packages, s.tikzLibraries);
+        QString filePath = QFileDialog::getSaveFileName(this,
+            QStringLiteral("导出为 .tex 文档"), s.name + ".tex",
+            "LaTeX 文档 (*.tex)");
+        if (!filePath.isEmpty()) {
+            QFile file(filePath);
+            if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+                file.write(fullDoc.toUtf8());
+                file.close();
+                statusBar()->showMessage(QStringLiteral(".tex 文档导出成功"), kStatusBarShortMs);
+            } else {
+                QMessageBox::warning(this, QStringLiteral("导出失败"),
+                    QStringLiteral("无法写入文件。"));
+            }
+        }
+    });
+
+    connect(exportPdfAct, &QAction::triggered, this, [this]() {
+        QString pdfPath;
+        if (!currentSnippetId.isEmpty()) {
+            pdfPath = snippetDataPath(currentSnippetId) + "/preview.pdf";
+        }
+        if (pdfPath.isEmpty() || !QFile::exists(pdfPath)) {
+            pdfPath = compiler->pdfPath();
+        }
+        if (pdfPath.isEmpty() || !QFile::exists(pdfPath)) {
+            statusBar()->showMessage(QStringLiteral("请先编译生成PDF预览"), kStatusBarShortMs);
+            return;
+        }
+        QString defaultName = currentSnippetId.isEmpty() ? "output.pdf"
+            : snippetMgr->loadSnippet(currentSnippetId).name + ".pdf";
+        QString filePath = QFileDialog::getSaveFileName(this,
+            QStringLiteral("导出 PDF"), defaultName, "PDF 文件 (*.pdf)");
+        if (!filePath.isEmpty()) {
+            if (QFile::copy(pdfPath, filePath)) {
+                statusBar()->showMessage(QStringLiteral("PDF 导出成功"), kStatusBarShortMs);
+            } else {
+                QMessageBox::warning(this, QStringLiteral("导出失败"),
+                    QStringLiteral("无法复制PDF文件。"));
+            }
+        }
+    });
+
     connect(copyCodeAct, &QAction::triggered, this, copyCode);
     connect(copyFullAct, &QAction::triggered, this, copyFullDocument);
 
