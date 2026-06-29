@@ -102,3 +102,9 @@ add_executable(test_packages_libraries
 target_include_directories(test_packages_libraries PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_packages_libraries PRIVATE Qt6::Core)
 add_test(NAME PackagesLibraries COMMAND test_packages_libraries)
+
+add_executable(test_highlighter_regex
+    tests/test_highlighter_regex.cpp
+)
+target_link_libraries(test_highlighter_regex PRIVATE Qt6::Core)
+add_test(NAME HighlighterRegex COMMAND test_highlighter_regex)
