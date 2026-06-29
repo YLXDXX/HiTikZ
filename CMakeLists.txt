@@ -50,6 +50,7 @@ add_executable(TikzManager
     src/snippet_properties_dialog.cpp
     src/kde_global_shortcut.cpp
     src/pdf_preview_widget.cpp
+    src/flow_layout.cpp
 )
 
 target_link_libraries(TikzManager PRIVATE Qt6::Widgets Qt6::Pdf Qt6::PdfWidgets)

@@ -8,6 +8,7 @@
 #include <QTimer>
 #include <QStringList>
 #include <QSet>
+#include <QPushButton>
 
 class SnippetManager;
 
@@ -37,6 +38,7 @@ private:
     void setupUI();
     void buildCategoryTree(QStandardItem *parent, const QString &path,
                            const QMap<QString, int> &counts, int depth = 0);
+    void applyTagRowCollapse();
     void showCategoryContextMenu(const QPoint &pos);
     void renameCategoryItem(QStandardItem *item);
     void deleteCategoryItem(QStandardItem *item);
@@ -57,4 +59,9 @@ private:
     QTimer *searchDebounceTimer;
     QWidget *tagFilterWidget;
     QSet<QString> m_selectedTags;
+    QWidget *m_tagButtonContainer = nullptr;
+    class FlowLayout *m_tagFlowLayout = nullptr;
+    QPushButton *m_moreTagsBtn = nullptr;
+    QStringList m_allTagNames;
+    static const int kMaxTagRows = 2;
 };

@@ -1,6 +1,7 @@
 #include "search_panel.h"
 #include "snippet_properties_dialog.h"
 #include "snippet_manager.h"
+#include "flow_layout.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QHeaderView>
@@ -17,6 +18,10 @@
 #include <QApplication>
 #include <QPushButton>
 #include <QScrollArea>
+#include <QCheckBox>
+#include <QDialog>
+#include <QDialogButtonBox>
+#include <QScrollBar>
 
 SearchPanel::SearchPanel(SnippetManager *mgr, QWidget *parent)
     : QWidget(parent), snippetMgr(mgr)
@@ -223,17 +228,15 @@ void SearchPanel::refreshTagFilter()
         }
     }
 
-    if (allTags.isEmpty()) return;
+    m_allTagNames = allTags.values();
+    m_allTagNames.sort(Qt::CaseInsensitive);
 
-    QStringList sortedTags = allTags.values();
-    sortedTags.sort(Qt::CaseInsensitive);
+    if (m_allTagNames.isEmpty()) return;
 
-    QWidget *buttonContainer = new QWidget;
-    QHBoxLayout *btnLayout = new QHBoxLayout(buttonContainer);
-    btnLayout->setContentsMargins(0, 0, 0, 0);
-    btnLayout->setSpacing(4);
+    m_tagButtonContainer = new QWidget;
+    m_tagFlowLayout = new FlowLayout(m_tagButtonContainer, 0, 4, 2);
 
-    for (const QString &tag : sortedTags) {
+    for (const QString &tag : m_allTagNames) {
         QPushButton *btn = new QPushButton(tag);
         btn->setCheckable(true);
         btn->setChecked(m_selectedTags.contains(tag));
@@ -248,11 +251,112 @@ void SearchPanel::refreshTagFilter()
                 m_selectedTags.remove(tag);
             refreshSearch();
         });
-        btnLayout->addWidget(btn);
+        btn->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
+        m_tagFlowLayout->addWidget(btn);
     }
-    btnLayout->addStretch();
 
-    existingLayout->addWidget(buttonContainer);
+    m_moreTagsBtn = new QPushButton(QStringLiteral("更多标签..."));
+    m_moreTagsBtn->setFlat(true);
+    m_moreTagsBtn->setStyleSheet(QStringLiteral(
+        "QPushButton { padding: 2px 8px; border: 1px solid #ccc; border-radius: 10px; color: #4a90d9; }"
+        "QPushButton:hover { text-decoration: underline; }"));
+    connect(m_moreTagsBtn, &QPushButton::clicked, this, [this]() {
+        QDialog dlg(this);
+        dlg.setWindowTitle(QStringLiteral("选择标签"));
+        dlg.setMinimumSize(300, 400);
+        QVBoxLayout *dlgLayout = new QVBoxLayout(&dlg);
+
+        QLineEdit *filter = new QLineEdit;
+        filter->setPlaceholderText(QStringLiteral("搜索标签..."));
+        dlgLayout->addWidget(filter);
+
+        QScrollArea *scroll = new QScrollArea;
+        QWidget *scrollWidget = new QWidget;
+        QVBoxLayout *scrollLayout = new QVBoxLayout(scrollWidget);
+        scrollLayout->setSpacing(2);
+
+        QList<QCheckBox *> checkboxes;
+        for (const QString &tag : m_allTagNames) {
+            QCheckBox *cb = new QCheckBox(tag);
+            cb->setChecked(m_selectedTags.contains(tag));
+            connect(cb, &QCheckBox::toggled, this, [this, tag](bool checked) {
+                if (checked)
+                    m_selectedTags.insert(tag);
+                else
+                    m_selectedTags.remove(tag);
+                refreshSearch();
+                refreshTagFilter();
+            });
+            scrollLayout->addWidget(cb);
+            checkboxes.append(cb);
+        }
+        scrollLayout->addStretch();
+        scroll->setWidget(scrollWidget);
+        scroll->setWidgetResizable(true);
+        dlgLayout->addWidget(scroll);
+
+        connect(filter, &QLineEdit::textChanged, this, [&checkboxes, scrollLayout](const QString &text) {
+            for (QCheckBox *cb : checkboxes) {
+                cb->setVisible(text.isEmpty() || cb->text().contains(text, Qt::CaseInsensitive));
+            }
+        });
+
+        QDialogButtonBox *btnBox = new QDialogButtonBox(QDialogButtonBox::Close);
+        connect(btnBox, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);
+        dlgLayout->addWidget(btnBox);
+
+        dlg.exec();
+        refreshTagFilter();
+    });
+    m_tagFlowLayout->addWidget(m_moreTagsBtn);
+
+    existingLayout->addWidget(m_tagButtonContainer);
+
+    m_tagButtonContainer->installEventFilter(this);
+
+    QTimer::singleShot(0, this, [this]() {
+        applyTagRowCollapse();
+    });
+}
+
+void SearchPanel::applyTagRowCollapse()
+{
+    if (!m_tagButtonContainer || !m_tagFlowLayout || !m_moreTagsBtn) return;
+
+    int totalRows = m_tagFlowLayout->rowCount();
+    bool needsCollapse = totalRows > kMaxTagRows;
+
+    m_moreTagsBtn->setVisible(needsCollapse);
+
+    if (!needsCollapse) {
+        for (int i = 0; i < m_tagFlowLayout->count(); ++i) {
+            QLayoutItem *it = m_tagFlowLayout->itemAt(i);
+            if (it && it->widget() && it->widget() != m_moreTagsBtn)
+                it->widget()->setVisible(true);
+        }
+        return;
+    }
+
+    int rows = 0;
+    int prevY = -1;
+
+    for (int i = 0; i < m_tagFlowLayout->count(); ++i) {
+        QLayoutItem *it = m_tagFlowLayout->itemAt(i);
+        if (!it || !it->widget()) continue;
+        QWidget *w = it->widget();
+        if (w == m_moreTagsBtn) continue;
+
+        int widgetY = w->geometry().y();
+        if (widgetY != prevY) {
+            rows++;
+            prevY = widgetY;
+            if (rows > kMaxTagRows) {
+                w->setVisible(false);
+                continue;
+            }
+        }
+        w->setVisible(rows <= kMaxTagRows);
+    }
 }
 
 void SearchPanel::refreshThumbnailList()
@@ -523,6 +627,9 @@ bool SearchPanel::eventFilter(QObject *obj, QEvent *event)
                 return true;
             }
         }
+    }
+    if (obj == m_tagButtonContainer && event->type() == QEvent::Resize) {
+        QTimer::singleShot(0, this, [this]() { applyTagRowCollapse(); });
     }
     return QWidget::eventFilter(obj, event);
 }
