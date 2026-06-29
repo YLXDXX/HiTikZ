@@ -3,6 +3,8 @@
 #include <QWidget>
 
 class LineNumberArea;
+class TikzHighlighter;
+class TikzCompleter;
 
 class CodeEditor : public QPlainTextEdit {
     Q_OBJECT
@@ -12,11 +14,18 @@ public:
     void lineNumberAreaPaintEvent(QPaintEvent *event);
     int lineNumberAreaWidth();
 
+    TikzCompleter *completer() const;
+
 public slots:
     void highlightCurrentLine();
 
+    void refreshParamWords(const QStringList &params);
+
 protected:
     void resizeEvent(QResizeEvent *event) override;
+    void keyPressEvent(QKeyEvent *event) override;
+    void focusInEvent(QFocusEvent *event) override;
+    void focusOutEvent(QFocusEvent *event) override;
 
 private slots:
     void updateLineNumberAreaWidth(int newBlockCount);
@@ -24,6 +33,9 @@ private slots:
 
 private:
     QWidget *lineNumberArea;
+    TikzHighlighter *m_highlighter;
+    TikzCompleter *m_completer;
+    bool m_focusInProgress = false;
 };
 
 class LineNumberArea : public QWidget {

@@ -1,6 +1,11 @@
 #include "code_editor.h"
+#include "tikz_highlighter.h"
+#include "tikz_completer.h"
 #include <QPainter>
 #include <QTextBlock>
+#include <QKeyEvent>
+#include <QFocusEvent>
+#include <QTimer>
 
 CodeEditor::CodeEditor(QWidget *parent)
     : QPlainTextEdit(parent)
@@ -18,6 +23,23 @@ CodeEditor::CodeEditor(QWidget *parent)
     highlightCurrentLine();
 
     setLineWrapMode(QPlainTextEdit::NoWrap);
+
+    m_highlighter = new TikzHighlighter(document());
+
+    m_completer = new TikzCompleter(this, this);
+
+    setMouseTracking(true);
+}
+
+TikzCompleter *CodeEditor::completer() const
+{
+    return m_completer;
+}
+
+void CodeEditor::refreshParamWords(const QStringList &params)
+{
+    if (m_completer)
+        m_completer->refreshParamWords(params);
 }
 
 int CodeEditor::lineNumberAreaWidth()
@@ -58,11 +80,44 @@ void CodeEditor::resizeEvent(QResizeEvent *event)
         QRect(cr.left(), cr.top(), lineNumberAreaWidth(), cr.height()));
 }
 
+void CodeEditor::keyPressEvent(QKeyEvent *event)
+{
+    bool completionHandled = false;
+
+    if (m_completer) {
+        completionHandled = m_completer->handleCompletionKey(event);
+    }
+
+    if (completionHandled) {
+        return;
+    }
+
+    QPlainTextEdit::keyPressEvent(event);
+
+    if (m_completer && !event->text().isEmpty()) {
+        QTimer::singleShot(0, this, [this]() { m_completer->tryComplete(); });
+    }
+}
+
+void CodeEditor::focusInEvent(QFocusEvent *event)
+{
+    m_focusInProgress = true;
+    QPlainTextEdit::focusInEvent(event);
+    m_focusInProgress = false;
+    highlightCurrentLine();
+}
+
+void CodeEditor::focusOutEvent(QFocusEvent *event)
+{
+    QPlainTextEdit::focusOutEvent(event);
+    highlightCurrentLine();
+}
+
 void CodeEditor::highlightCurrentLine()
 {
     QList<QTextEdit::ExtraSelection> extraSelections;
 
-    if (!isReadOnly()) {
+    if (!isReadOnly() && !m_focusInProgress) {
         QTextEdit::ExtraSelection selection;
         QColor lineColor = QColor(Qt::yellow).lighter(180);
         selection.format.setBackground(lineColor);
@@ -70,6 +125,28 @@ void CodeEditor::highlightCurrentLine()
         selection.cursor = textCursor();
         selection.cursor.clearSelection();
         extraSelections.append(selection);
+    }
+
+    QTextCursor cursor = textCursor();
+    cursor.select(QTextCursor::WordUnderCursor);
+    QString word = cursor.selectedText().trimmed();
+
+    if (word.length() > 1 && !word.contains(' ') && !word.contains('\n')
+        && !word.contains('\t') && !word.contains('\\')) {
+        QColor wordColor(255, 230, 180);
+
+        QTextDocument *doc = document();
+        QTextCursor findCursor(doc);
+
+        while (!findCursor.isNull() && !findCursor.atEnd()) {
+            findCursor = doc->find(word, findCursor, QTextDocument::FindCaseSensitively);
+            if (!findCursor.isNull()) {
+                QTextEdit::ExtraSelection wordSel;
+                wordSel.format.setBackground(wordColor);
+                wordSel.cursor = findCursor;
+                extraSelections.append(wordSel);
+            }
+        }
     }
 
     setExtraSelections(extraSelections);

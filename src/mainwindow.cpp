@@ -777,6 +777,7 @@ void MainWindow::parseParams()
     QRegularExpression re("%\\s*@param:\\s*(\\w+)=(\\S+)");
     QRegularExpressionMatchIterator it = re.globalMatch(code);
 
+    QStringList paramNames;
     while (it.hasNext()) {
         QRegularExpressionMatch match = it.next();
         ParamInfo param;
@@ -795,9 +796,11 @@ void MainWindow::parseParams()
         param.edit = edit;
         currentParams.append(param);
         paramsLayout->addWidget(row);
+        paramNames.append(param.name);
     }
 
     paramsLayout->addStretch();
+    codeEditor->refreshParamWords(paramNames);
 }
 
 QString MainWindow::applyParams(const QString &code)

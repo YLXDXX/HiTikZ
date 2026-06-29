@@ -43,6 +43,8 @@ add_executable(TikzManager
     src/snippet_manager.cpp
     src/latex_compiler.cpp
     src/code_editor.cpp
+    src/tikz_highlighter.cpp
+    src/tikz_completer.cpp
     src/settings_dialog.cpp
     src/search_panel.cpp
     src/snippet_properties_dialog.cpp
