@@ -911,6 +911,16 @@ void MainWindow::savePreviewData(const QString &pdfPath, const QString &snippetI
         QProcess *pngProc = new QProcess(this);
         connect(pngProc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
             pngProc, &QProcess::deleteLater);
+        QTimer *timeout = new QTimer(pngProc);
+        timeout->setSingleShot(true);
+        connect(timeout, &QTimer::timeout, pngProc, [pngProc]() {
+            if (pngProc->state() != QProcess::NotRunning) {
+                pngProc->kill();
+            }
+        });
+        connect(pngProc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+            timeout, &QTimer::stop);
+        timeout->start(15000);
         QStringList args;
         args << "-png" << "-r" << "150" << "-singlefile" << pdfPath << (basePath + "/preview");
         pngProc->start("pdftocairo", args);
