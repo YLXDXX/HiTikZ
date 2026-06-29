@@ -39,6 +39,7 @@
 #include <QFormLayout>
 #include <QDialogButtonBox>
 #include <QToolButton>
+#include <memory>
 
 #define STRINGIFY(x) STRINGIFY_IMPL(x)
 #define STRINGIFY_IMPL(x) #x
@@ -859,24 +860,36 @@ void MainWindow::generateAllPreviews()
 
     for (const Snippet &s : all) {
         QEventLoop loop;
-        QTimer::singleShot(30000, &loop, &QEventLoop::quit);
+        QTimer timeoutTimer;
+        timeoutTimer.setSingleShot(true);
+        QMetaObject::Connection timeoutConn =
+            QObject::connect(&timeoutTimer, &QTimer::timeout, &loop, &QEventLoop::quit);
 
         QString snippetId = s.id;
         QString code = resolveParamsFromCode(s.code);
 
-        QObject::connect(compiler, &LatexCompiler::compilationFinished,
-            &loop, [&](bool success, const QString &pdfPath, const QString &) {
-                if (success) {
-                    savePreviewData(pdfPath, snippetId);
-                }
-                done++;
-                statusBar()->showMessage(
-                    QStringLiteral("生成预览: %1/%2").arg(done).arg(total), 0);
-                loop.quit();
-            }, Qt::SingleShotConnection);
+        auto alive = std::make_shared<bool>(true);
+        QMetaObject::Connection compileConn =
+            QObject::connect(compiler, &LatexCompiler::compilationFinished,
+                this,
+                [this, snippetId, total, &done, &loop, alive](bool success, const QString &pdfPath, const QString &) {
+                    if (!*alive) return;
+                    if (success) {
+                        savePreviewData(pdfPath, snippetId);
+                    }
+                    done++;
+                    statusBar()->showMessage(
+                        QStringLiteral("生成预览: %1/%2").arg(done).arg(total), 0);
+                    loop.quit();
+                });
 
+        timeoutTimer.start(30000);
         compiler->compile(code, s.templateId, snippetId, s.packages, s.tikzLibraries);
         loop.exec();
+
+        QObject::disconnect(timeoutConn);
+        QObject::disconnect(compileConn);
+        *alive = false;
     }
 
     statusBar()->showMessage(QStringLiteral("预览生成完毕: %1 个条目").arg(total), 5000);
