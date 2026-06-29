@@ -79,4 +79,6 @@ private:
     QJsonObject snippetToJson(const Snippet &s) const;
     Snippet jsonToSnippet(const QJsonObject &obj) const;
     void ensurePresetIdsCached() const;
+    Snippet loadMetaFromDir(const QString &dirPath) const;
+    void loadCodeForSnippet(const QString &dirPath, Snippet &s) const;
 };

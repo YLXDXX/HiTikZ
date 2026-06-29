@@ -126,53 +126,23 @@ Snippet SnippetManager::loadSnippet(const QString &id)
     if (isPresetId(id))
         return loadPreset(id);
 
-    Snippet s;
     QString path = getSnippetPath(id);
     if (!QDir(path).exists())
-        return s;
+        return Snippet();
 
-    QFile metaFile(path + "meta.json");
-    if (metaFile.open(QIODevice::ReadOnly)) {
-        QByteArray data = metaFile.readAll();
-        metaFile.close();
-        QJsonDocument doc = QJsonDocument::fromJson(data);
-        if (doc.isObject()) {
-            s = jsonToSnippet(doc.object());
-        }
-    }
-
-    QFile texFile(path + "snippet.tex");
-    if (texFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        s.code = QString::fromUtf8(texFile.readAll());
-        texFile.close();
-    }
-
+    Snippet s = loadMetaFromDir(path);
+    loadCodeForSnippet(path, s);
     return s;
 }
 
 Snippet SnippetManager::loadPreset(const QString &id)
 {
-    Snippet s;
     QString path = getPresetSnippetPath(id);
     if (!QDir(path).exists())
-        return s;
+        return Snippet();
 
-    QFile metaFile(path + "meta.json");
-    if (metaFile.open(QIODevice::ReadOnly)) {
-        QByteArray data = metaFile.readAll();
-        metaFile.close();
-        QJsonDocument doc = QJsonDocument::fromJson(data);
-        if (doc.isObject()) {
-            s = jsonToSnippet(doc.object());
-        }
-    }
-
-    QFile texFile(path + "snippet.tex");
-    if (texFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        s.code = QString::fromUtf8(texFile.readAll());
-        texFile.close();
-    }
-
+    Snippet s = loadMetaFromDir(path);
+    loadCodeForSnippet(path, s);
     s.isPreset = true;
     return s;
 }
@@ -204,32 +174,11 @@ QList<Snippet> SnippetManager::getAllSnippets(bool loadCode) const
     QDir dir(basePath);
     QStringList entries = dir.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
     for (const QString &entry : entries) {
-        QString metaPath = basePath + entry + "/meta.json";
-        if (!QFile::exists(metaPath))
-            continue;
-
-        QFile metaFile(metaPath);
-        if (!metaFile.open(QIODevice::ReadOnly))
-            continue;
-
-        QByteArray data = metaFile.readAll();
-        metaFile.close();
-
-        QJsonDocument doc = QJsonDocument::fromJson(data);
-        if (doc.isObject()) {
-            Snippet s = jsonToSnippet(doc.object());
-            if (!s.id.isEmpty()) {
-                if (loadCode) {
-                    QString texPath = basePath + entry + "/snippet.tex";
-                    QFile texFile(texPath);
-                    if (texFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
-                        s.code = QString::fromUtf8(texFile.readAll());
-                        texFile.close();
-                    }
-                }
-                snippets.append(s);
-            }
-        }
+        QString entryPath = basePath + entry;
+        Snippet s = loadMetaFromDir(entryPath);
+        if (s.id.isEmpty()) continue;
+        if (loadCode) loadCodeForSnippet(entryPath, s);
+        snippets.append(s);
     }
     return snippets;
 }
@@ -240,33 +189,12 @@ QList<Snippet> SnippetManager::getAllPresets(bool loadCode) const
     QDir dir(presetPath);
     QStringList entries = dir.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
     for (const QString &entry : entries) {
-        QString metaPath = presetPath + entry + "/meta.json";
-        if (!QFile::exists(metaPath))
-            continue;
-
-        QFile metaFile(metaPath);
-        if (!metaFile.open(QIODevice::ReadOnly))
-            continue;
-
-        QByteArray data = metaFile.readAll();
-        metaFile.close();
-
-        QJsonDocument doc = QJsonDocument::fromJson(data);
-        if (doc.isObject()) {
-            Snippet s = jsonToSnippet(doc.object());
-            s.isPreset = true;
-            if (!s.id.isEmpty()) {
-                if (loadCode) {
-                    QString texPath = presetPath + entry + "/snippet.tex";
-                    QFile texFile(texPath);
-                    if (texFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
-                        s.code = QString::fromUtf8(texFile.readAll());
-                        texFile.close();
-                    }
-                }
-                presets.append(s);
-            }
-        }
+        QString entryPath = presetPath + entry;
+        Snippet s = loadMetaFromDir(entryPath);
+        if (s.id.isEmpty()) continue;
+        s.isPreset = true;
+        if (loadCode) loadCodeForSnippet(entryPath, s);
+        presets.append(s);
     }
     return presets;
 }
@@ -643,4 +571,35 @@ QStringList SnippetManager::importSnippetsZip(const QString &zipPath)
         emit categoriesChanged();
 
     return importedIds;
+}
+
+Snippet SnippetManager::loadMetaFromDir(const QString &dirPath) const
+{
+    Snippet s;
+    QString metaPath = dirPath + "/meta.json";
+    if (!QFile::exists(metaPath))
+        return s;
+
+    QFile metaFile(metaPath);
+    if (!metaFile.open(QIODevice::ReadOnly))
+        return s;
+
+    QByteArray data = metaFile.readAll();
+    metaFile.close();
+
+    QJsonDocument doc = QJsonDocument::fromJson(data);
+    if (doc.isObject()) {
+        s = jsonToSnippet(doc.object());
+    }
+    return s;
+}
+
+void SnippetManager::loadCodeForSnippet(const QString &dirPath, Snippet &s) const
+{
+    QString texPath = dirPath + "/snippet.tex";
+    QFile texFile(texPath);
+    if (texFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        s.code = QString::fromUtf8(texFile.readAll());
+        texFile.close();
+    }
 }
