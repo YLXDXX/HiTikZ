@@ -632,14 +632,13 @@ void MainWindow::setupConnections()
 
     connect(compiler, &LatexCompiler::compilationFinished,
         this, [this](bool success, const QString &pdfPath, const QString &log) {
+            if (m_batchGenerating) return;
             setFormattedLog(log);
             if (success) {
                 pdfDoc->close();
                 pdfDoc->load(QFileInfo(pdfPath).absoluteFilePath());
                 QTimer::singleShot(200, this, [this]() { applyPdfZoomPreference(); });
-                if (!m_batchGenerating) {
-                    savePreviewData(pdfPath, currentSnippetId);
-                }
+                savePreviewData(pdfPath, currentSnippetId);
                 statusBar()->showMessage(QStringLiteral("编译成功"), 3000);
             } else {
                 pdfDoc->close();
