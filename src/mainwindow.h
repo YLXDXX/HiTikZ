@@ -11,8 +11,6 @@
 #include <QPushButton>
 #include <QScrollArea>
 #include <QVBoxLayout>
-#include <QPdfDocument>
-#include <QPdfView>
 #include <QSystemTrayIcon>
 #include <QMenu>
 #include <QCloseEvent>
@@ -31,6 +29,7 @@ class SnippetManager;
 class LatexCompiler;
 class CodeEditor;
 class SearchPanel;
+class PdfPreviewWidget;
 
 struct ParamInfo {
     QString name;
@@ -59,12 +58,6 @@ private:
     void loadSnippetIntoEditor(const QString &id);
     void saveCurrentSnippet();
     static QString resolveParamsFromCode(const QString &code);
-    void zoomPdfIn();
-    void zoomPdfOut();
-    void fitPdfPage();
-    void fitPdfWidth();
-    void fitPdfHeight();
-    void applyPdfZoomPreference();
     void applyShortcuts();
     void applyAppearanceSettings();
     void copyFullDocument();
@@ -83,6 +76,7 @@ private:
     void setFormattedLog(const QString &log);
     void handleLogDoubleClick();
     void checkSystemDependencies();
+    void updateFitActionStates();
 
     QString snippetDataPath(const QString &id) const;
 
@@ -96,8 +90,7 @@ private:
     QPlainTextEdit *logPanel;
 
     QWidget *rightPanel;
-    QPdfView *pdfView;
-    QPdfDocument *pdfDoc;
+    PdfPreviewWidget *pdfPreview;
     QLineEdit *nameEdit;
     QTextEdit *descEdit;
     QLineEdit *tagsEdit;
@@ -135,7 +128,4 @@ private:
     QString currentSnippetId;
     bool m_batchGenerating = false;
     QTimer *searchDebounceTimer = nullptr;
-    bool m_pdfPanning = false;
-    QPoint m_pdfPanStart;
-    int m_pdfZoomPref = 0;
 };

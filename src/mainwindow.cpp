@@ -5,6 +5,7 @@
 #include "code_editor.h"
 #include "settings_dialog.h"
 #include "kde_global_shortcut.h"
+#include "pdf_preview_widget.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QToolBar>
@@ -189,14 +190,7 @@ void MainWindow::setupUI()
     QVBoxLayout *rightLayout = new QVBoxLayout(rightPanel);
     rightLayout->setContentsMargins(0, 0, 0, 0);
 
-    pdfDoc = new QPdfDocument(this);
-    pdfView = new QPdfView;
-    pdfView->setDocument(pdfDoc);
-    pdfView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    pdfView->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    pdfView->viewport()->installEventFilter(this);
-    pdfView->viewport()->setCursor(Qt::OpenHandCursor);
-    pdfView->setMinimumHeight(0);
+    pdfPreview = new PdfPreviewWidget;
 
     QWidget *metadataWidget = new QWidget;
     QVBoxLayout *metaLayout = new QVBoxLayout(metadataWidget);
@@ -208,7 +202,7 @@ void MainWindow::setupUI()
     metaScroll->setMinimumHeight(0);
 
     QSplitter *rightSplitter = new QSplitter(Qt::Vertical);
-    rightSplitter->addWidget(pdfView);
+    rightSplitter->addWidget(pdfPreview);
     rightSplitter->addWidget(metaScroll);
     rightSplitter->setStretchFactor(0, 3);
     rightSplitter->setStretchFactor(1, 1);
@@ -216,11 +210,20 @@ void MainWindow::setupUI()
     rightSplitter->setChildrenCollapsible(false);
     rightLayout->addWidget(rightSplitter);
 
-    connect(fitPageAct, &QAction::triggered, this, &MainWindow::fitPdfPage);
-    connect(fitWidthAct, &QAction::triggered, this, &MainWindow::fitPdfWidth);
-    connect(fitHeightAct, &QAction::triggered, this, &MainWindow::fitPdfHeight);
-    connect(zoomInAct, &QAction::triggered, this, &MainWindow::zoomPdfIn);
-    connect(zoomOutAct, &QAction::triggered, this, &MainWindow::zoomPdfOut);
+    connect(fitPageAct, &QAction::triggered, this, [this]() {
+        pdfPreview->fitPage();
+        updateFitActionStates();
+    });
+    connect(fitWidthAct, &QAction::triggered, this, [this]() {
+        pdfPreview->fitWidth();
+        updateFitActionStates();
+    });
+    connect(fitHeightAct, &QAction::triggered, this, [this]() {
+        pdfPreview->fitHeight();
+        updateFitActionStates();
+    });
+    connect(zoomInAct, &QAction::triggered, pdfPreview, &PdfPreviewWidget::zoomIn);
+    connect(zoomOutAct, &QAction::triggered, pdfPreview, &PdfPreviewWidget::zoomOut);
 
     nameEdit = new QLineEdit;
     nameEdit->setPlaceholderText(QStringLiteral("名称"));
@@ -297,7 +300,7 @@ void MainWindow::setupUI()
                 packagesEdit->clear();
                 tikzLibrariesEdit->clear();
                 descEdit->clear();
-                pdfDoc->close();
+                pdfPreview->clearDocument();
                 refreshSearch();
                 refreshCategoryTree();
             }
@@ -316,7 +319,7 @@ void MainWindow::setupUI()
             packagesEdit->clear();
             tikzLibrariesEdit->clear();
             descEdit->clear();
-            pdfDoc->close();
+            pdfPreview->clearDocument();
             refreshSearch();
             refreshCategoryTree();
         }
@@ -550,7 +553,7 @@ void MainWindow::setupConnections()
             packagesEdit->clear();
             tikzLibrariesEdit->clear();
             descEdit->clear();
-            pdfDoc->close();
+            pdfPreview->clearDocument();
         }
 
         int count = snippetMgr->batchDeleteSnippets(ids);
@@ -635,13 +638,13 @@ void MainWindow::setupConnections()
             if (m_batchGenerating) return;
             setFormattedLog(log);
             if (success) {
-                pdfDoc->close();
-                pdfDoc->load(QFileInfo(pdfPath).absoluteFilePath());
-                QTimer::singleShot(200, this, [this]() { applyPdfZoomPreference(); });
+                pdfPreview->clearDocument();
+                pdfPreview->document()->load(QFileInfo(pdfPath).absoluteFilePath());
+                QTimer::singleShot(200, pdfPreview, &PdfPreviewWidget::applyZoomPreference);
                 savePreviewData(pdfPath, currentSnippetId);
                 statusBar()->showMessage(QStringLiteral("编译成功"), 3000);
             } else {
-                pdfDoc->close();
+                pdfPreview->clearDocument();
                 jumpToErrorLine(log);
                 statusBar()->showMessage(QStringLiteral("编译失败，详见日志"), 3000);
             }
@@ -786,7 +789,7 @@ QString MainWindow::applyParams(const QString &code)
 
 void MainWindow::clearPdfPreview()
 {
-    pdfDoc->close();
+    pdfPreview->clearDocument();
 }
 
 QString MainWindow::snippetDataPath(const QString &id) const
@@ -836,9 +839,9 @@ void MainWindow::loadPreviewForSnippet(const QString &id)
 
     QString previewPdf = snippetDataPath(id) + "/preview.pdf";
     if (QFile::exists(previewPdf)) {
-        pdfDoc->close();
-        pdfDoc->load(QFileInfo(previewPdf).absoluteFilePath());
-        QTimer::singleShot(200, this, [this]() { applyPdfZoomPreference(); });
+        pdfPreview->clearDocument();
+        pdfPreview->document()->load(QFileInfo(previewPdf).absoluteFilePath());
+        QTimer::singleShot(200, pdfPreview, &PdfPreviewWidget::applyZoomPreference);
     } else {
         clearPdfPreview();
     }
@@ -967,49 +970,6 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event)
         return true;
     }
 
-    if (obj == pdfView->viewport()) {
-        if (event->type() == QEvent::Wheel) {
-            QWheelEvent *we = static_cast<QWheelEvent *>(event);
-            if (we->angleDelta().y() > 0)
-                zoomPdfIn();
-            else if (we->angleDelta().y() < 0)
-                zoomPdfOut();
-            return true;
-        }
-
-        if (event->type() == QEvent::MouseButtonPress) {
-            QMouseEvent *me = static_cast<QMouseEvent *>(event);
-            if (me->button() == Qt::LeftButton) {
-                m_pdfPanning = true;
-                m_pdfPanStart = me->pos();
-                pdfView->viewport()->setCursor(Qt::ClosedHandCursor);
-                return true;
-            }
-        }
-
-        if (event->type() == QEvent::MouseButtonRelease) {
-            QMouseEvent *me = static_cast<QMouseEvent *>(event);
-            if (me->button() == Qt::LeftButton && m_pdfPanning) {
-                m_pdfPanning = false;
-                pdfView->viewport()->setCursor(Qt::OpenHandCursor);
-                return true;
-            }
-        }
-
-        if (event->type() == QEvent::MouseMove && m_pdfPanning) {
-            QMouseEvent *me = static_cast<QMouseEvent *>(event);
-            QPoint delta = m_pdfPanStart - me->pos();
-            m_pdfPanStart = me->pos();
-            if (pdfView->horizontalScrollBar())
-                pdfView->horizontalScrollBar()->setValue(
-                    pdfView->horizontalScrollBar()->value() + delta.x());
-            if (pdfView->verticalScrollBar())
-                pdfView->verticalScrollBar()->setValue(
-                    pdfView->verticalScrollBar()->value() + delta.y());
-            return true;
-        }
-    }
-
     return QMainWindow::eventFilter(obj, event);
 }
 
@@ -1077,103 +1037,12 @@ QString MainWindow::resolveParamsFromCode(const QString &code)
     return result;
 }
 
-void MainWindow::zoomPdfIn()
+void MainWindow::updateFitActionStates()
 {
-    QPoint vpPos = pdfView->viewport() ? pdfView->viewport()->mapFromGlobal(QCursor::pos()) : QPoint();
-    qreal oldFactor = pdfView->zoomFactor();
-    qreal newFactor = oldFactor * 1.25;
-
-    pdfView->setZoomMode(QPdfView::ZoomMode::Custom);
-    pdfView->setZoomFactor(newFactor);
-
-    if (pdfView->viewport()) {
-        qreal scale = newFactor / oldFactor;
-        QPoint delta(vpPos.x() * (scale - 1.0), vpPos.y() * (scale - 1.0));
-        if (pdfView->horizontalScrollBar())
-            pdfView->horizontalScrollBar()->setValue(
-                pdfView->horizontalScrollBar()->value() + delta.x());
-        if (pdfView->verticalScrollBar())
-            pdfView->verticalScrollBar()->setValue(
-                pdfView->verticalScrollBar()->value() + delta.y());
-    }
-}
-
-void MainWindow::zoomPdfOut()
-{
-    QPoint vpPos = pdfView->viewport() ? pdfView->viewport()->mapFromGlobal(QCursor::pos()) : QPoint();
-    qreal oldFactor = pdfView->zoomFactor();
-    qreal newFactor = qMax(0.1, oldFactor / 1.25);
-
-    pdfView->setZoomMode(QPdfView::ZoomMode::Custom);
-    pdfView->setZoomFactor(newFactor);
-
-    if (pdfView->viewport()) {
-        qreal scale = newFactor / oldFactor;
-        QPoint delta(vpPos.x() * (scale - 1.0), vpPos.y() * (scale - 1.0));
-        if (pdfView->horizontalScrollBar())
-            pdfView->horizontalScrollBar()->setValue(
-                pdfView->horizontalScrollBar()->value() + delta.x());
-        if (pdfView->verticalScrollBar())
-            pdfView->verticalScrollBar()->setValue(
-                pdfView->verticalScrollBar()->value() + delta.y());
-    }
-}
-
-void MainWindow::fitPdfPage()
-{
-    m_pdfZoomPref = 0;
-    fitPageAct->setChecked(true);
-    fitWidthAct->setChecked(false);
-    fitHeightAct->setChecked(false);
-    pdfView->setZoomMode(QPdfView::ZoomMode::FitInView);
-}
-
-void MainWindow::fitPdfWidth()
-{
-    m_pdfZoomPref = 1;
-    fitPageAct->setChecked(false);
-    fitWidthAct->setChecked(true);
-    fitHeightAct->setChecked(false);
-    pdfView->setZoomMode(QPdfView::ZoomMode::FitToWidth);
-}
-
-void MainWindow::fitPdfHeight()
-{
-    if (!pdfDoc || pdfDoc->status() != QPdfDocument::Status::Ready)
-        return;
-
-    QSizeF pageSize = pdfDoc->pagePointSize(0);
-    if (pageSize.isEmpty()) return;
-
-    QSize vpSize = pdfView->viewport() ? pdfView->viewport()->size() : QSize();
-    if (vpSize.height() <= 0) return;
-
-    qreal dpi = pdfView->logicalDpiY();
-    qreal pagePixels = pageSize.height() * dpi / 72.0;
-    qreal ratio = vpSize.height() / pagePixels;
-
-    m_pdfZoomPref = 2;
-    fitPageAct->setChecked(false);
-    fitWidthAct->setChecked(false);
-    fitHeightAct->setChecked(true);
-    pdfView->setZoomMode(QPdfView::ZoomMode::Custom);
-    pdfView->setZoomFactor(ratio);
-}
-
-void MainWindow::applyPdfZoomPreference()
-{
-    if (!pdfDoc || pdfDoc->status() != QPdfDocument::Status::Ready)
-        return;
-
-    fitPageAct->setChecked(m_pdfZoomPref == 0);
-    fitWidthAct->setChecked(m_pdfZoomPref == 1);
-    fitHeightAct->setChecked(m_pdfZoomPref == 2);
-
-    switch (m_pdfZoomPref) {
-    case 0: pdfView->setZoomMode(QPdfView::ZoomMode::FitInView); break;
-    case 1: pdfView->setZoomMode(QPdfView::ZoomMode::FitToWidth); break;
-    case 2: fitPdfHeight(); break;
-    }
+    int pref = pdfPreview->zoomPreference();
+    fitPageAct->setChecked(pref == 0);
+    fitWidthAct->setChecked(pref == 1);
+    fitHeightAct->setChecked(pref == 2);
 }
 
 void MainWindow::applyShortcuts()
