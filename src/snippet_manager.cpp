@@ -115,6 +115,7 @@ bool SnippetManager::saveSnippet(const Snippet &s)
     if (texFile.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate)) {
         texFile.write(s.code.toUtf8());
         texFile.close();
+        invalidateCaches();
         emit snippetModified(s.id);
         return true;
     }
@@ -160,10 +161,7 @@ bool SnippetManager::deleteSnippet(const QString &id)
         return false;
     dir.removeRecursively();
 
-    if (presetIdsCached && presetIdsCache.contains(id)) {
-        presetIdsCache.remove(id);
-    }
-
+    invalidateCaches();
     emit snippetDeleted(id);
     return true;
 }
@@ -310,42 +308,32 @@ QList<SearchResult> SnippetManager::searchSnippets(const QString &query, bool in
 
 QStringList SnippetManager::getAllCategories(bool includePresets) const
 {
-    QSet<QString> cats;
-    QList<Snippet> all = getAllSnippets();
-    for (const Snippet &s : all) {
-        if (!s.category.isEmpty()) {
-            cats.insert(s.category);
+    if (!includePresets) {
+        QSet<QString> cats;
+        QList<Snippet> all = getAllSnippets();
+        for (const Snippet &s : all) {
+            if (!s.category.isEmpty()) cats.insert(s.category);
         }
+        return cats.values();
     }
-    if (includePresets) {
-        QList<Snippet> presets = getAllPresets();
-        for (const Snippet &s : presets) {
-            if (!s.category.isEmpty()) {
-                cats.insert(s.category);
-            }
-        }
-    }
-    return cats.values();
+
+    ensureCountsCached();
+    return m_cachedCategoryCounts.keys();
 }
 
 QMap<QString, int> SnippetManager::getCategoryCounts(bool includePresets) const
 {
-    QMap<QString, int> counts;
-    QList<Snippet> all = getAllSnippets();
-    for (const Snippet &s : all) {
-        if (!s.category.isEmpty()) {
-            counts[s.category]++;
+    if (!includePresets) {
+        QMap<QString, int> counts;
+        QList<Snippet> all = getAllSnippets();
+        for (const Snippet &s : all) {
+            if (!s.category.isEmpty()) counts[s.category]++;
         }
+        return counts;
     }
-    if (includePresets) {
-        QList<Snippet> presets = getAllPresets();
-        for (const Snippet &s : presets) {
-            if (!s.category.isEmpty()) {
-                counts[s.category]++;
-            }
-        }
-    }
-    return counts;
+
+    ensureCountsCached();
+    return m_cachedCategoryCounts;
 }
 
 bool SnippetManager::updateSnippetCategory(const QString &id, const QString &newCategory)
@@ -567,8 +555,10 @@ QStringList SnippetManager::importSnippetsZip(const QString &zipPath)
         emit snippetCreated(newId);
     }
 
-    if (!importedIds.isEmpty())
+    if (!importedIds.isEmpty()) {
+        invalidateCaches();
         emit categoriesChanged();
+    }
 
     return importedIds;
 }
@@ -602,4 +592,30 @@ void SnippetManager::loadCodeForSnippet(const QString &dirPath, Snippet &s) cons
         s.code = QString::fromUtf8(texFile.readAll());
         texFile.close();
     }
+}
+
+void SnippetManager::invalidateCaches()
+{
+    m_countsCached = false;
+    m_cachedCategoryCounts.clear();
+    presetIdsCached = false;
+    presetIdsCache.clear();
+}
+
+void SnippetManager::ensureCountsCached() const
+{
+    if (m_countsCached) return;
+
+    m_cachedCategoryCounts.clear();
+    QList<Snippet> all = getAllSnippets();
+    for (const Snippet &s : all) {
+        if (!s.category.isEmpty())
+            m_cachedCategoryCounts[s.category]++;
+    }
+    QList<Snippet> presets = getAllPresets();
+    for (const Snippet &s : presets) {
+        if (!s.category.isEmpty())
+            m_cachedCategoryCounts[s.category]++;
+    }
+    m_countsCached = true;
 }
