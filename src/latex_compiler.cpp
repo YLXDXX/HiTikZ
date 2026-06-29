@@ -143,15 +143,20 @@ QString LatexCompiler::wrapCode(const QString &texCode, const QString &templateI
 
     if (!packages.isEmpty()) {
         QStringList items;
-        int depth = 0;
+        int bracketDepth = 0;
+        int braceDepth = 0;
         int start = 0;
         for (int i = 0; i < packages.length(); ++i) {
             QChar ch = packages.at(i);
-            if (ch == '[') {
-                depth++;
-            } else if (ch == ']') {
-                if (depth > 0) depth--;
-            } else if (ch == ',' && depth == 0) {
+            if (ch == '{') {
+                braceDepth++;
+            } else if (ch == '}') {
+                if (braceDepth > 0) braceDepth--;
+            } else if (ch == '[' && braceDepth == 0) {
+                bracketDepth++;
+            } else if (ch == ']' && braceDepth == 0) {
+                if (bracketDepth > 0) bracketDepth--;
+            } else if (ch == ',' && bracketDepth == 0 && braceDepth == 0) {
                 items.append(packages.mid(start, i - start).trimmed());
                 start = i + 1;
             }
@@ -162,7 +167,19 @@ QString LatexCompiler::wrapCode(const QString &texCode, const QString &templateI
             if (item.isEmpty()) continue;
 
             if (item.startsWith('[')) {
-                int closeBracket = item.indexOf(']');
+                int bDepth = 0;
+                int cDepth = 0;
+                int closeBracket = -1;
+                for (int i = 0; i < item.length(); ++i) {
+                    QChar ch = item.at(i);
+                    if (ch == '{') cDepth++;
+                    else if (ch == '}') { if (cDepth > 0) cDepth--; }
+                    else if (ch == '[' && cDepth == 0) bDepth++;
+                    else if (ch == ']' && cDepth == 0) {
+                        bDepth--;
+                        if (bDepth == 0) { closeBracket = i; break; }
+                    }
+                }
                 if (closeBracket > 0) {
                     QString options = item.mid(1, closeBracket - 1);
                     QString pkgName = item.mid(closeBracket + 1);
