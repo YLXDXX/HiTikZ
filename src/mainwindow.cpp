@@ -1378,52 +1378,70 @@ void MainWindow::generateAllPreviews()
 
     if (all.isEmpty()) {
         statusBar()->showMessage(QStringLiteral("没有可生成预览的条目"), kStatusBarShortMs);
+        emit batchPreviewFinished();
         return;
     }
 
+    m_previewQueue = all;
+    m_previewTotal = all.size();
+    m_previewDone = 0;
     m_batchGenerating = true;
     statusBar()->showMessage(QStringLiteral("正在生成所有预览..."), 0);
 
-    auto done = std::make_shared<int>(0);
-    int total = all.size();
+    m_compileConn = connect(compiler, &LatexCompiler::compilationFinished,
+        this, &MainWindow::onBatchPreviewCompiled);
 
-    for (const Snippet &s : all) {
-        auto loop = std::make_shared<QEventLoop>();
-        QTimer timeoutTimer;
-        timeoutTimer.setSingleShot(true);
-        QMetaObject::Connection timeoutConn =
-            QObject::connect(&timeoutTimer, &QTimer::timeout, loop.get(), &QEventLoop::quit);
+    processNextPreview();
+}
 
-        QString snippetId = s.id;
-        QString code = resolveParamsFromCode(s.code);
-
-        auto alive = std::make_shared<bool>(true);
-        QMetaObject::Connection compileConn =
-            QObject::connect(compiler, &LatexCompiler::compilationFinished,
-                this,
-                [this, snippetId, total, done, loop, alive](bool success, const QString &pdfPath, const QString &) {
-                    if (!*alive) return;
-                    if (success) {
-                        savePreviewData(pdfPath, snippetId);
-                    }
-                    (*done)++;
-                    statusBar()->showMessage(
-                        QStringLiteral("生成预览: %1/%2").arg(*done).arg(total), 0);
-                    loop->quit();
-                });
-
-        timeoutTimer.start(kBatchCompileTimeoutMs);
-        compiler->compile(code, s.templateId, snippetId, s.packages, s.tikzLibraries);
-        loop->exec();
-
-        QObject::disconnect(timeoutConn);
-        QObject::disconnect(compileConn);
-        *alive = false;
+void MainWindow::processNextPreview()
+{
+    if (m_previewQueue.isEmpty()) {
+        disconnect(m_compileConn);
+        m_batchGenerating = false;
+        if (m_batchTimeoutTimer) {
+            delete m_batchTimeoutTimer;
+            m_batchTimeoutTimer = nullptr;
+        }
+        statusBar()->showMessage(
+            QStringLiteral("预览生成完毕: %1 个条目").arg(m_previewTotal), kStatusBarLongMs);
+        refreshSearch();
+        emit batchPreviewFinished();
+        return;
     }
 
-    statusBar()->showMessage(QStringLiteral("预览生成完毕: %1 个条目").arg(total), kStatusBarLongMs);
-    m_batchGenerating = false;
-    refreshSearch();
+    Snippet s = m_previewQueue.takeFirst();
+    m_currentBatchSnippetId = s.id;
+    QString code = resolveParamsFromCode(s.code);
+
+    if (!m_batchTimeoutTimer) {
+        m_batchTimeoutTimer = new QTimer(this);
+        m_batchTimeoutTimer->setSingleShot(true);
+        connect(m_batchTimeoutTimer, &QTimer::timeout, this, [this]() {
+            compiler->cancelCompile();
+            onBatchPreviewCompiled(false, QString(), QString());
+        });
+    }
+    m_batchTimeoutTimer->start(kBatchCompileTimeoutMs);
+
+    compiler->compile(code, s.templateId, s.id, s.packages, s.tikzLibraries);
+}
+
+void MainWindow::onBatchPreviewCompiled(bool success, const QString &pdfPath, const QString &)
+{
+    if (!m_batchGenerating) return;
+
+    if (m_batchTimeoutTimer)
+        m_batchTimeoutTimer->stop();
+
+    m_previewDone++;
+    if (success) {
+        savePreviewData(pdfPath, m_currentBatchSnippetId);
+    }
+    statusBar()->showMessage(
+        QStringLiteral("生成预览: %1/%2").arg(m_previewDone).arg(m_previewTotal), 0);
+
+    processNextPreview();
 }
 
 void MainWindow::refreshTemplateCombo()

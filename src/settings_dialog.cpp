@@ -86,8 +86,7 @@ SettingsDialog::SettingsDialog(QWidget *parent)
         auto *mw = qobject_cast<MainWindow*>(parentWidget());
         if (mw) {
             mw->generateAllPreviews();
-            QMessageBox::information(this, QStringLiteral("完成"),
-                QStringLiteral("所有预览生成完毕。"));
+            accept();
         }
     });
 

@@ -21,12 +21,12 @@
 #include <QSettings>
 #include <QToolButton>
 #include <QTabWidget>
+#include "snippet_manager.h"
 
 #ifdef HAS_QHOTKEY
 #include <QHotkey>
 #endif
 
-class SnippetManager;
 class LatexCompiler;
 class CodeEditor;
 class SearchPanel;
@@ -47,6 +47,9 @@ public:
     void generateAllPreviews();
     void factoryReset();
     void applyGlobalHotkey();
+
+signals:
+    void batchPreviewFinished();
 
 protected:
     void closeEvent(QCloseEvent *event) override;
@@ -150,6 +153,16 @@ private:
     bool m_clipboardSvgPending = false;
     int m_loadingDepth = 0;
     int m_userCodeStartLine = 1;
+    QList<Snippet> m_previewQueue;
+    QString m_currentBatchSnippetId;
+    int m_previewTotal = 0;
+    int m_previewDone = 0;
+    QMetaObject::Connection m_compileConn;
+    QTimer *m_batchTimeoutTimer = nullptr;
     QTimer *searchDebounceTimer = nullptr;
     QTimer *autoSaveTimer = nullptr;
+
+private:
+    void processNextPreview();
+    void onBatchPreviewCompiled(bool success, const QString &pdfPath, const QString &log);
 };
