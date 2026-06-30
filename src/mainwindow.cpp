@@ -61,6 +61,8 @@ static constexpr int kPngConvertTimeoutMs = 15000;
 static constexpr int kZoomApplyDelayMs = 200;
 static constexpr int kDefaultFontSize = 10;
 
+static const QRegularExpression paramLineRe(QStringLiteral("^%\\s*@param:.*(\n|\r\n?)?"), QRegularExpression::MultilineOption);
+
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 {
     QString resourceDir = QStringLiteral(RES_DIR);
@@ -717,8 +719,7 @@ void MainWindow::setupUI()
         CodeEditor *ed = currentEditor();
         if (!ed) return;
         QString code = applyParams(ed->toPlainText());
-        static QRegularExpression paramLine("^%\\s*@param:.*(\n|\r\n?)?", QRegularExpression::MultilineOption);
-        code.remove(paramLine);
+        code.remove(paramLineRe);
         QApplication::clipboard()->setText(code);
         statusBar()->showMessage(QStringLiteral("代码已复制到剪贴板"), 2000);
     };
@@ -737,8 +738,7 @@ void MainWindow::setupUI()
         }
         Snippet s = snippetMgr->loadSnippet(currentSnippetId);
         QString code = applyParams(s.code);
-        static QRegularExpression paramLine("^%\\s*@param:.*(\n|\r\n?)?", QRegularExpression::MultilineOption);
-        code.remove(paramLine);
+        code.remove(paramLineRe);
         QString fullDoc = compiler->wrapCode(code, s.templateId, s.packages, s.tikzLibraries);
         QApplication::clipboard()->setText(fullDoc);
         statusBar()->showMessage(QStringLiteral("完整文档已复制到剪贴板"), 2000);
@@ -759,8 +759,7 @@ void MainWindow::setupUI()
         }
         Snippet s = snippetMgr->loadSnippet(currentSnippetId);
         QString code = applyParams(s.code);
-        static QRegularExpression paramLine("^%\\s*@param:.*(\n|\r\n?)?", QRegularExpression::MultilineOption);
-        code.remove(paramLine);
+        code.remove(paramLineRe);
         QString fullDoc = compiler->wrapCode(code, s.templateId, s.packages, s.tikzLibraries);
         QString filePath = QFileDialog::getSaveFileName(this,
             QStringLiteral("导出为 .tex 文档"), s.name + ".tex",
@@ -1527,7 +1526,6 @@ void MainWindow::setFormattedLog(bool success, const QString &command, const QSt
             filtered.append(adjustLineNum(line));
         } else if (line.trimmed().isEmpty() || isNoise || line.trimmed() == "?") {
             inErrorBlock = false;
-        } else if (!success && !isNoise && !line.trimmed().isEmpty()) {
         }
     }
 
