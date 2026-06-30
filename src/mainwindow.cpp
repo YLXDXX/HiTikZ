@@ -438,7 +438,7 @@ void MainWindow::setupUI()
     QAction *exportTexAct = importExportMenu->addAction(QStringLiteral("导出为 Tex 文档"));
     QAction *exportPdfAct = importExportMenu->addAction(QStringLiteral("导出为 PDF 文档"));
     QAction *exportPngAct = importExportMenu->addAction(QStringLiteral("导出为 PNG 图片"));
-    QAction *exportSvgAct = importExportMenu->addAction(QStringLiteral("导出 SVG 图片"));
+    QAction *exportSvgAct = importExportMenu->addAction(QStringLiteral("导出为 SVG 图片"));
     importExportBtn->setMenu(importExportMenu);
     toolBar->addWidget(importExportBtn);
 
