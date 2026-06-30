@@ -41,6 +41,7 @@ SearchPanel::SearchPanel(SnippetManager *mgr, QWidget *parent)
     connect(thumbnailList->selectionModel(), &QItemSelectionModel::currentChanged,
         this, [this](const QModelIndex &current, const QModelIndex &) {
             if (!current.isValid()) return;
+            if (m_suppressSelectEmit) return;
             if (QApplication::keyboardModifiers() & Qt::ControlModifier) return;
             QString id = current.data(Qt::UserRole).toString();
             if (!id.isEmpty())
@@ -560,10 +561,10 @@ void SearchPanel::showThumbnailContextMenu(const QPoint &pos)
         if (!id.isEmpty()) {
             SnippetPropertiesDialog dlg(id, snippetMgr, this);
             if (dlg.exec() == QDialog::Accepted) {
-                const QSignalBlocker catBlocker(categoryTree->selectionModel());
-                const QSignalBlocker thumbBlocker(thumbnailList->selectionModel());
+                m_suppressSelectEmit = true;
                 refreshCategoryTree();
                 refreshSearch();
+                m_suppressSelectEmit = false;
             }
         }
     }

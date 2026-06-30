@@ -62,5 +62,6 @@ private:
     class FlowLayout *m_tagFlowLayout = nullptr;
     QPushButton *m_moreTagsBtn = nullptr;
     QStringList m_allTagNames;
+    bool m_suppressSelectEmit = false;
     static const int kMaxTagRows = 2;
 };

@@ -446,16 +446,16 @@ void MainWindow::setupUI()
 
     toolBar->addSeparator();
 
-    compileAct = toolBar->addAction(QStringLiteral("编译预览"));
-    applyParamsAct = toolBar->addAction(QStringLiteral("应用参数"));
-    saveAct = toolBar->addAction(QStringLiteral("保存"));
-
-    toolBar->addSeparator();
-
     QAction *undoAct = toolBar->addAction(QStringLiteral("↩"));
     undoAct->setShortcut(QKeySequence::Undo);
     QAction *redoAct = toolBar->addAction(QStringLiteral("↪"));
     redoAct->setShortcut(QKeySequence::Redo);
+
+    toolBar->addSeparator();
+
+    compileAct = toolBar->addAction(QStringLiteral("编译预览"));
+    applyParamsAct = toolBar->addAction(QStringLiteral("应用参数"));
+    saveAct = toolBar->addAction(QStringLiteral("保存"));
 
     toolBar->addSeparator();
 
