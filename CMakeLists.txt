@@ -143,3 +143,9 @@ add_executable(test_tex_import
 )
 target_link_libraries(test_tex_import PRIVATE Qt6::Core)
 add_test(NAME TexImport COMMAND test_tex_import)
+
+add_executable(test_params
+    tests/test_params.cpp
+)
+target_link_libraries(test_params PRIVATE Qt6::Core)
+add_test(NAME Params COMMAND test_params)

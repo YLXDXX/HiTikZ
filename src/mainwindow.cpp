@@ -1121,7 +1121,7 @@ void MainWindow::setupConnections()
         if (currentSnippetId.isEmpty()) {
             CodeEditor *ed = currentEditor();
             if (!ed) return;
-            code = ed->toPlainText();
+            code = applyParams(ed->toPlainText());
             templateId.clear();
             snippetId = "scratch";
         } else {
@@ -1646,12 +1646,9 @@ void MainWindow::handleLogDoubleClick()
     int lineNum = match.captured(1).toInt();
     if (lineNum < 1) return;
 
-    int editorLine = lineNum - m_userCodeStartLine + 1;
-    if (editorLine < 1) editorLine = 1;
-
     cursor = ed->textCursor();
     cursor.movePosition(QTextCursor::Start);
-    cursor.movePosition(QTextCursor::Down, QTextCursor::MoveAnchor, editorLine - 1);
+    cursor.movePosition(QTextCursor::Down, QTextCursor::MoveAnchor, lineNum - 1);
     ed->setTextCursor(cursor);
     ed->highlightCurrentLine();
     ed->setFocus();
