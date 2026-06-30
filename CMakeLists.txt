@@ -137,3 +137,9 @@ add_executable(test_draft_recovery
 )
 target_link_libraries(test_draft_recovery PRIVATE Qt6::Core)
 add_test(NAME DraftRecovery COMMAND test_draft_recovery)
+
+add_executable(test_tex_import
+    tests/test_tex_import.cpp
+)
+target_link_libraries(test_tex_import PRIVATE Qt6::Core)
+add_test(NAME TexImport COMMAND test_tex_import)

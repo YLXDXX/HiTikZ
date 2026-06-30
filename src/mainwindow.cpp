@@ -430,6 +430,8 @@ void MainWindow::setupUI()
     importExportBtn->setPopupMode(QToolButton::InstantPopup);
     QMenu *importExportMenu = new QMenu(importExportBtn);
     QAction *importMenuAct = importExportMenu->addAction(QStringLiteral("导入存档"));
+    QAction *importTexAct = importExportMenu->addAction(QStringLiteral("导入 .tex 文件"));
+    importExportMenu->addSeparator();
     QAction *exportMenuAct = importExportMenu->addAction(QStringLiteral("导出当前"));
     QAction *exportAllMenuAct = importExportMenu->addAction(QStringLiteral("导出全部"));
     importExportMenu->addSeparator();
@@ -675,6 +677,56 @@ void MainWindow::setupUI()
                 }
             }
         }
+    });
+
+    connect(importTexAct, &QAction::triggered, this, [this]() {
+        QString filePath = QFileDialog::getOpenFileName(this,
+            QStringLiteral("导入 .tex 文件"), "", "LaTeX 文件 (*.tex)");
+        if (filePath.isEmpty()) return;
+
+        QFile file(filePath);
+        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            QMessageBox::warning(this, QStringLiteral("导入失败"),
+                QStringLiteral("无法读取文件。"));
+            return;
+        }
+
+        QString content = QString::fromUtf8(file.readAll());
+        file.close();
+
+        QString code;
+        int docBegin = content.indexOf(QStringLiteral("\\begin{document}"));
+        int docEnd = content.indexOf(QStringLiteral("\\end{document}"));
+        if (docBegin >= 0 && docEnd > docBegin) {
+            int codeStart = content.indexOf('\n', docBegin) + 1;
+            code = content.mid(codeStart, docEnd - codeStart).trimmed();
+        } else {
+            int tikzBegin = content.indexOf(QStringLiteral("\\begin{tikzpicture}"));
+            int tikzEnd = content.indexOf(QStringLiteral("\\end{tikzpicture}"));
+            if (tikzBegin >= 0 && tikzEnd > tikzBegin) {
+                code = content.mid(tikzBegin, tikzEnd + 17 - tikzBegin);
+            } else {
+                code = content.trimmed();
+            }
+        }
+
+        if (code.isEmpty()) {
+            QMessageBox::warning(this, QStringLiteral("导入失败"),
+                QStringLiteral("未能从文件中提取 TikZ 代码。"));
+            return;
+        }
+
+        QString baseName = QFileInfo(filePath).completeBaseName();
+        QString id = snippetMgr->createSnippet(baseName, QString());
+        Snippet s = snippetMgr->loadSnippet(id);
+        s.code = code;
+        s.name = baseName;
+        snippetMgr->saveSnippet(s);
+
+        refreshCategoryTree();
+        refreshSearch();
+        loadSnippetIntoEditor(id);
+        statusBar()->showMessage(QStringLiteral("已导入: %1").arg(baseName), kStatusBarShortMs);
     });
 
     connect(exportMenuAct, &QAction::triggered, this, [this]() {
