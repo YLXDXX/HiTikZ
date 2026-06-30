@@ -180,8 +180,10 @@ void MainWindow::createNewTab(const QString &snippetId, const QString &code,
     editor->setLineWrapMode(QPlainTextEdit::NoWrap);
     connectEditorSignals(editor);
 
+    tabWidget->blockSignals(true);
     int idx = tabWidget->addTab(editor, title);
     tabWidget->tabBar()->setTabData(idx, snippetId);
+    tabWidget->blockSignals(false);
     tabWidget->setCurrentIndex(idx);
 
     if (!code.isNull()) {
