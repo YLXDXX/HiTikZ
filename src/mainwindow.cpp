@@ -974,6 +974,7 @@ void MainWindow::setupUI()
                             svgFile.close();
                             QMimeData *mimeData = new QMimeData;
                             mimeData->setData(QStringLiteral("image/svg+xml"), svgData);
+                            mimeData->setData(QStringLiteral("text/plain"), svgData);
                             QApplication::clipboard()->setMimeData(mimeData);
                             statusBar()->showMessage(QStringLiteral("SVG已复制到剪贴板"), 2000);
                         }
