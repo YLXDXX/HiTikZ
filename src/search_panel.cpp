@@ -51,6 +51,7 @@ SearchPanel::SearchPanel(SnippetManager *mgr, QWidget *parent)
     connect(categoryTree->selectionModel(), &QItemSelectionModel::currentChanged,
         this, [this](const QModelIndex &current, const QModelIndex &) {
             if (!current.isValid()) return;
+            if (m_suppressSelectEmit) return;
             refreshThumbnailList();
         });
 
@@ -564,7 +565,7 @@ void SearchPanel::showThumbnailContextMenu(const QPoint &pos)
                 m_suppressSelectEmit = true;
                 refreshCategoryTree();
                 refreshSearch();
-                m_suppressSelectEmit = false;
+                QTimer::singleShot(0, this, [this]() { m_suppressSelectEmit = false; });
             }
         }
     }
