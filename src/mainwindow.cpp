@@ -159,7 +159,7 @@ void MainWindow::updateTabTitle(int index, const QString &title)
 void MainWindow::connectEditorSignals(CodeEditor *editor)
 {
     connect(editor, &QPlainTextEdit::textChanged, this, [this]() {
-        if (!m_loadingTab)
+        if (m_loadingDepth == 0)
             onCurrentSnippetChanged();
     });
 }
@@ -179,10 +179,10 @@ void MainWindow::createNewTab(const QString &snippetId, const QString &code,
     tabWidget->setCurrentIndex(idx);
 
     if (!code.isNull()) {
-        m_loadingTab = true;
+        m_loadingDepth++;
         const QSignalBlocker blocker(editor);
         editor->setPlainText(code);
-        m_loadingTab = false;
+        m_loadingDepth--;
     }
 
     applyAppearanceSettings();
@@ -190,7 +190,7 @@ void MainWindow::createNewTab(const QString &snippetId, const QString &code,
 
 void MainWindow::setEditorForTab(int index)
 {
-    m_loadingTab = true;
+    m_loadingDepth++;
 
     QString sid = (index >= 0 && index < tabWidget->count())
         ? tabWidget->tabBar()->tabData(index).toString()
@@ -222,7 +222,7 @@ void MainWindow::setEditorForTab(int index)
         }
     }
 
-    m_loadingTab = false;
+    m_loadingDepth--;
     parseParams();
 }
 
@@ -1134,7 +1134,7 @@ void MainWindow::loadSnippetIntoEditor(const QString &id)
         return;
     }
 
-    m_loadingTab = true;
+    m_loadingDepth++;
 
     currentSnippetId = id;
     createNewTab(id, s.code, s.name.isEmpty() ? id.left(8) : s.name);
@@ -1152,7 +1152,7 @@ void MainWindow::loadSnippetIntoEditor(const QString &id)
 
     loadPreviewForSnippet(id);
 
-    m_loadingTab = false;
+    m_loadingDepth--;
     parseParams();
 }
 
