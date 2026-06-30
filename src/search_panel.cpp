@@ -560,6 +560,8 @@ void SearchPanel::showThumbnailContextMenu(const QPoint &pos)
         if (!id.isEmpty()) {
             SnippetPropertiesDialog dlg(id, snippetMgr, this);
             if (dlg.exec() == QDialog::Accepted) {
+                const QSignalBlocker catBlocker(categoryTree->selectionModel());
+                const QSignalBlocker thumbBlocker(thumbnailList->selectionModel());
                 refreshCategoryTree();
                 refreshSearch();
             }
