@@ -44,8 +44,10 @@
 - **选中词高亮**：光标置于某单词或双击选中时，文档中所有相同单词自动高亮，快速定位变量/命令的使用位置
 - **智能代码补全**：9 种上下文感知补全（命令 `\`、环境 `\begin{`、选项 `[...]`、锚点 `.`、值 `=`、参数 `@@`、库 `\usetikzlibrary{` 等），含值提示（颜色、线宽、箭头等）
 - **自动缩进**：换行时继承上一行缩进，`{` 或 `\begin` 结尾的行自动增加一级缩进
+- **多标签编辑器**：支持同时打开多个 TikZ 片段，通过标签页快速切换，重复打开同一片段自动切换到已有标签页
 - **撤销/重做**：支持 Ctrl+Z / Ctrl+Shift+Z，工具栏有独立按钮
-- **实时编译预览**：调用系统 `xelatex` 编译片段，通过 `QPdfView` 实时渲染高清 PDF 矢量预览
+- **实时编译预览**：调用系统 `xelatex -shell-escape` 编译片段，通过 `QPdfView` 实时渲染高清 PDF 矢量预览
+- **简化的编译日志**：仅显示编译命令、错误（带上下文）、警告信息，过滤冗余的文件加载等噪音行，错误行号自动映射到编辑器行号
 - **可拆分预览面板**：右侧 PDF 预览与元数据编辑区之间可拖动分割条，PDF 可放大至占满整个面板
 - **适应式缩放**：支持适应整页 / 适应宽度 / 适应高度三种显示模式，滚轮缩放以鼠标位置为中心，左键拖拽平移
 - **预览持久化**：编译成功后自动保存 PDF 和缩略图 PNG，下次切换片段即时展示预览
@@ -56,7 +58,7 @@
 - **多选批量操作**：Ctrl+点击多选缩略图，右键弹出批量导出 / 改分类 / 删除菜单，支持全选、导出全部
 - **属性编辑对话框**：右键缩略图（单选时）弹出属性对话框，可编辑全部元数据字段
 - **参数化功能**：通过 `% @param: var=默认值` 声明变量，代码中使用 `@@var@@` 占位，右栏动态生成参数控件，编辑器内 `@@` 可触发参数补全
-- **自动保存**：每 60 秒自动保存当前编辑状态为草稿，关闭时有未保存更改则会弹出保存/放弃/取消提示
+- **自动保存**：每 60 秒自动保存当前编辑状态为草稿（JSON 格式），退出时如有未保存更改弹出保存/放弃/取消对话框，选择放弃自动清理草稿文件
 - **模板系统（极简）**：三个内置 LaTeX 模板仅含必要宏包（数学 / 物理 / 电路），额外宏包和 TikZ 库由每个片段自行声明
 - **完整文档复制**：一键复制含模板头部 + 片段的完整可编译 LaTeX 文档
 - **格式导出**：编译生成的 PDF 可转换并复制为 PNG/SVG 到剪贴板，也可直接导出为 .tex / .pdf / .png / .svg 文件
@@ -170,8 +172,8 @@ CMake 选项：
   - 含"全部"和"未分类"两个特殊节点
   - 右键分类节点：重命名 / 删除 / 新建子分类
   - 右键"全部"：新建顶级分类
-- **缩略图列表**：网格视图展示搜索结果 / 分类筛选结果
-  - 左键点击：选中片段并加载到编辑器
+- **缩略图列表**：网格视图展示搜索结果 / 分类筛选结果（通过可拖动的分隔条与分类树调节高度比例）
+  - 左键点击：选中片段并加载到编辑器（新标签页）
   - **Ctrl+点击**：多选（不触发编辑器加载）
   - 右键点击（单选）：弹出属性编辑对话框
   - 右键点击（多选）：弹出批量操作菜单（批量导出 / 修改分类 / 删除所选 / 全选 / 导出全部）
@@ -179,8 +181,14 @@ CMake 选项：
 
 ### 中栏
 
+- **多标签代码编辑器**：基于 `QTabWidget`，支持同时打开多个 TikZ 片段，标签页标题显示片段名称，未保存时显示 `*` 后缀
+  - 点击缩略图打开片段时自动创建新标签页，已打开的片段直接切换到对应标签页
+  - 标签页可关闭（× 按钮或 Ctrl+W），关闭前检查未保存更改（保存/放弃/取消）
+  - 切换标签页时自动更新右侧的 PDF 预览、元数据表单和参数面板
+  - 退出程序时检查所有标签页的未保存更改，支持全部保存/全部放弃
 - **代码编辑器**：基于 `QPlainTextEdit`，等宽字体（字号可调，默认 10pt），行号显示，当前行高亮，**TikZ/LaTeX 语法彩色高亮**，**选中词全文档高亮**，**智能代码补全**
-- **编译日志**：显示 xelatex 的编译输出，红色 = 错误、橙色 = 警告、灰色 = 信息
+- **编译日志**：精简显示 xelatex 输出，仅展示编译命令、警告、错误信息，红色 = 错误、橙色 = 警告
+  - 错误行号 `l.X` 自动换算为编辑器对应行号
   - 双击日志行中的 `l.<行号>` 跳转编辑器对应行
 
 ### 右栏
@@ -296,9 +304,16 @@ CMake 选项：
 1. 加载选中模板，将额外宏包（`\usepackage`）和 TikZ 库（`\usetikzlibrary`）注入模板导言区 `\begin{document}` 前
 2. 将 TikZ 核心代码注入模板的 `%%% TIKZ_CODE_HERE %%%` 位置
 3. 写入临时 `.tex` 文件（位于 `/tmp/TikzManager/<snippetId>/output.tex`）
-4. 异步调用 `xelatex -interaction=nonstopmode -halt-on-error -no-shell-escape`
+4. 异步调用 `xelatex -interaction=nonstopmode -halt-on-error -shell-escape`
 5. 编译成功 → PDF 加载到预览区 → 生成缩略图 PNG（150 DPI）→ 持久化到片段目录
-6. 编译失败 → 日志面板显示错误 → 双击跳转错误行
+6. 编译失败 → 日志面板精简显示错误和警告 → 双击跳转错误行（行号已自动映射到编辑器行号）
+
+**编译日志**：
+- 顶部显示完整编译命令
+- 成功：仅显示警告信息 + 编译成功标记
+- 失败：显示错误块（含上下文）+ 警告信息 + 编译失败标记
+- 自动过滤 `.sty`、`.cls`、`.aux` 等文件加载噪音行
+- 错误行号 `l.X` 自动从完整文档行号换算为编辑器行号
 
 ### 参数化系统
 
@@ -320,12 +335,12 @@ CMake 选项：
 
 ### 自动保存与草稿恢复
 
-- **定时保存**：每 60 秒自动保存当前编辑器状态（代码+元数据）为 JSON 草稿文件
-- **关闭提示**：关闭窗口或退出程序时，如有未保存更改则弹出"保存 / 不保存 / 取消"对话框
+- **定时保存**：每 60 秒自动保存所有打开标签页的编辑器状态（代码+片段ID）为 JSON 草稿文件
+- **关闭提示**：关闭标签页或退出程序时，如有未保存更改则弹出"保存 / 不保存 / 取消"对话框
   - 临时片段（无关联保存片段）选择保存时弹出新建片段对话框
+  - 退出时选择"全部放弃"自动清理所有草稿文件
   - 托盘"退出"菜单触发完整的关闭流程（包含未保存检查）
   - 窗口 X 按钮仅隐藏到托盘（不触发保存检查）
-- **启动恢复**：启动时检测 `drafts/` 目录中的草稿文件，询问是否恢复最近编辑的内容
 
 ### 模板系统
 
@@ -425,6 +440,7 @@ calc,er,angles,patterns,decorations.pathmorphing
 | 编译预览 | 无（可在设置中自定义） |
 | 应用参数 | 无（可在设置中自定义） |
 | 保存 | 无（可在设置中自定义） |
+| 关闭标签页 | `Ctrl+W` |
 
 ---
 
@@ -469,7 +485,7 @@ calc,er,angles,patterns,decorations.pathmorphing
 - `xelatex/path`, `pdftocairo/path`, `paths/texinputs`, `png/dpi`
 - `editor/fontSize` — 代码字体大小
 - `shortcuts/copyCode`, `shortcuts/copyPng`, `shortcuts/copySvg`
-- `shortcuts/compile`, `shortcuts/applyParams`, `shortcuts/save`
+- `shortcuts/compile`, `shortcuts/applyParams`, `shortcuts/save`, `shortcuts/closeTab`
 - `shortcuts/globalHotkey` — 全局快捷键
 
 ---
@@ -485,7 +501,7 @@ calc,er,angles,patterns,decorations.pathmorphing
 - 代码字体大小（8–48，默认 10）
 
 **快捷键设置**：
-- 全部 7 项操作均可自定义键序列
+- 全部 8 项操作均可自定义键序列
 - 清空键序列 = 禁用该快捷键
 - 按 Delete 键或点击清除按钮可清空
 
@@ -556,7 +572,8 @@ tests/
 ├── test_latex_compiler.cpp          # 编译 + PNG/SVG 转换测试
 ├── test_search.cpp                  # 模糊搜索算法 + 分类 + 标签过滤测试
 ├── test_packages_libraries.cpp      # 宏包/TikZ库解析与模板注入测试
-└── test_highlighter_regex.cpp       # 语法高亮正则表达式正确性测试（数学模式、注释、命令等）
+├── test_highlighter_regex.cpp       # 语法高亮正则表达式正确性测试（数学模式、注释、命令等）
+└── test_multitab.cpp                # 多标签页功能测试（创建/切换/关闭/去重）
 ```
 
 ### 核心类关系
@@ -567,16 +584,19 @@ MainWindow
 │   ├── QLineEdit        搜索框（150ms 防抖）
 │   ├── FlowLayout       标签过滤器（流式按钮、2行折叠、弹出对话框）
 │   ├── QTreeView        分类树（含"未分类"节点）
+│   ├── QSplitter        可拖动分隔条（分类树 / 缩略图）
 │   └── QListView        缩略图网格（ExtendedSelection 多选）
-├── CodeEditor           代码编辑器
-│   ├── TikzHighlighter  语法彩色高亮（12 条规则）
-│   ├── TikzCompleter    智能补全（9 种上下文）
-│   └── LineNumberArea   行号显示
-├── QPlainTextEdit       编译日志面板（彩色格式化）
+├── QTabWidget           多标签页容器
+│   ├── CodeEditor       代码编辑器（每个标签页一个实例）
+│   │   ├── TikzHighlighter  语法彩色高亮（12 条规则）
+│   │   ├── TikzCompleter    智能补全（9 种上下文）
+│   │   └── LineNumberArea   行号显示
+│   └── ...（更多标签页）
+├── QPlainTextEdit       编译日志面板（精简过滤、行号映射、彩色格式化）
 ├── QSplitter（垂直）    PDF 预览与元数据区可调分割
 │   ├── PdfPreviewWidget PDF 矢量预览（缩放/平移/适应，独立组件）
 │   └── QScrollArea      元数据编辑表单 + 参数控件
-├── LatexCompiler        编译引擎（xelatex + pdftocairo + 嵌套括号解析）
+├── LatexCompiler        编译引擎（xelatex + pdftocairo + 嵌套括号解析 + 行号映射）
 ├── SnippetManager       数据层（JSON 读写、双字索引搜索、分类缓存、批量操作）
 ├── SettingsDialog       设置面板（路径/快捷键/模板管理/工厂重置）
 └── KdeGlobalShortcut    KDE 全局快捷键（或 QHotkey 回退）
@@ -595,15 +615,17 @@ MainWindow
              → parseParams()（扫描 @param → 更新参数控件 + 参数补全词库）
 
 文本变更    → textChanged
-             → onCurrentSnippetChanged() → parseParams()
-             → autoSaveTimer（60s） → performAutoSave()
+              → (m_loadingDepth == 0) → onCurrentSnippetChanged() → parseParams()
+              → autoSaveTimer（60s） → performAutoSave()
+
+标签切换    → onTabChanged() → setEditorForTab() → loadPreview + loadMetadata + parseParams()
 ```
 
 ---
 
 ## 测试
 
-项目包含四套自动化测试（通过 CTest 运行）：
+项目包含六套自动化测试（通过 CTest 运行）：
 
 | 测试 | 内容 |
 |------|------|
@@ -612,6 +634,7 @@ MainWindow
 | `test_search` | 精确匹配、子序列匹配、连续加分、中文搜索、标签过滤、分类统计 |
 | `test_packages_libraries` | 宏包字符串解析（含嵌套括号选项），TikZ 库解析，模板注入正确性，往返序列化 |
 | `test_highlighter_regex` | 数学模式 `$...$`、`\(...\)`、`\[...\]` 正则表达式匹配验正 |
+| `test_multitab` | 多标签页功能：创建/切换/关闭标签页、重复打开去重、关闭前未保存检查 |
 
 运行测试：
 ```bash
