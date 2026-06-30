@@ -263,23 +263,29 @@ void SearchPanel::refreshTagFilter()
     connect(m_moreTagsBtn, &QPushButton::clicked, this, [this]() {
         QDialog dlg(this);
         dlg.setWindowTitle(QStringLiteral("选择标签"));
-        dlg.setMinimumSize(300, 400);
+        dlg.setMinimumSize(350, 350);
         QVBoxLayout *dlgLayout = new QVBoxLayout(&dlg);
 
         QLineEdit *filter = new QLineEdit;
         filter->setPlaceholderText(QStringLiteral("搜索标签..."));
+        filter->setClearButtonEnabled(true);
         dlgLayout->addWidget(filter);
 
         QScrollArea *scroll = new QScrollArea;
         QWidget *scrollWidget = new QWidget;
-        QVBoxLayout *scrollLayout = new QVBoxLayout(scrollWidget);
-        scrollLayout->setSpacing(2);
+        FlowLayout *flowLayout = new FlowLayout(scrollWidget, 0, 4, 4);
 
-        QList<QCheckBox *> checkboxes;
+        QList<QPushButton *> tagButtons;
         for (const QString &tag : m_allTagNames) {
-            QCheckBox *cb = new QCheckBox(tag);
-            cb->setChecked(m_selectedTags.contains(tag));
-            connect(cb, &QCheckBox::toggled, this, [this, tag](bool checked) {
+            QPushButton *btn = new QPushButton(tag);
+            btn->setCheckable(true);
+            btn->setChecked(m_selectedTags.contains(tag));
+            btn->setFlat(true);
+            btn->setStyleSheet(QStringLiteral(
+                "QPushButton { padding: 3px 10px; border: 1px solid #ccc; border-radius: 10px; background: #eee; }"
+                "QPushButton:checked { background: #4a90d9; color: white; border-color: #4a90d9; }"));
+            btn->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
+            connect(btn, &QPushButton::toggled, this, [this, tag](bool checked) {
                 if (checked)
                     m_selectedTags.insert(tag);
                 else
@@ -287,17 +293,17 @@ void SearchPanel::refreshTagFilter()
                 refreshSearch();
                 refreshTagFilter();
             });
-            scrollLayout->addWidget(cb);
-            checkboxes.append(cb);
+            flowLayout->addWidget(btn);
+            tagButtons.append(btn);
         }
-        scrollLayout->addStretch();
+
         scroll->setWidget(scrollWidget);
         scroll->setWidgetResizable(true);
-        dlgLayout->addWidget(scroll);
+        dlgLayout->addWidget(scroll, 1);
 
-        connect(filter, &QLineEdit::textChanged, this, [&checkboxes, scrollLayout](const QString &text) {
-            for (QCheckBox *cb : checkboxes) {
-                cb->setVisible(text.isEmpty() || cb->text().contains(text, Qt::CaseInsensitive));
+        connect(filter, &QLineEdit::textChanged, this, [&tagButtons](const QString &text) {
+            for (QPushButton *btn : tagButtons) {
+                btn->setVisible(text.isEmpty() || btn->text().contains(text, Qt::CaseInsensitive));
             }
         });
 
