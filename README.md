@@ -398,7 +398,7 @@ calc,er,angles,patterns,decorations.pathmorphing
 
 ### 完整文档复制
 
-工具栏"复制完整文档"按钮将当前片段的模板头部 + 额外宏包 + TikZ 库 + 参数替换后的 TikZ 代码组合成**完整可编译的 LaTeX 文档**复制到剪贴板。
+工具栏"复制文档"按钮将当前片段的模板头部 + 额外宏包 + TikZ 库 + 参数替换后的 TikZ 代码组合成**完整可编译的 LaTeX 文档**复制到剪贴板。
 
 ### 多选与批量操作
 
@@ -424,12 +424,14 @@ calc,er,angles,patterns,decorations.pathmorphing
 **导出**：使用异步进程（非阻塞）调用 `tar` 打包，支持多种粒度和格式：
 - **导出当前 / 导出全部**：打包为 `.tar.gz` 归档
 - **批量导出所选**：多选后右键菜单批量打包
-- **导出为 .tex 文档**：生成含模板头部的完整可编译 LaTeX 文档
-- **导出 PDF**：复制预览 PDF 到指定路径
-- **导出 PNG 图片**：通过 pdftocairo 将预览 PDF 转换为 PNG（DPI 遵循设置面板配置）
-- **导出 SVG 图片**：通过 pdftocairo 将预览 PDF 转换为 SVG 矢量图
+- **导出为 Tex 文档**：生成含模板头部的完整可编译 LaTeX 文档
+- **导出为 PDF 文档**：复制预览 PDF 到指定路径
+- **导出为 PNG 图片**：通过 pdftocairo 将预览 PDF 转换为 PNG（DPI 遵循设置面板配置）
+- **导出为 SVG 图片**：通过 pdftocairo 将预览 PDF 转换为 SVG 矢量图
 
-**导入**：选择 `.tar.gz` 或 `.zip` 文件 → 异步解压并为每个片段分配新 UUID → 刷新列表。导入时自动清除 `isPreset` 标记，若缺失 meta.json 则自动创建。
+**导入**：
+- **导入存档**：选择 `.tar.gz` 或 `.zip` 文件 → 异步解压并为每个片段分配新 UUID → 刷新列表。导入时自动清除 `isPreset` 标记，若缺失 `meta.json` 则自动创建片段
+- **导入 .tex 文件**：选择单个 `.tex` 文件 → 自动提取 TikZ 代码（`\begin{document}...\end{document}` 之间 → `\begin{tikzpicture}...\end{tikzpicture}` → 全文回退三段式解析），文件名自动作为片段名称，创建为新片段后加载到编辑器
 
 ---
 
