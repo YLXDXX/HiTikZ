@@ -301,7 +301,7 @@ void LatexCompiler::compile(const QString &texCode, const QString &templateId, c
     QStringList args;
     args << "-interaction=nonstopmode"
          << "-halt-on-error"
-         << "-no-shell-escape"
+          << "-shell-escape"
          << "-output-directory" << currentCompileDir
          << texFilePath;
 

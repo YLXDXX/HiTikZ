@@ -1092,10 +1092,11 @@ void MainWindow::setupConnections()
     connect(compiler, &LatexCompiler::compilationFinished,
         this, [this](bool success, const QString &pdfPath, const QString &log) {
             if (m_batchGenerating) return;
+            QString sid = currentSnippetId.isEmpty() ? QStringLiteral("scratch") : currentSnippetId;
             QString cmd = compiler->xelatexCommand()
-                + " -interaction=nonstopmode -halt-on-error -no-shell-escape "
-                + "-output-directory " + compiler->tempDirPath() + currentSnippetId
-                + " " + compiler->tempDirPath() + currentSnippetId + "/output.tex";
+                + " -interaction=nonstopmode -halt-on-error -shell-escape "
+                + "-output-directory " + compiler->tempDirPath() + sid
+                + " " + compiler->tempDirPath() + sid + "/output.tex";
             m_userCodeStartLine = compiler->userCodeStartLine();
             setFormattedLog(success, cmd, log, m_userCodeStartLine);
             if (success) {
