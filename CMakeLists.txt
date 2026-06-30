@@ -131,3 +131,9 @@ target_compile_definitions(test_multitab PRIVATE
     RESOURCE_DIR=${CMAKE_SOURCE_DIR}/resources
 )
 add_test(NAME MultiTab COMMAND test_multitab)
+
+add_executable(test_draft_recovery
+    tests/test_draft_recovery.cpp
+)
+target_link_libraries(test_draft_recovery PRIVATE Qt6::Core)
+add_test(NAME DraftRecovery COMMAND test_draft_recovery)

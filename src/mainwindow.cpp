@@ -43,6 +43,7 @@
 #include <QDialogButtonBox>
 #include <QToolButton>
 #include <QTabBar>
+#include <QCheckBox>
 #include <memory>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -51,7 +52,7 @@
 #define STRINGIFY_IMPL(x) #x
 #define RES_DIR STRINGIFY(RESOURCE_DIR)
 
-static constexpr int kAutoSaveIntervalMs = 60000;
+static constexpr int kAutoSaveIntervalMs = 180000;
 static constexpr int kStatusBarShortMs = 3000;
 static constexpr int kStatusBarLongMs = 5000;
 static constexpr int kPreviewDpi = 150;
@@ -120,6 +121,9 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 
     applyGlobalHotkey();
     startAutoSave();
+    QTimer::singleShot(300, this, [this]() {
+        recoverDrafts();
+    });
 }
 
 MainWindow::~MainWindow()
@@ -1781,10 +1785,21 @@ void MainWindow::performAutoSave()
         obj["snippetId"] = sid;
         obj["code"] = ed->toPlainText();
         obj["name"] = tabWidget->tabText(i);
-        obj["description"] = QString();
-        obj["tags"] = QString();
-        obj["packages"] = QString();
-        obj["tikzLibraries"] = QString();
+
+        if (sid.isEmpty()) {
+            obj["description"] = QString();
+            obj["tags"] = QString();
+            obj["packages"] = QString();
+            obj["tikzLibraries"] = QString();
+            obj["templateId"] = QString();
+        } else {
+            Snippet s = snippetMgr->loadSnippet(sid);
+            obj["description"] = s.description;
+            obj["tags"] = s.tags.join(", ");
+            obj["packages"] = s.packages;
+            obj["tikzLibraries"] = s.tikzLibraries;
+            obj["templateId"] = s.templateId;
+        }
 
         QFile file(draftPath);
         if (file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
@@ -1810,4 +1825,165 @@ void MainWindow::clearAllDrafts()
     QStringList drafts = d.entryList(QStringList() << "*.json", QDir::Files);
     for (const QString &draft : drafts)
         QFile::remove(draftDir + draft);
+}
+
+void MainWindow::recoverDrafts()
+{
+    QString draftDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/drafts/";
+    QDir d(draftDir);
+    if (!d.exists()) return;
+
+    QStringList draftFiles = d.entryList(QStringList() << "*.json", QDir::Files);
+    if (draftFiles.isEmpty()) return;
+
+    struct DraftInfo {
+        QString filePath;
+        QString snippetId;
+        QString name;
+        QString code;
+        QString description;
+        QString tags;
+        QString packages;
+        QString tikzLibraries;
+        QString templateId;
+    };
+
+    QList<DraftInfo> drafts;
+    for (const QString &fileName : draftFiles) {
+        QString filePath = draftDir + fileName;
+        QFile file(filePath);
+        if (!file.open(QIODevice::ReadOnly)) continue;
+
+        QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
+        file.close();
+        if (!doc.isObject()) continue;
+
+        QJsonObject obj = doc.object();
+        DraftInfo info;
+        info.filePath = filePath;
+        info.snippetId = obj.value("snippetId").toString();
+        info.name = obj.value("name").toString();
+        info.code = obj.value("code").toString();
+        info.description = obj.value("description").toString();
+        info.tags = obj.value("tags").toString();
+        info.packages = obj.value("packages").toString();
+        info.tikzLibraries = obj.value("tikzLibraries").toString();
+        info.templateId = obj.value("templateId").toString();
+
+        if (info.name.isEmpty())
+            info.name = info.snippetId.isEmpty() ? QStringLiteral("未命名草稿") : info.snippetId.left(8);
+        if (info.code.trimmed().isEmpty()) continue;
+
+        drafts.append(info);
+    }
+
+    if (drafts.isEmpty()) return;
+
+    QDialog dlg(this);
+    dlg.setWindowTitle(QStringLiteral("恢复草稿"));
+    dlg.setMinimumSize(450, 300);
+    QVBoxLayout *layout = new QVBoxLayout(&dlg);
+
+    QLabel *infoLabel = new QLabel(
+        QStringLiteral("检测到 %1 个未保存的草稿。\n请选择要恢复的草稿：").arg(drafts.size()));
+    infoLabel->setWordWrap(true);
+    layout->addWidget(infoLabel);
+
+    QScrollArea *scroll = new QScrollArea;
+    QWidget *scrollWidget = new QWidget;
+    QVBoxLayout *scrollLayout = new QVBoxLayout(scrollWidget);
+    scrollLayout->setContentsMargins(0, 0, 0, 0);
+
+    QList<QCheckBox *> checkboxes;
+    for (const DraftInfo &draft : drafts) {
+        QString label = draft.name;
+        if (!draft.description.isEmpty())
+            label += QStringLiteral(" — %1").arg(draft.description.left(60));
+        QCheckBox *cb = new QCheckBox(label);
+        cb->setChecked(true);
+        cb->setProperty("draftIndex", checkboxes.size());
+        scrollLayout->addWidget(cb);
+        checkboxes.append(cb);
+    }
+    scrollLayout->addStretch();
+
+    QPushButton *selectAllBtn = new QPushButton(QStringLiteral("全选"));
+    QPushButton *deselectAllBtn = new QPushButton(QStringLiteral("取消全选"));
+    QHBoxLayout *btnRow = new QHBoxLayout;
+    btnRow->addWidget(selectAllBtn);
+    btnRow->addWidget(deselectAllBtn);
+    btnRow->addStretch();
+    scrollLayout->addLayout(btnRow);
+
+    connect(selectAllBtn, &QPushButton::clicked, &dlg, [&checkboxes]() {
+        for (QCheckBox *cb : checkboxes) cb->setChecked(true);
+    });
+    connect(deselectAllBtn, &QPushButton::clicked, &dlg, [&checkboxes]() {
+        for (QCheckBox *cb : checkboxes) cb->setChecked(false);
+    });
+
+    scroll->setWidget(scrollWidget);
+    scroll->setWidgetResizable(true);
+    layout->addWidget(scroll, 1);
+
+    QDialogButtonBox *btnBox = new QDialogButtonBox(
+        QDialogButtonBox::Ok | QDialogButtonBox::Discard);
+    btnBox->button(QDialogButtonBox::Ok)->setText(QStringLiteral("恢复所选"));
+    btnBox->button(QDialogButtonBox::Discard)->setText(QStringLiteral("全部丢弃"));
+    layout->addWidget(btnBox);
+
+    connect(btnBox, &QDialogButtonBox::accepted, &dlg, &QDialog::accept);
+    connect(btnBox, &QDialogButtonBox::rejected, &dlg, [&dlg]() {
+        dlg.done(QDialog::Rejected + 1);
+    });
+
+    int result = dlg.exec();
+    QList<int> recoveredIndices;
+    if (result == QDialog::Accepted) {
+        for (int i = 0; i < checkboxes.size(); ++i) {
+            if (checkboxes[i]->isChecked())
+                recoveredIndices.append(i);
+        }
+    }
+
+    for (int idx : recoveredIndices) {
+        const DraftInfo &draft = drafts[idx];
+        if (draft.snippetId.isEmpty() || !snippetMgr->snippetExists(draft.snippetId)) {
+            Snippet s;
+            s.id = draft.snippetId.isEmpty()
+                ? QUuid::createUuid().toString(QUuid::WithoutBraces)
+                : draft.snippetId;
+            s.name = draft.name;
+            s.description = draft.description;
+            s.code = draft.code;
+            QStringList tags;
+            for (const QString &tag : draft.tags.split(',')) {
+                QString trimmed = tag.trimmed();
+                if (!trimmed.isEmpty()) tags.append(trimmed);
+            }
+            s.tags = tags;
+            s.packages = draft.packages;
+            s.tikzLibraries = draft.tikzLibraries;
+            s.templateId = draft.templateId;
+
+            if (draft.snippetId.isEmpty()) {
+                snippetMgr->saveSnippet(s);
+                currentSnippetId = s.id;
+            } else {
+                snippetMgr->saveSnippet(s);
+                currentSnippetId = s.id;
+            }
+            createNewTab(s.id, draft.code, draft.name);
+        } else {
+            loadSnippetIntoEditor(draft.snippetId);
+        }
+    }
+
+    for (const DraftInfo &draft : drafts)
+        QFile::remove(draft.filePath);
+
+    if (!recoveredIndices.isEmpty()) {
+        refreshCategoryTree();
+        refreshSearch();
+    }
 }

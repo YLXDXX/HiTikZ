@@ -80,6 +80,7 @@ private:
     void updateFitActionStates();
     void startAutoSave();
     void performAutoSave();
+    void recoverDrafts();
     void clearDraft();
     void clearAllDrafts();
 
