@@ -221,6 +221,11 @@ void LatexCompiler::cancelCompile()
     }
 }
 
+int LatexCompiler::userCodeStartLine() const
+{
+    return m_userCodeStartLine;
+}
+
 void LatexCompiler::compile(const QString &texCode, const QString &templateId, const QString &snippetId,
                             const QString &packages, const QString &tikzLibraries)
 {
@@ -236,6 +241,19 @@ void LatexCompiler::compile(const QString &texCode, const QString &templateId, c
     QDir().mkpath(currentCompileDir);
 
     QString fullCode = wrapCode(texCode, templateId, packages, tikzLibraries);
+
+    {
+        int docBeginIdx = fullCode.indexOf(QStringLiteral("\\begin{document}"));
+        if (docBeginIdx >= 0) {
+            int afterBeginDoc = fullCode.indexOf('\n', docBeginIdx) + 1;
+            if (afterBeginDoc > 0)
+                m_userCodeStartLine = fullCode.left(afterBeginDoc).count('\n') + 1;
+            else
+                m_userCodeStartLine = fullCode.left(docBeginIdx).count('\n') + 1;
+        } else {
+            m_userCodeStartLine = 1;
+        }
+    }
 
     QString texFilePath = currentCompileDir + "/output.tex";
     QFile file(texFilePath);

@@ -172,6 +172,10 @@ void SearchPanel::setupUI()
     layout->addWidget(tagFilterWidget);
 
     QSplitter *treeThumbSplitter = new QSplitter(Qt::Vertical);
+    treeThumbSplitter->setHandleWidth(5);
+    treeThumbSplitter->setStyleSheet(
+        QStringLiteral("QSplitter::handle { background: #c0c0c0; }"
+                       "QSplitter::handle:hover { background: #4a90d9; }"));
     treeThumbSplitter->addWidget(categoryTree);
     treeThumbSplitter->addWidget(thumbnailList);
     treeThumbSplitter->setStretchFactor(0, 1);

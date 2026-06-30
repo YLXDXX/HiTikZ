@@ -1096,7 +1096,8 @@ void MainWindow::setupConnections()
                 + " -interaction=nonstopmode -halt-on-error -no-shell-escape "
                 + "-output-directory " + compiler->tempDirPath() + currentSnippetId
                 + " " + compiler->tempDirPath() + currentSnippetId + "/output.tex";
-            setFormattedLog(success, cmd, log);
+            m_userCodeStartLine = compiler->userCodeStartLine();
+            setFormattedLog(success, cmd, log, m_userCodeStartLine);
             if (success) {
                 pdfPreview->clearDocument();
                 pdfPreview->document()->load(QFileInfo(pdfPath).absoluteFilePath());
@@ -1218,9 +1219,12 @@ void MainWindow::jumpToErrorLine(const QString &logText)
     int line = match.captured(1).toInt();
     if (line < 1) return;
 
+    int editorLine = line - m_userCodeStartLine + 1;
+    if (editorLine < 1) editorLine = 1;
+
     QTextCursor cursor = ed->textCursor();
     cursor.movePosition(QTextCursor::Start);
-    cursor.movePosition(QTextCursor::Down, QTextCursor::MoveAnchor, line - 1);
+    cursor.movePosition(QTextCursor::Down, QTextCursor::MoveAnchor, editorLine - 1);
     ed->setTextCursor(cursor);
     ed->highlightCurrentLine();
     ed->setFocus();
@@ -1423,7 +1427,7 @@ void MainWindow::refreshTemplateCombo()
         templateCombo->setCurrentIndex(0);
 }
 
-void MainWindow::setFormattedLog(bool success, const QString &command, const QString &log)
+void MainWindow::setFormattedLog(bool success, const QString &command, const QString &log, int userCodeStartLine)
 {
     logPanel->clear();
 
@@ -1451,12 +1455,12 @@ void MainWindow::setFormattedLog(bool success, const QString &command, const QSt
 
     QTextCharFormat defaultFormat;
 
-    logPanel->textCursor().insertText(QStringLiteral("编译命令:\n"), cmdFormat);
+    logPanel->textCursor().insertText(QStringLiteral("Compile command:\n"), cmdFormat);
     logPanel->textCursor().insertText(command + "\n\n", defaultFormat);
 
     if (log.isEmpty()) {
         logPanel->textCursor().insertText(
-            success ? QStringLiteral("编译成功 ✓\n") : QStringLiteral("编译失败 ✗\n"),
+            success ? QStringLiteral("Compilation successful ✓\n") : QStringLiteral("Compilation failed ✗\n"),
             success ? successFormat : failureFormat);
         return;
     }
@@ -1464,7 +1468,7 @@ void MainWindow::setFormattedLog(bool success, const QString &command, const QSt
     const QStringList lines = log.split('\n');
     static const QRegularExpression errorRe("^!\\s");
     static const QRegularExpression warningRe("Warning", QRegularExpression::CaseInsensitiveOption);
-    static const QRegularExpression lineRe("^l\\.\\d+");
+    static const QRegularExpression lineRe("^l\\.(\\d+)");
     static const QRegularExpression outputRe("^Output written on");
     static const QRegularExpression overfullRe("Overfull|Underfull");
     static const QRegularExpression noiseFileRe("^[\\(/].*\\.(sty|cls|def|cfg|fd|aux|tex|map|enc|tfm)");
@@ -1474,6 +1478,19 @@ void MainWindow::setFormattedLog(bool success, const QString &command, const QSt
 
     QStringList filtered;
     bool inErrorBlock = false;
+
+    auto adjustLineNum = [&](const QString &line) -> QString {
+        QRegularExpressionMatch m = lineRe.match(line.trimmed());
+        if (m.hasMatch()) {
+            int fullLine = m.captured(1).toInt();
+            int editorLine = fullLine - userCodeStartLine + 1;
+            if (editorLine < 1) editorLine = 1;
+            QString result = line;
+            result.replace(QRegularExpression("l\\.\\d+"), "l." + QString::number(editorLine));
+            return result;
+        }
+        return line;
+    };
 
     for (const QString &line : lines) {
         bool isError = errorRe.match(line).hasMatch();
@@ -1485,14 +1502,14 @@ void MainWindow::setFormattedLog(bool success, const QString &command, const QSt
 
         if (isError) {
             inErrorBlock = true;
-            filtered.append(line);
+            filtered.append(adjustLineNum(line));
         } else if (isLineNum || isWarning || isOutput) {
-            filtered.append(line);
+            filtered.append(adjustLineNum(line));
             if (isOutput) inErrorBlock = false;
         } else if (success) {
             continue;
         } else if (inErrorBlock && !line.trimmed().isEmpty() && !isNoise) {
-            filtered.append(line);
+            filtered.append(adjustLineNum(line));
         } else if (line.trimmed().isEmpty() || isNoise || line.trimmed() == "?") {
             inErrorBlock = false;
         } else if (!success && !isNoise && !line.trimmed().isEmpty()) {
@@ -1512,7 +1529,7 @@ void MainWindow::setFormattedLog(bool success, const QString &command, const QSt
     }
 
     logPanel->textCursor().insertText(
-        success ? QStringLiteral("\n编译成功 ✓\n") : QStringLiteral("\n编译失败 ✗ — 请查看上方错误信息\n"),
+        success ? QStringLiteral("\nCompilation successful ✓\n") : QStringLiteral("\nCompilation failed ✗ — see errors above\n"),
         success ? successFormat : failureFormat);
 
     QTextCursor cursor = logPanel->textCursor();

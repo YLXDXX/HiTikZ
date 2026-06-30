@@ -37,6 +37,8 @@ public:
     QString wrapCode(const QString &texCode, const QString &templateId,
                     const QString &packages, const QString &tikzLibraries) const;
 
+    int userCodeStartLine() const;
+
 signals:
     void compilationFinished(bool success, const QString &pdfPath, const QString &logOutput);
     void conversionFinished(bool success, const QString &outputPath);
@@ -49,6 +51,7 @@ private:
     QString xelatexPath;
     QString pdfToCairoPath;
     QString texInputs;
+    int m_userCodeStartLine = 1;
 
     QString loadTemplate(const QString &templateId) const;
 };

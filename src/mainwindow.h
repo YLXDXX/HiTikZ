@@ -74,7 +74,7 @@ private:
     void savePreviewData(const QString &pdfPath, const QString &snippetId);
     void loadPreviewForSnippet(const QString &id);
     void clearPdfPreview();
-    void setFormattedLog(bool success, const QString &command, const QString &log);
+    void setFormattedLog(bool success, const QString &command, const QString &log, int userCodeStartLine);
     void handleLogDoubleClick();
     void checkSystemDependencies();
     void updateFitActionStates();
@@ -146,6 +146,7 @@ private:
     bool m_batchGenerating = false;
     bool m_forceQuit = false;
     bool m_loadingTab = false;
+    int m_userCodeStartLine = 1;
     QTimer *searchDebounceTimer = nullptr;
     QTimer *autoSaveTimer = nullptr;
 };
