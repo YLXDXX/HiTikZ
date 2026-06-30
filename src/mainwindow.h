@@ -74,7 +74,7 @@ private:
     void savePreviewData(const QString &pdfPath, const QString &snippetId);
     void loadPreviewForSnippet(const QString &id);
     void clearPdfPreview();
-    void setFormattedLog(const QString &log);
+    void setFormattedLog(bool success, const QString &command, const QString &log);
     void handleLogDoubleClick();
     void checkSystemDependencies();
     void updateFitActionStates();

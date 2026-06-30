@@ -22,6 +22,7 @@
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QScrollBar>
+#include <QSplitter>
 
 SearchPanel::SearchPanel(SnippetManager *mgr, QWidget *parent)
     : QWidget(parent), snippetMgr(mgr)
@@ -170,8 +171,13 @@ void SearchPanel::setupUI()
     tagFilterLayout->setContentsMargins(0, 2, 0, 2);
     layout->addWidget(tagFilterWidget);
 
-    layout->addWidget(categoryTree, 1);
-    layout->addWidget(thumbnailList, 2);
+    QSplitter *treeThumbSplitter = new QSplitter(Qt::Vertical);
+    treeThumbSplitter->addWidget(categoryTree);
+    treeThumbSplitter->addWidget(thumbnailList);
+    treeThumbSplitter->setStretchFactor(0, 1);
+    treeThumbSplitter->setStretchFactor(1, 2);
+    treeThumbSplitter->setChildrenCollapsible(false);
+    layout->addWidget(treeThumbSplitter, 1);
 }
 
 void SearchPanel::refreshSearch()

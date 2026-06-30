@@ -1092,7 +1092,11 @@ void MainWindow::setupConnections()
     connect(compiler, &LatexCompiler::compilationFinished,
         this, [this](bool success, const QString &pdfPath, const QString &log) {
             if (m_batchGenerating) return;
-            setFormattedLog(log);
+            QString cmd = compiler->xelatexCommand()
+                + " -interaction=nonstopmode -halt-on-error -no-shell-escape "
+                + "-output-directory " + compiler->tempDirPath() + currentSnippetId
+                + " " + compiler->tempDirPath() + currentSnippetId + "/output.tex";
+            setFormattedLog(success, cmd, log);
             if (success) {
                 pdfPreview->clearDocument();
                 pdfPreview->document()->load(QFileInfo(pdfPath).absoluteFilePath());
@@ -1419,11 +1423,21 @@ void MainWindow::refreshTemplateCombo()
         templateCombo->setCurrentIndex(0);
 }
 
-void MainWindow::setFormattedLog(const QString &log)
+void MainWindow::setFormattedLog(bool success, const QString &command, const QString &log)
 {
     logPanel->clear();
 
-    if (log.isEmpty()) return;
+    QTextCharFormat cmdFormat;
+    cmdFormat.setForeground(QColor(60, 120, 200));
+    cmdFormat.setFontWeight(QFont::Bold);
+
+    QTextCharFormat successFormat;
+    successFormat.setForeground(QColor(20, 150, 20));
+    successFormat.setFontWeight(QFont::Bold);
+
+    QTextCharFormat failureFormat;
+    failureFormat.setForeground(QColor(220, 30, 30));
+    failureFormat.setFontWeight(QFont::Bold);
 
     QTextCharFormat errorFormat;
     errorFormat.setForeground(QColor(220, 30, 30));
@@ -1435,19 +1449,57 @@ void MainWindow::setFormattedLog(const QString &log)
     QTextCharFormat lineNumFormat;
     lineNumFormat.setForeground(QColor(180, 60, 60));
 
-    QTextCharFormat infoFormat;
-    infoFormat.setForeground(QColor(100, 100, 100));
-
     QTextCharFormat defaultFormat;
+
+    logPanel->textCursor().insertText(QStringLiteral("编译命令:\n"), cmdFormat);
+    logPanel->textCursor().insertText(command + "\n\n", defaultFormat);
+
+    if (log.isEmpty()) {
+        logPanel->textCursor().insertText(
+            success ? QStringLiteral("编译成功 ✓\n") : QStringLiteral("编译失败 ✗\n"),
+            success ? successFormat : failureFormat);
+        return;
+    }
 
     const QStringList lines = log.split('\n');
     static const QRegularExpression errorRe("^!\\s");
     static const QRegularExpression warningRe("Warning", QRegularExpression::CaseInsensitiveOption);
     static const QRegularExpression lineRe("^l\\.\\d+");
-    static const QRegularExpression infoRe("^\\(");
+    static const QRegularExpression outputRe("^Output written on");
     static const QRegularExpression overfullRe("Overfull|Underfull");
+    static const QRegularExpression noiseFileRe("^[\\(/].*\\.(sty|cls|def|cfg|fd|aux|tex|map|enc|tfm)");
+    static const QRegularExpression noiseBannerRe(
+        "^(This is XeTeX|entering extended mode|Transcript written on|No file .*\\.aux)"
+    );
+
+    QStringList filtered;
+    bool inErrorBlock = false;
 
     for (const QString &line : lines) {
+        bool isError = errorRe.match(line).hasMatch();
+        bool isLineNum = lineRe.match(line.trimmed()).hasMatch();
+        bool isWarning = warningRe.match(line).hasMatch() || overfullRe.match(line).hasMatch();
+        bool isOutput = outputRe.match(line).hasMatch();
+        bool isNoise = noiseBannerRe.match(line).hasMatch()
+            || noiseFileRe.match(line.trimmed()).hasMatch();
+
+        if (isError) {
+            inErrorBlock = true;
+            filtered.append(line);
+        } else if (isLineNum || isWarning || isOutput) {
+            filtered.append(line);
+            if (isOutput) inErrorBlock = false;
+        } else if (success) {
+            continue;
+        } else if (inErrorBlock && !line.trimmed().isEmpty() && !isNoise) {
+            filtered.append(line);
+        } else if (line.trimmed().isEmpty() || isNoise || line.trimmed() == "?") {
+            inErrorBlock = false;
+        } else if (!success && !isNoise && !line.trimmed().isEmpty()) {
+        }
+    }
+
+    for (const QString &line : filtered) {
         QTextCharFormat fmt = defaultFormat;
         if (errorRe.match(line).hasMatch()) {
             fmt = errorFormat;
@@ -1455,11 +1507,13 @@ void MainWindow::setFormattedLog(const QString &log)
             fmt = lineNumFormat;
         } else if (warningRe.match(line).hasMatch() || overfullRe.match(line).hasMatch()) {
             fmt = warningFormat;
-        } else if (infoRe.match(line).hasMatch()) {
-            fmt = infoFormat;
         }
         logPanel->textCursor().insertText(line + '\n', fmt);
     }
+
+    logPanel->textCursor().insertText(
+        success ? QStringLiteral("\n编译成功 ✓\n") : QStringLiteral("\n编译失败 ✗ — 请查看上方错误信息\n"),
+        success ? successFormat : failureFormat);
 
     QTextCursor cursor = logPanel->textCursor();
     cursor.movePosition(QTextCursor::Start);
