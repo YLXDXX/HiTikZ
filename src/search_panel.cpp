@@ -301,7 +301,6 @@ void SearchPanel::refreshTagFilter()
                 else
                     m_selectedTags.remove(tag);
                 refreshSearch();
-                refreshTagFilter();
             });
             flowLayout->addWidget(btn);
             tagButtons.append(btn);
@@ -543,20 +542,6 @@ void SearchPanel::deleteCategoryItem(QStandardItem *item)
     Q_UNUSED(count);
     refreshCategoryTree();
     refreshSearch();
-}
-
-void SearchPanel::onThumbnailRightClick(const QPoint &pos)
-{
-    QModelIndex idx = thumbnailList->indexAt(pos);
-    if (!idx.isValid()) return;
-    QString id = idx.data(Qt::UserRole).toString();
-    if (id.isEmpty()) return;
-
-    SnippetPropertiesDialog dlg(id, snippetMgr, this);
-    if (dlg.exec() == QDialog::Accepted) {
-        refreshCategoryTree();
-        refreshSearch();
-    }
 }
 
 void SearchPanel::showThumbnailContextMenu(const QPoint &pos)

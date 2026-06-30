@@ -42,7 +42,6 @@ private:
     void showCategoryContextMenu(const QPoint &pos);
     void renameCategoryItem(QStandardItem *item);
     void deleteCategoryItem(QStandardItem *item);
-    void onThumbnailRightClick(const QPoint &pos);
     void showThumbnailContextMenu(const QPoint &pos);
     QStringList getSelectedSnippetIds() const;
     QIcon loadThumbnailIcon(const QString &snippetId) const;

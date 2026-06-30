@@ -528,8 +528,14 @@ void MainWindow::setupUI()
         pdfPreview->fitHeight();
         updateFitActionStates();
     });
-    connect(zoomInAct, &QAction::triggered, pdfPreview, &PdfPreviewWidget::zoomIn);
-    connect(zoomOutAct, &QAction::triggered, pdfPreview, &PdfPreviewWidget::zoomOut);
+    connect(zoomInAct, &QAction::triggered, this, [this]() {
+        pdfPreview->zoomIn();
+        updateFitActionStates();
+    });
+    connect(zoomOutAct, &QAction::triggered, this, [this]() {
+        pdfPreview->zoomOut();
+        updateFitActionStates();
+    });
 
     nameEdit = new QLineEdit;
     nameEdit->setPlaceholderText(QStringLiteral("名称"));
@@ -862,6 +868,7 @@ void MainWindow::setupUI()
     connect(copyFullAct, &QAction::triggered, this, copyFullDocument);
 
     auto copyPngFromCurrentPreview = [this]() {
+        if (m_clipboardPngPending) return;
         QString pdfPath;
         if (!currentSnippetId.isEmpty()) {
             pdfPath = snippetDataPath(currentSnippetId) + "/preview.pdf";
@@ -870,9 +877,11 @@ void MainWindow::setupUI()
             pdfPath = compiler->pdfPath();
         }
         if (!pdfPath.isEmpty() && QFile::exists(pdfPath)) {
+            m_clipboardPngPending = true;
             compiler->convertToPng(pdfPath, 300);
             connect(compiler, &LatexCompiler::conversionFinished, this,
                 [this](bool ok, const QString &pngPath) {
+                    m_clipboardPngPending = false;
                     if (ok) {
                         QImage img(pngPath);
                         if (!img.isNull()) {
@@ -887,6 +896,7 @@ void MainWindow::setupUI()
     };
 
     auto copySvgFromCurrentPreview = [this]() {
+        if (m_clipboardSvgPending) return;
         QString pdfPath;
         if (!currentSnippetId.isEmpty()) {
             pdfPath = snippetDataPath(currentSnippetId) + "/preview.pdf";
@@ -895,9 +905,11 @@ void MainWindow::setupUI()
             pdfPath = compiler->pdfPath();
         }
         if (!pdfPath.isEmpty() && QFile::exists(pdfPath)) {
+            m_clipboardSvgPending = true;
             compiler->convertToSvg(pdfPath);
             connect(compiler, &LatexCompiler::conversionFinished, this,
                 [this](bool ok, const QString &svgPath) {
+                    m_clipboardSvgPending = false;
                     if (ok) {
                         QFile svgFile(svgPath);
                         if (svgFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
@@ -988,7 +1000,6 @@ void MainWindow::setupConnections()
         if (!ok) return;
         if (snippetMgr->batchUpdateCategory(ids, newCat)) {
             statusBar()->showMessage(QStringLiteral("已修改 %1 个片段的分类").arg(ids.size()), kStatusBarShortMs);
-            searchPanel->refreshCategoryTree();
             searchPanel->refreshSearch();
         }
     });
@@ -1012,7 +1023,6 @@ void MainWindow::setupConnections()
 
         int count = snippetMgr->batchDeleteSnippets(ids);
         statusBar()->showMessage(QStringLiteral("已删除 %1 个片段").arg(count), kStatusBarShortMs);
-        searchPanel->refreshCategoryTree();
         searchPanel->refreshSearch();
     });
 
@@ -1564,9 +1574,12 @@ void MainWindow::handleLogDoubleClick()
     int lineNum = match.captured(1).toInt();
     if (lineNum < 1) return;
 
+    int editorLine = lineNum - m_userCodeStartLine + 1;
+    if (editorLine < 1) editorLine = 1;
+
     cursor = ed->textCursor();
     cursor.movePosition(QTextCursor::Start);
-    cursor.movePosition(QTextCursor::Down, QTextCursor::MoveAnchor, lineNum - 1);
+    cursor.movePosition(QTextCursor::Down, QTextCursor::MoveAnchor, editorLine - 1);
     ed->setTextCursor(cursor);
     ed->highlightCurrentLine();
     ed->setFocus();

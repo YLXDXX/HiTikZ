@@ -423,7 +423,7 @@ QList<SearchResult> SnippetManager::searchSnippets(const QString &query, bool in
         }
     }
 
-    if (candidates.isEmpty() && firstBigram) return results;
+    if (candidates.isEmpty()) return results;
 
     QList<Snippet> all = getAllSnippets();
     if (includePresets) {
@@ -505,20 +505,20 @@ int SnippetManager::renameCategory(const QString &oldCategory, const QString &ne
     auto updateAll = [&](const QList<Snippet> &list) {
         for (const Snippet &s : list) {
             if (s.category == oldCategory) {
-                Snippet updated = s;
+                Snippet updated = loadSnippet(s.id);
                 updated.category = newCategory;
                 saveSnippet(updated);
                 count++;
             } else if (s.category.startsWith(oldCategory + "/")) {
-                Snippet updated = s;
+                Snippet updated = loadSnippet(s.id);
                 updated.category = newCategory + "/" + s.category.mid(oldCategory.length() + 1);
                 saveSnippet(updated);
                 count++;
             }
         }
     };
-    updateAll(getAllSnippets(true));
-    updateAll(getAllPresets(true));
+    updateAll(getAllSnippets(false));
+    updateAll(getAllPresets(false));
     if (count > 0)
         emit categoriesChanged();
     return count;

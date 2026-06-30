@@ -145,6 +145,8 @@ private:
     QString currentSnippetId;
     bool m_batchGenerating = false;
     bool m_forceQuit = false;
+    bool m_clipboardPngPending = false;
+    bool m_clipboardSvgPending = false;
     int m_loadingDepth = 0;
     int m_userCodeStartLine = 1;
     QTimer *searchDebounceTimer = nullptr;
