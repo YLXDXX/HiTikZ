@@ -2,6 +2,8 @@
 #include <QObject>
 #include <QAction>
 #include <QKeySequence>
+
+#ifdef HAS_KGLOBALACCEL
 #include <KGlobalAccel>
 
 class KdeGlobalShortcut : public QObject
@@ -21,3 +23,4 @@ private:
     explicit KdeGlobalShortcut(QObject *parent = nullptr);
     QMap<QString, QAction *> m_actions;
 };
+#endif // HAS_KGLOBALACCEL

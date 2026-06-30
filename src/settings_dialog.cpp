@@ -53,11 +53,12 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     compileShortcutEdit = new QKeySequenceEdit;
     applyParamsShortcutEdit = new QKeySequenceEdit;
     saveShortcutEdit = new QKeySequenceEdit;
+    closeTabShortcutEdit = new QKeySequenceEdit;
     globalHotkeyEdit = new QKeySequenceEdit;
 
     QList<QKeySequenceEdit*> allEdits = {copyCodeShortcutEdit, copyPngShortcutEdit,
         copySvgShortcutEdit, compileShortcutEdit, applyParamsShortcutEdit,
-        saveShortcutEdit, globalHotkeyEdit};
+        saveShortcutEdit, closeTabShortcutEdit, globalHotkeyEdit};
     for (QKeySequenceEdit *edit : allEdits) {
         edit->setClearButtonEnabled(true);
     }
@@ -68,6 +69,7 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     shortcutLayout->addRow(QStringLiteral("编译预览:"), compileShortcutEdit);
     shortcutLayout->addRow(QStringLiteral("应用参数:"), applyParamsShortcutEdit);
     shortcutLayout->addRow(QStringLiteral("保存:"), saveShortcutEdit);
+    shortcutLayout->addRow(QStringLiteral("关闭标签页:"), closeTabShortcutEdit);
     shortcutLayout->addRow(QStringLiteral("全局快捷键:"), globalHotkeyEdit);
     mainLayout->addWidget(shortcutGroup);
 
@@ -192,6 +194,7 @@ void SettingsDialog::loadSettings()
     compileShortcutEdit->setKeySequence(QKeySequence(settings.value("shortcuts/compile", "").toString()));
     applyParamsShortcutEdit->setKeySequence(QKeySequence(settings.value("shortcuts/applyParams", "").toString()));
     saveShortcutEdit->setKeySequence(QKeySequence(settings.value("shortcuts/save", "").toString()));
+    closeTabShortcutEdit->setKeySequence(QKeySequence(settings.value("shortcuts/closeTab", "Ctrl+W").toString()));
     globalHotkeyEdit->setKeySequence(QKeySequence(settings.value("shortcuts/globalHotkey", "Ctrl+Alt+T").toString()));
 }
 
@@ -209,6 +212,7 @@ void SettingsDialog::saveSettings()
     settings.setValue("shortcuts/compile", compileShortcutEdit->keySequence().toString());
     settings.setValue("shortcuts/applyParams", applyParamsShortcutEdit->keySequence().toString());
     settings.setValue("shortcuts/save", saveShortcutEdit->keySequence().toString());
+    settings.setValue("shortcuts/closeTab", closeTabShortcutEdit->keySequence().toString());
     settings.setValue("shortcuts/globalHotkey", globalHotkeyEdit->keySequence().toString());
 }
 

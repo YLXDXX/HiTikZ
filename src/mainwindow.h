@@ -20,6 +20,7 @@
 #include <QShortcut>
 #include <QSettings>
 #include <QToolButton>
+#include <QTabWidget>
 
 #ifdef HAS_QHOTKEY
 #include <QHotkey>
@@ -86,11 +87,22 @@ private:
 
     void refreshTemplateCombo();
 
+    CodeEditor *currentEditor() const;
+    QString currentTabSnippetId() const;
+    int findTabForSnippet(const QString &id) const;
+    bool maybeCloseTab(int index);
+    void updateTabTitle(int index, const QString &title);
+    void onTabChanged(int index);
+    void onTabCloseRequested(int index);
+    void setEditorForTab(int index);
+    void createNewTab(const QString &snippetId, const QString &code, const QString &title);
+    void connectEditorSignals(CodeEditor *editor);
+
     SnippetManager *snippetMgr;
     LatexCompiler *compiler;
     SearchPanel *searchPanel;
 
-    CodeEditor *codeEditor;
+    QTabWidget *tabWidget;
     QPlainTextEdit *logPanel;
 
     QWidget *rightPanel;
@@ -113,6 +125,7 @@ private:
     QShortcut *compileShortcut;
     QShortcut *applyParamsShortcut;
     QShortcut *saveShortcut;
+    QShortcut *closeTabShortcut;
 #ifdef HAS_QHOTKEY
     QHotkey *globalHotkey = nullptr;
 #endif
@@ -132,6 +145,7 @@ private:
     QString currentSnippetId;
     bool m_batchGenerating = false;
     bool m_forceQuit = false;
+    bool m_loadingTab = false;
     QTimer *searchDebounceTimer = nullptr;
     QTimer *autoSaveTimer = nullptr;
 };

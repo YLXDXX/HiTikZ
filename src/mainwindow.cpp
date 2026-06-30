@@ -4,7 +4,9 @@
 #include "latex_compiler.h"
 #include "code_editor.h"
 #include "settings_dialog.h"
+#ifdef HAS_KGLOBALACCEL
 #include "kde_global_shortcut.h"
+#endif
 #include "pdf_preview_widget.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -40,6 +42,7 @@
 #include <QFormLayout>
 #include <QDialogButtonBox>
 #include <QToolButton>
+#include <QTabBar>
 #include <memory>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -57,7 +60,7 @@ static constexpr int kPngConvertTimeoutMs = 15000;
 static constexpr int kZoomApplyDelayMs = 200;
 static constexpr int kDefaultFontSize = 10;
 
-MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), currentSnippetId("")
+MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 {
     QString resourceDir = QStringLiteral(RES_DIR);
     SettingsDialog::ensureTemplatesCopied(resourceDir + "/templates");
@@ -127,30 +130,147 @@ MainWindow::~MainWindow()
 {
 }
 
-void MainWindow::closeEvent(QCloseEvent *event)
+CodeEditor *MainWindow::currentEditor() const
 {
-    if (trayIcon && trayIcon->isVisible() && !m_forceQuit) {
-        hide();
-        event->ignore();
-        return;
+    if (!tabWidget || tabWidget->count() == 0)
+        return nullptr;
+    return qobject_cast<CodeEditor*>(tabWidget->currentWidget());
+}
+
+QString MainWindow::currentTabSnippetId() const
+{
+    int idx = tabWidget ? tabWidget->currentIndex() : -1;
+    if (idx < 0) return QString();
+    return tabWidget->tabBar()->tabData(idx).toString();
+}
+
+int MainWindow::findTabForSnippet(const QString &id) const
+{
+    if (id.isEmpty() || !tabWidget) return -1;
+    for (int i = 0; i < tabWidget->count(); ++i) {
+        if (tabWidget->tabBar()->tabData(i).toString() == id)
+            return i;
+    }
+    return -1;
+}
+
+void MainWindow::updateTabTitle(int index, const QString &title)
+{
+    if (index < 0 || index >= tabWidget->count()) return;
+    tabWidget->setTabText(index, title);
+}
+
+void MainWindow::connectEditorSignals(CodeEditor *editor)
+{
+    connect(editor, &QPlainTextEdit::textChanged, this, [this]() {
+        if (!m_loadingTab)
+            onCurrentSnippetChanged();
+    });
+}
+
+void MainWindow::createNewTab(const QString &snippetId, const QString &code,
+                              const QString &title)
+{
+    if (!tabWidget) return;
+
+    CodeEditor *editor = new CodeEditor;
+    editor->setTabStopDistance(4 * editor->fontMetrics().horizontalAdvance(' '));
+    editor->setLineWrapMode(QPlainTextEdit::NoWrap);
+    connectEditorSignals(editor);
+
+    int idx = tabWidget->addTab(editor, title);
+    tabWidget->tabBar()->setTabData(idx, snippetId);
+    tabWidget->setCurrentIndex(idx);
+
+    if (!code.isNull()) {
+        m_loadingTab = true;
+        const QSignalBlocker blocker(editor);
+        editor->setPlainText(code);
+        m_loadingTab = false;
     }
 
-    m_forceQuit = false;
+    applyAppearanceSettings();
+}
+
+void MainWindow::setEditorForTab(int index)
+{
+    m_loadingTab = true;
+
+    QString sid = (index >= 0 && index < tabWidget->count())
+        ? tabWidget->tabBar()->tabData(index).toString()
+        : QString();
+    currentSnippetId = sid;
+
+    if (sid.isEmpty()) {
+        nameEdit->clear();
+        descEdit->clear();
+        tagsEdit->clear();
+        packagesEdit->clear();
+        tikzLibrariesEdit->clear();
+        loadPreviewForSnippet(QString());
+        clearParams();
+    } else {
+        Snippet s = snippetMgr->loadSnippet(sid);
+        if (!s.id.isEmpty()) {
+            nameEdit->setText(s.name);
+            descEdit->setPlainText(s.description);
+            tagsEdit->setText(s.tags.join(", "));
+            packagesEdit->setText(s.packages);
+            tikzLibrariesEdit->setText(s.tikzLibraries);
+
+            if (!s.templateId.isEmpty()) {
+                int ti = templateCombo->findData(s.templateId);
+                if (ti >= 0) templateCombo->setCurrentIndex(ti);
+            }
+            loadPreviewForSnippet(sid);
+        }
+    }
+
+    m_loadingTab = false;
+    parseParams();
+}
+
+void MainWindow::onTabChanged(int index)
+{
+    if (index < 0) {
+        currentSnippetId.clear();
+        nameEdit->clear();
+        descEdit->clear();
+        tagsEdit->clear();
+        packagesEdit->clear();
+        tikzLibrariesEdit->clear();
+        clearPdfPreview();
+        clearParams();
+        return;
+    }
+    setEditorForTab(index);
+}
+
+bool MainWindow::maybeCloseTab(int index)
+{
+    if (index < 0 || index >= tabWidget->count()) return true;
+
+    QString sid = tabWidget->tabBar()->tabData(index).toString();
+    CodeEditor *editor = qobject_cast<CodeEditor*>(tabWidget->widget(index));
+    if (!editor) return true;
 
     bool hasUnsaved = false;
-    if (!currentSnippetId.isEmpty()) {
-        Snippet saved = snippetMgr->loadSnippet(currentSnippetId);
-        if (codeEditor->toPlainText() != saved.code)
+    if (!sid.isEmpty()) {
+        Snippet saved = snippetMgr->loadSnippet(sid);
+        if (editor->toPlainText() != saved.code)
             hasUnsaved = true;
     } else {
-        if (!codeEditor->toPlainText().trimmed().isEmpty())
+        if (!editor->toPlainText().trimmed().isEmpty())
             hasUnsaved = true;
     }
 
     if (hasUnsaved) {
+        tabWidget->setCurrentIndex(index);
+
         QMessageBox msgBox(this);
         msgBox.setWindowTitle(QStringLiteral("未保存的更改"));
-        msgBox.setText(QStringLiteral("当前片段有未保存的更改。\n\n是否在退出前保存？"));
+        msgBox.setText(QStringLiteral("当前片段 \"%1\" 有未保存的更改。\n\n是否保存？")
+                           .arg(tabWidget->tabText(index)));
         msgBox.setIcon(QMessageBox::Warning);
         QPushButton *saveBtn = msgBox.addButton(QStringLiteral("保存"), QMessageBox::AcceptRole);
         QPushButton *discardBtn = msgBox.addButton(QStringLiteral("不保存"), QMessageBox::DestructiveRole);
@@ -161,7 +281,7 @@ void MainWindow::closeEvent(QCloseEvent *event)
         QAbstractButton *clicked = msgBox.clickedButton();
         if (clicked == saveBtn) {
             saveCurrentSnippet();
-            if (currentSnippetId.isEmpty() && !codeEditor->toPlainText().trimmed().isEmpty()) {
+            if (sid.isEmpty() && !editor->toPlainText().trimmed().isEmpty()) {
                 QDialog dlg(this);
                 dlg.setWindowTitle(QStringLiteral("保存新片段"));
                 QFormLayout *form = new QFormLayout(&dlg);
@@ -177,15 +297,108 @@ void MainWindow::closeEvent(QCloseEvent *event)
                 connect(btnBox, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);
                 if (dlg.exec() == QDialog::Accepted && !nameEdit->text().isEmpty()) {
                     QString id = snippetMgr->createSnippet(nameEdit->text(), catEdit->text());
+                    tabWidget->tabBar()->setTabData(index, id);
+                    tabWidget->setTabText(index, nameEdit->text());
                     currentSnippetId = id;
                     saveCurrentSnippet();
                 } else {
-                    event->ignore();
-                    return;
+                    return false;
                 }
             }
         } else if (clicked == discardBtn) {
-            // discard, proceed to quit
+        } else {
+            return false;
+        }
+    }
+
+    if (sid == currentSnippetId || currentSnippetId.isEmpty()) {
+        currentSnippetId.clear();
+    }
+
+    return true;
+}
+
+void MainWindow::onTabCloseRequested(int index)
+{
+    if (!maybeCloseTab(index)) return;
+
+    CodeEditor *editor = qobject_cast<CodeEditor*>(tabWidget->widget(index));
+    tabWidget->removeTab(index);
+    if (editor)
+        editor->deleteLater();
+}
+
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+    if (trayIcon && trayIcon->isVisible() && !m_forceQuit) {
+        hide();
+        event->ignore();
+        return;
+    }
+
+    m_forceQuit = false;
+
+    QList<int> unsavedTabs;
+    for (int i = 0; i < tabWidget->count(); ++i) {
+        QString sid = tabWidget->tabBar()->tabData(i).toString();
+        CodeEditor *ed = qobject_cast<CodeEditor*>(tabWidget->widget(i));
+        if (!ed) continue;
+        bool dirty = false;
+        if (!sid.isEmpty()) {
+            Snippet saved = snippetMgr->loadSnippet(sid);
+            if (ed->toPlainText() != saved.code) dirty = true;
+        } else {
+            if (!ed->toPlainText().trimmed().isEmpty()) dirty = true;
+        }
+        if (dirty) unsavedTabs.append(i);
+    }
+
+    if (!unsavedTabs.isEmpty()) {
+        QMessageBox msgBox(this);
+        msgBox.setWindowTitle(QStringLiteral("未保存的更改"));
+        msgBox.setText(QStringLiteral("有 %1 个标签页存在未保存的更改。\n\n是否在退出前保存全部？").arg(unsavedTabs.size()));
+        msgBox.setIcon(QMessageBox::Warning);
+        QPushButton *saveAllBtn = msgBox.addButton(QStringLiteral("保存全部"), QMessageBox::AcceptRole);
+        QPushButton *discardAllBtn = msgBox.addButton(QStringLiteral("全部不保存"), QMessageBox::DestructiveRole);
+        QPushButton *cancelBtn = msgBox.addButton(QStringLiteral("取消"), QMessageBox::RejectRole);
+        msgBox.setDefaultButton(saveAllBtn);
+        msgBox.exec();
+
+        QAbstractButton *clicked = msgBox.clickedButton();
+        if (clicked == saveAllBtn) {
+            for (int idx : unsavedTabs) {
+                tabWidget->setCurrentIndex(idx);
+                QString sid = tabWidget->tabBar()->tabData(idx).toString();
+                currentSnippetId = sid;
+                if (sid.isEmpty() && !qobject_cast<CodeEditor*>(tabWidget->widget(idx))->toPlainText().trimmed().isEmpty()) {
+                    QDialog dlg(this);
+                    dlg.setWindowTitle(QStringLiteral("保存新片段"));
+                    QFormLayout *form = new QFormLayout(&dlg);
+                    QLineEdit *nmEdit = new QLineEdit;
+                    QLineEdit *ctEdit = new QLineEdit;
+                    ctEdit->setPlaceholderText(QStringLiteral("如: 数学/几何"));
+                    form->addRow(QStringLiteral("片段名称:"), nmEdit);
+                    form->addRow(QStringLiteral("分类:"), ctEdit);
+                    QDialogButtonBox *btnBox = new QDialogButtonBox(
+                        QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+                    form->addRow(btnBox);
+                    connect(btnBox, &QDialogButtonBox::accepted, &dlg, &QDialog::accept);
+                    connect(btnBox, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);
+                    if (dlg.exec() == QDialog::Accepted && !nmEdit->text().isEmpty()) {
+                        QString id = snippetMgr->createSnippet(nmEdit->text(), ctEdit->text());
+                        tabWidget->tabBar()->setTabData(idx, id);
+                        tabWidget->setTabText(idx, nmEdit->text());
+                        currentSnippetId = id;
+                        saveCurrentSnippet();
+                    } else {
+                        event->ignore();
+                        return;
+                    }
+                } else {
+                    saveCurrentSnippet();
+                }
+            }
+        } else if (clicked == discardAllBtn) {
         } else {
             event->ignore();
             return;
@@ -262,22 +475,24 @@ void MainWindow::setupUI()
 
     searchPanel = new SearchPanel(snippetMgr);
 
-    // --- Center Panel ---
     QSplitter *centerSplitter = new QSplitter(Qt::Vertical);
-    codeEditor = new CodeEditor;
-    codeEditor->setTabStopDistance(4 * codeEditor->fontMetrics().horizontalAdvance(' '));
-    codeEditor->setLineWrapMode(QPlainTextEdit::NoWrap);
+    tabWidget = new QTabWidget;
+    tabWidget->setTabsClosable(true);
+    tabWidget->setMovable(true);
+    tabWidget->setDocumentMode(true);
+
+    connect(tabWidget, &QTabWidget::currentChanged, this, &MainWindow::onTabChanged);
+    connect(tabWidget, &QTabWidget::tabCloseRequested, this, &MainWindow::onTabCloseRequested);
 
     logPanel = new QPlainTextEdit;
     logPanel->setReadOnly(true);
     logPanel->setMaximumBlockCount(2000);
     logPanel->viewport()->installEventFilter(this);
 
-    centerSplitter->addWidget(codeEditor);
+    centerSplitter->addWidget(tabWidget);
     centerSplitter->addWidget(logPanel);
     centerSplitter->setSizes({600, 100});
 
-    // --- Right Panel ---
     rightPanel = new QWidget;
     QVBoxLayout *rightLayout = new QVBoxLayout(rightPanel);
     rightLayout->setContentsMargins(0, 0, 0, 0);
@@ -352,23 +567,23 @@ void MainWindow::setupUI()
     paramsScrollArea->setWidget(paramsWidget);
     metaLayout->addWidget(new QLabel(QStringLiteral("参数:")));
     metaLayout->addWidget(paramsScrollArea);
-    // --- Toolbar actions ---
+
     connect(newAct, &QAction::triggered, this, [this]() {
         QDialog dlg(this);
         dlg.setWindowTitle(QStringLiteral("新建片段"));
         QFormLayout *form = new QFormLayout(&dlg);
-        QLineEdit *nameEdit = new QLineEdit;
-        QLineEdit *catEdit = new QLineEdit;
-        catEdit->setPlaceholderText(QStringLiteral("如: 数学/几何"));
-        form->addRow(QStringLiteral("片段名称:"), nameEdit);
-        form->addRow(QStringLiteral("分类:"), catEdit);
+        QLineEdit *nmEdit = new QLineEdit;
+        QLineEdit *ctEdit = new QLineEdit;
+        ctEdit->setPlaceholderText(QStringLiteral("如: 数学/几何"));
+        form->addRow(QStringLiteral("片段名称:"), nmEdit);
+        form->addRow(QStringLiteral("分类:"), ctEdit);
         QDialogButtonBox *btnBox = new QDialogButtonBox(
             QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
         form->addRow(btnBox);
         connect(btnBox, &QDialogButtonBox::accepted, &dlg, &QDialog::accept);
         connect(btnBox, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);
-        if (dlg.exec() == QDialog::Accepted && !nameEdit->text().isEmpty()) {
-            QString id = snippetMgr->createSnippet(nameEdit->text(), catEdit->text());
+        if (dlg.exec() == QDialog::Accepted && !nmEdit->text().isEmpty()) {
+            QString id = snippetMgr->createSnippet(nmEdit->text(), ctEdit->text());
             refreshSearch();
             refreshCategoryTree();
             loadSnippetIntoEditor(id);
@@ -391,13 +606,18 @@ void MainWindow::setupUI()
             if (ret == QMessageBox::Yes) {
                 int count = snippetMgr->deleteCategory(cat);
                 statusBar()->showMessage(QStringLiteral("已删除 %1 个片段").arg(count), kStatusBarShortMs);
-                codeEditor->clear();
                 nameEdit->clear();
                 tagsEdit->clear();
                 packagesEdit->clear();
                 tikzLibrariesEdit->clear();
                 descEdit->clear();
                 pdfPreview->clearDocument();
+                while (tabWidget->count() > 0) {
+                    QWidget *w = tabWidget->widget(0);
+                    tabWidget->removeTab(0);
+                    w->deleteLater();
+                }
+                currentSnippetId.clear();
                 refreshSearch();
                 refreshCategoryTree();
             }
@@ -409,8 +629,13 @@ void MainWindow::setupUI()
             QStringLiteral("确定要删除此片段吗？"), QMessageBox::Yes | QMessageBox::No);
         if (ret == QMessageBox::Yes) {
             snippetMgr->deleteSnippet(currentSnippetId);
+            int tabIdx = findTabForSnippet(currentSnippetId);
+            if (tabIdx >= 0) {
+                QWidget *w = tabWidget->widget(tabIdx);
+                tabWidget->removeTab(tabIdx);
+                w->deleteLater();
+            }
             currentSnippetId.clear();
-            codeEditor->clear();
             nameEdit->clear();
             tagsEdit->clear();
             packagesEdit->clear();
@@ -480,7 +705,9 @@ void MainWindow::setupUI()
     });
 
     auto copyCode = [this]() {
-        QString code = applyParams(codeEditor->toPlainText());
+        CodeEditor *ed = currentEditor();
+        if (!ed) return;
+        QString code = applyParams(ed->toPlainText());
         static QRegularExpression paramLine("^%\\s*@param:.*(\n|\r\n?)?", QRegularExpression::MultilineOption);
         code.remove(paramLine);
         QApplication::clipboard()->setText(code);
@@ -489,7 +716,9 @@ void MainWindow::setupUI()
 
     auto copyFullDocument = [this]() {
         if (currentSnippetId.isEmpty()) {
-            QString code = applyParams(codeEditor->toPlainText());
+            CodeEditor *ed = currentEditor();
+            if (!ed) return;
+            QString code = applyParams(ed->toPlainText());
             static QRegularExpression paramLine("^%\\s*@param:.*(\n|\r\n?)?", QRegularExpression::MultilineOption);
             code.remove(paramLine);
             QString fullDoc = compiler->wrapCode(code, QString(), QString(), QString());
@@ -506,8 +735,14 @@ void MainWindow::setupUI()
         statusBar()->showMessage(QStringLiteral("完整文档已复制到剪贴板"), 2000);
     };
 
-    connect(undoAct, &QAction::triggered, codeEditor, &QPlainTextEdit::undo);
-    connect(redoAct, &QAction::triggered, codeEditor, &QPlainTextEdit::redo);
+    connect(undoAct, &QAction::triggered, this, [this]() {
+        CodeEditor *ed = currentEditor();
+        if (ed) ed->undo();
+    });
+    connect(redoAct, &QAction::triggered, this, [this]() {
+        CodeEditor *ed = currentEditor();
+        if (ed) ed->redo();
+    });
     connect(exportTexAct, &QAction::triggered, this, [this]() {
         if (currentSnippetId.isEmpty()) {
             statusBar()->showMessage(QStringLiteral("请先选择一个片段"), kStatusBarShortMs);
@@ -702,12 +937,17 @@ void MainWindow::setupUI()
     compileShortcut = new QShortcut(this);
     applyParamsShortcut = new QShortcut(this);
     saveShortcut = new QShortcut(this);
+    closeTabShortcut = new QShortcut(this);
     connect(copyCodeShortcut, &QShortcut::activated, this, copyCode);
     connect(copyPngShortcut, &QShortcut::activated, this, copyPngFromCurrentPreview);
     connect(copySvgShortcut, &QShortcut::activated, this, copySvgFromCurrentPreview);
     connect(compileShortcut, &QShortcut::activated, this, [this]() { compileAct->trigger(); });
     connect(applyParamsShortcut, &QShortcut::activated, this, [this]() { applyParamsAct->trigger(); });
     connect(saveShortcut, &QShortcut::activated, this, [this]() { saveAct->trigger(); });
+    connect(closeTabShortcut, &QShortcut::activated, this, [this]() {
+        int idx = tabWidget->currentIndex();
+        if (idx >= 0) onTabCloseRequested(idx);
+    });
     applyShortcuts();
 
     mainSplitter->addWidget(searchPanel);
@@ -760,15 +1000,15 @@ void MainWindow::setupConnections()
             QMessageBox::Yes | QMessageBox::No);
         if (ret != QMessageBox::Yes) return;
 
-        if (ids.contains(currentSnippetId)) {
-            currentSnippetId.clear();
-            codeEditor->clear();
-            nameEdit->clear();
-            tagsEdit->clear();
-            packagesEdit->clear();
-            tikzLibrariesEdit->clear();
-            descEdit->clear();
-            pdfPreview->clearDocument();
+        for (const QString &id : ids) {
+            int tabIdx = findTabForSnippet(id);
+            if (tabIdx >= 0) {
+                if (id == currentSnippetId)
+                    currentSnippetId.clear();
+                QWidget *w = tabWidget->widget(tabIdx);
+                tabWidget->removeTab(tabIdx);
+                w->deleteLater();
+            }
         }
 
         int count = snippetMgr->batchDeleteSnippets(ids);
@@ -815,7 +1055,9 @@ void MainWindow::setupConnections()
         QString tikzLibraries;
 
         if (currentSnippetId.isEmpty()) {
-            code = codeEditor->toPlainText();
+            CodeEditor *ed = currentEditor();
+            if (!ed) return;
+            code = ed->toPlainText();
             templateId.clear();
             snippetId = "scratch";
         } else {
@@ -864,10 +1106,6 @@ void MainWindow::setupConnections()
                 statusBar()->showMessage(QStringLiteral("编译失败，详见日志"), kStatusBarShortMs);
             }
         });
-
-    connect(codeEditor, &QPlainTextEdit::textChanged, this, [this]() {
-        onCurrentSnippetChanged();
-    });
 }
 
 void MainWindow::refreshSearch()
@@ -886,11 +1124,17 @@ void MainWindow::loadSnippetIntoEditor(const QString &id)
     Snippet s = snippetMgr->loadSnippet(id);
     if (s.id.isEmpty()) return;
 
-    currentSnippetId = id;
-    {
-        const QSignalBlocker blocker(codeEditor);
-        codeEditor->setPlainText(s.code);
+    int existingIdx = findTabForSnippet(id);
+    if (existingIdx >= 0) {
+        tabWidget->setCurrentIndex(existingIdx);
+        return;
     }
+
+    m_loadingTab = true;
+
+    currentSnippetId = id;
+    createNewTab(id, s.code, s.name.isEmpty() ? id.left(8) : s.name);
+
     nameEdit->setText(s.name);
     descEdit->setPlainText(s.description);
     tagsEdit->setText(s.tags.join(", "));
@@ -904,6 +1148,7 @@ void MainWindow::loadSnippetIntoEditor(const QString &id)
 
     loadPreviewForSnippet(id);
 
+    m_loadingTab = false;
     parseParams();
 }
 
@@ -911,10 +1156,13 @@ void MainWindow::saveCurrentSnippet()
 {
     if (currentSnippetId.isEmpty()) return;
 
+    CodeEditor *ed = currentEditor();
+    if (!ed) return;
+
     Snippet s = snippetMgr->loadSnippet(currentSnippetId);
     s.name = nameEdit->text();
     s.description = descEdit->toPlainText();
-    s.code = codeEditor->toPlainText();
+    s.code = ed->toPlainText();
     s.packages = packagesEdit->text();
     s.tikzLibraries = tikzLibrariesEdit->text();
     QStringList tags;
@@ -925,16 +1173,40 @@ void MainWindow::saveCurrentSnippet()
     }
     s.tags = tags;
     snippetMgr->saveSnippet(s);
+
+    int tabIdx = findTabForSnippet(currentSnippetId);
+    if (tabIdx >= 0)
+        tabWidget->setTabText(tabIdx, s.name.isEmpty() ? currentSnippetId.left(8) : s.name);
+
     clearDraft();
 }
 
 void MainWindow::onCurrentSnippetChanged()
 {
+    CodeEditor *ed = currentEditor();
+    if (ed) {
+        int tabIdx = tabWidget->currentIndex();
+        if (tabIdx >= 0) {
+            QString sid = tabWidget->tabBar()->tabData(tabIdx).toString();
+            Snippet s = sid.isEmpty() ? Snippet() : snippetMgr->loadSnippet(sid);
+            if (s.code != ed->toPlainText()) {
+                QString title = nameEdit->text().isEmpty()
+                    ? (sid.isEmpty() ? QStringLiteral("未命名") : sid.left(8))
+                    : nameEdit->text();
+                if (!title.endsWith(QStringLiteral(" *")))
+                    title += QStringLiteral(" *");
+                tabWidget->setTabText(tabIdx, title);
+            }
+        }
+    }
     parseParams();
 }
 
 void MainWindow::jumpToErrorLine(const QString &logText)
 {
+    CodeEditor *ed = currentEditor();
+    if (!ed) return;
+
     QRegularExpression re("l\\.(\\d+)");
     QRegularExpressionMatchIterator it = re.globalMatch(logText);
     if (!it.hasNext()) return;
@@ -943,12 +1215,12 @@ void MainWindow::jumpToErrorLine(const QString &logText)
     int line = match.captured(1).toInt();
     if (line < 1) return;
 
-    QTextCursor cursor = codeEditor->textCursor();
+    QTextCursor cursor = ed->textCursor();
     cursor.movePosition(QTextCursor::Start);
     cursor.movePosition(QTextCursor::Down, QTextCursor::MoveAnchor, line - 1);
-    codeEditor->setTextCursor(cursor);
-    codeEditor->highlightCurrentLine();
-    codeEditor->setFocus();
+    ed->setTextCursor(cursor);
+    ed->highlightCurrentLine();
+    ed->setFocus();
 }
 
 void MainWindow::clearParams()
@@ -966,7 +1238,10 @@ void MainWindow::parseParams()
 {
     clearParams();
 
-    QString code = codeEditor->toPlainText();
+    CodeEditor *ed = currentEditor();
+    if (!ed) return;
+
+    QString code = ed->toPlainText();
     QRegularExpression re("%\\s*@param:\\s*(\\w+)=(\\S+)");
     QRegularExpressionMatchIterator it = re.globalMatch(code);
 
@@ -993,7 +1268,7 @@ void MainWindow::parseParams()
     }
 
     paramsLayout->addStretch();
-    codeEditor->refreshParamWords(paramNames);
+    ed->refreshParamWords(paramNames);
 }
 
 QString MainWindow::applyParams(const QString &code)
@@ -1204,6 +1479,9 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event)
 
 void MainWindow::handleLogDoubleClick()
 {
+    CodeEditor *ed = currentEditor();
+    if (!ed) return;
+
     QTextCursor cursor = logPanel->textCursor();
     cursor.select(QTextCursor::BlockUnderCursor);
     QString line = cursor.selectedText().trimmed();
@@ -1215,12 +1493,12 @@ void MainWindow::handleLogDoubleClick()
     int lineNum = match.captured(1).toInt();
     if (lineNum < 1) return;
 
-    cursor = codeEditor->textCursor();
+    cursor = ed->textCursor();
     cursor.movePosition(QTextCursor::Start);
     cursor.movePosition(QTextCursor::Down, QTextCursor::MoveAnchor, lineNum - 1);
-    codeEditor->setTextCursor(cursor);
-    codeEditor->highlightCurrentLine();
-    codeEditor->setFocus();
+    ed->setTextCursor(cursor);
+    ed->highlightCurrentLine();
+    ed->setFocus();
 }
 
 void MainWindow::checkSystemDependencies()
@@ -1289,6 +1567,7 @@ void MainWindow::applyShortcuts()
     setShortcut(compileShortcut, "shortcuts/compile");
     setShortcut(applyParamsShortcut, "shortcuts/applyParams");
     setShortcut(saveShortcut, "shortcuts/save");
+    setShortcut(closeTabShortcut, "shortcuts/closeTab");
 }
 
 void MainWindow::applyGlobalHotkey()
@@ -1354,13 +1633,19 @@ void MainWindow::factoryReset()
     SettingsDialog::applyToCompiler(compiler);
 
     currentSnippetId.clear();
-    codeEditor->clear();
     nameEdit->clear();
     descEdit->clear();
     tagsEdit->clear();
     packagesEdit->clear();
     tikzLibrariesEdit->clear();
     clearPdfPreview();
+
+    while (tabWidget->count() > 0) {
+        QWidget *w = tabWidget->widget(0);
+        tabWidget->removeTab(0);
+        w->deleteLater();
+    }
+
     refreshCategoryTree();
     refreshSearch();
 }
@@ -1375,11 +1660,16 @@ void MainWindow::applyAppearanceSettings()
     int fontSize = settings.value("editor/fontSize", kDefaultFontSize).toInt();
 
     QFont editorFont("monospace", fontSize);
-    codeEditor->setFont(editorFont);
-    codeEditor->setTabStopDistance(4 * codeEditor->fontMetrics().horizontalAdvance(' '));
-
     QFont logFont("monospace", qMax(8, fontSize - 1));
     logPanel->setFont(logFont);
+
+    for (int i = 0; i < tabWidget->count(); ++i) {
+        CodeEditor *ed = qobject_cast<CodeEditor*>(tabWidget->widget(i));
+        if (ed) {
+            ed->setFont(editorFont);
+            ed->setTabStopDistance(4 * ed->fontMetrics().horizontalAdvance(' '));
+        }
+    }
 }
 
 void MainWindow::startAutoSave()
@@ -1392,28 +1682,31 @@ void MainWindow::startAutoSave()
 
 void MainWindow::performAutoSave()
 {
-    if (codeEditor->toPlainText().trimmed().isEmpty()) return;
+    for (int i = 0; i < tabWidget->count(); ++i) {
+        CodeEditor *ed = qobject_cast<CodeEditor*>(tabWidget->widget(i));
+        if (!ed || ed->toPlainText().trimmed().isEmpty())
+            continue;
 
-    QString draftDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/drafts/";
-    QDir().mkpath(draftDir);
+        QString sid = tabWidget->tabBar()->tabData(i).toString();
+        QString draftDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/drafts/";
+        QDir().mkpath(draftDir);
 
-    QString draftPath = draftDir + (currentSnippetId.isEmpty() ? "scratch" : currentSnippetId) + ".json";
+        QString draftPath = draftDir + (sid.isEmpty() ? "scratch" : sid) + ".json";
 
-    QJsonObject obj;
-    obj["snippetId"] = currentSnippetId;
-    obj["code"] = codeEditor->toPlainText();
-    obj["name"] = nameEdit->text();
-    obj["description"] = descEdit->toPlainText();
-    obj["tags"] = tagsEdit->text();
-    obj["packages"] = packagesEdit->text();
-    obj["tikzLibraries"] = tikzLibrariesEdit->text();
-    if (templateCombo->currentIndex() >= 0)
-        obj["templateId"] = templateCombo->currentData().toString();
+        QJsonObject obj;
+        obj["snippetId"] = sid;
+        obj["code"] = ed->toPlainText();
+        obj["name"] = tabWidget->tabText(i);
+        obj["description"] = QString();
+        obj["tags"] = QString();
+        obj["packages"] = QString();
+        obj["tikzLibraries"] = QString();
 
-    QFile file(draftPath);
-    if (file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
-        file.write(QJsonDocument(obj).toJson());
-        file.close();
+        QFile file(draftPath);
+        if (file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+            file.write(QJsonDocument(obj).toJson());
+            file.close();
+        }
     }
 }
 
@@ -1458,16 +1751,23 @@ void MainWindow::checkDraftsOnStartup()
 
     QJsonObject obj = doc.object();
     QString sid = obj.value("snippetId").toString();
+    QString code = obj.value("code").toString();
 
     if (!sid.isEmpty() && sid != "scratch" && snippetMgr->snippetExists(sid)) {
         loadSnippetIntoEditor(sid);
+    } else if (!code.trimmed().isEmpty()) {
+        createNewTab(QString(), code, QStringLiteral("草稿"));
     }
-    codeEditor->setPlainText(obj.value("code").toString());
 
-    if (nameEdit->text().isEmpty())
-        nameEdit->setText(obj.value("name").toString());
-    if (descEdit->toPlainText().isEmpty())
-        descEdit->setPlainText(obj.value("description").toString());
+    if (!code.trimmed().isEmpty()) {
+        CodeEditor *ed = currentEditor();
+        if (ed) {
+            if (nameEdit->text().isEmpty())
+                nameEdit->setText(obj.value("name").toString());
+            if (descEdit->toPlainText().isEmpty())
+                descEdit->setPlainText(obj.value("description").toString());
+        }
+    }
 
     statusBar()->showMessage(QStringLiteral("已恢复草稿"), kStatusBarShortMs);
 }

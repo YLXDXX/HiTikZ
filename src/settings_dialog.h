@@ -38,6 +38,7 @@ private:
     QKeySequenceEdit *compileShortcutEdit;
     QKeySequenceEdit *applyParamsShortcutEdit;
     QKeySequenceEdit *saveShortcutEdit;
+    QKeySequenceEdit *closeTabShortcutEdit;
     QKeySequenceEdit *globalHotkeyEdit;
     QListWidget *templateListWidget;
     QPlainTextEdit *templateEdit;

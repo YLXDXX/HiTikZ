@@ -109,3 +109,25 @@ add_executable(test_highlighter_regex
 )
 target_link_libraries(test_highlighter_regex PRIVATE Qt6::Core)
 add_test(NAME HighlighterRegex COMMAND test_highlighter_regex)
+
+add_executable(test_multitab
+    tests/test_multitab.cpp
+    src/mainwindow.cpp
+    src/code_editor.cpp
+    src/tikz_highlighter.cpp
+    src/tikz_completer.cpp
+    src/settings_dialog.cpp
+    src/search_panel.cpp
+    src/snippet_properties_dialog.cpp
+    src/kde_global_shortcut.cpp
+    src/pdf_preview_widget.cpp
+    src/flow_layout.cpp
+    src/snippet_manager.cpp
+    src/latex_compiler.cpp
+)
+target_include_directories(test_multitab PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_multitab PRIVATE Qt6::Widgets Qt6::Pdf Qt6::PdfWidgets)
+target_compile_definitions(test_multitab PRIVATE
+    RESOURCE_DIR=${CMAKE_SOURCE_DIR}/resources
+)
+add_test(NAME MultiTab COMMAND test_multitab)
