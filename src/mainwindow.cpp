@@ -67,9 +67,14 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 {
     QString resourceDir = QStringLiteral(RES_DIR);
     SettingsDialog::ensureTemplatesCopied(resourceDir + "/templates");
-    SnippetManager::copyPresetsFromResources(
-        resourceDir + "/presets",
-        QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/presets/");
+
+    // Only copy presets on first run (empty presets directory)
+    QString presetDest = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/presets/";
+    QDir presetDir(presetDest);
+    if (!presetDir.exists() || presetDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot).isEmpty()) {
+        SnippetManager::copyPresetsFromResources(resourceDir + "/presets", presetDest);
+    }
+
     snippetMgr = new SnippetManager(this);
     compiler = new LatexCompiler(this);
     SettingsDialog::applyToCompiler(compiler);
