@@ -696,13 +696,17 @@ void MainWindow::setupUI()
         QString content = QString::fromUtf8(file.readAll());
         file.close();
 
+        // Split into preamble and body
+        QString preamble;
         QString code;
         int docBegin = content.indexOf(QStringLiteral("\\begin{document}"));
         int docEnd = content.indexOf(QStringLiteral("\\end{document}"));
         if (docBegin >= 0 && docEnd > docBegin) {
+            preamble = content.left(docBegin);
             int codeStart = content.indexOf('\n', docBegin) + 1;
             code = content.mid(codeStart, docEnd - codeStart).trimmed();
         } else {
+            preamble = content;
             int tikzBegin = content.indexOf(QStringLiteral("\\begin{tikzpicture}"));
             int tikzEnd = content.indexOf(QStringLiteral("\\end{tikzpicture}"));
             if (tikzBegin >= 0 && tikzEnd > tikzBegin) {
@@ -718,11 +722,46 @@ void MainWindow::setupUI()
             return;
         }
 
+        // Parse \usepackage{...} and \usepackage[...]{...} from preamble
+        QStringList packages;
+        QRegularExpression usepkgRe(QStringLiteral("\\\\usepackage(?:\\[([^\\]]*)\\])?\\{([^}]*)\\}"));
+        QRegularExpressionMatchIterator pkgIt = usepkgRe.globalMatch(preamble);
+        while (pkgIt.hasNext()) {
+            QRegularExpressionMatch m = pkgIt.next();
+            QString options = m.captured(1);
+            QString pkgList = m.captured(2);
+            QStringList pkgs = pkgList.split(',');
+            for (const QString &pkg : pkgs) {
+                QString trimmed = pkg.trimmed();
+                if (trimmed.isEmpty()) continue;
+                if (!options.isEmpty())
+                    trimmed = "[" + options + "]" + trimmed;
+                packages.append(trimmed);
+            }
+        }
+
+        // Parse \usetikzlibrary{...} from preamble
+        QStringList libraries;
+        QRegularExpression uselibRe(QStringLiteral("\\\\usetikzlibrary\\{([^}]*)\\}"));
+        QRegularExpressionMatchIterator libIt = uselibRe.globalMatch(preamble);
+        while (libIt.hasNext()) {
+            QRegularExpressionMatch m = libIt.next();
+            QString libList = m.captured(1);
+            QStringList libs = libList.split(',');
+            for (const QString &lib : libs) {
+                QString trimmed = lib.trimmed();
+                if (!trimmed.isEmpty())
+                    libraries.append(trimmed);
+            }
+        }
+
         QString baseName = QFileInfo(filePath).completeBaseName();
         QString id = snippetMgr->createSnippet(baseName, QString());
         Snippet s = snippetMgr->loadSnippet(id);
         s.code = code;
         s.name = baseName;
+        s.packages = packages.join(", ");
+        s.tikzLibraries = libraries.join(", ");
         snippetMgr->saveSnippet(s);
 
         refreshCategoryTree();
