@@ -969,12 +969,11 @@ void MainWindow::setupUI()
                     m_clipboardSvgPending = false;
                     if (ok) {
                         QFile svgFile(svgPath);
-                        if (svgFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+                        if (svgFile.open(QIODevice::ReadOnly)) {
                             QByteArray svgData = svgFile.readAll();
                             svgFile.close();
                             QMimeData *mimeData = new QMimeData;
                             mimeData->setData(QStringLiteral("image/svg+xml"), svgData);
-                            mimeData->setText(QString::fromUtf8(svgData));
                             QApplication::clipboard()->setMimeData(mimeData);
                             statusBar()->showMessage(QStringLiteral("SVG已复制到剪贴板"), 2000);
                         }
