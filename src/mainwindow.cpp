@@ -435,9 +435,9 @@ void MainWindow::setupUI()
     QAction *exportMenuAct = importExportMenu->addAction(QStringLiteral("导出当前"));
     QAction *exportAllMenuAct = importExportMenu->addAction(QStringLiteral("导出全部"));
     importExportMenu->addSeparator();
-    QAction *exportTexAct = importExportMenu->addAction(QStringLiteral("导出为 .tex 文档"));
-    QAction *exportPdfAct = importExportMenu->addAction(QStringLiteral("导出 PDF"));
-    QAction *exportPngAct = importExportMenu->addAction(QStringLiteral("导出 PNG 图片"));
+    QAction *exportTexAct = importExportMenu->addAction(QStringLiteral("导出为 Tex 文档"));
+    QAction *exportPdfAct = importExportMenu->addAction(QStringLiteral("导出为 PDF 文档"));
+    QAction *exportPngAct = importExportMenu->addAction(QStringLiteral("导出为 PNG 图片"));
     QAction *exportSvgAct = importExportMenu->addAction(QStringLiteral("导出 SVG 图片"));
     importExportBtn->setMenu(importExportMenu);
     toolBar->addWidget(importExportBtn);
@@ -450,15 +450,15 @@ void MainWindow::setupUI()
 
     toolBar->addSeparator();
 
-    QAction *undoAct = toolBar->addAction(QStringLiteral("撤销"));
+    QAction *undoAct = toolBar->addAction(QStringLiteral("↩"));
     undoAct->setShortcut(QKeySequence::Undo);
-    QAction *redoAct = toolBar->addAction(QStringLiteral("重做"));
+    QAction *redoAct = toolBar->addAction(QStringLiteral("↪"));
     redoAct->setShortcut(QKeySequence::Redo);
 
     toolBar->addSeparator();
 
     QAction *copyCodeAct = toolBar->addAction(QStringLiteral("复制代码"));
-    QAction *copyFullAct = toolBar->addAction(QStringLiteral("复制完整文档"));
+    QAction *copyFullAct = toolBar->addAction(QStringLiteral("复制文档"));
     QAction *copyPngAct = toolBar->addAction(QStringLiteral("复制PNG"));
     QAction *copySvgAct = toolBar->addAction(QStringLiteral("复制SVG"));
 
@@ -471,8 +471,8 @@ void MainWindow::setupUI()
     fitWidthAct->setCheckable(true);
     fitHeightAct = toolBar->addAction(QStringLiteral("适应高度"));
     fitHeightAct->setCheckable(true);
-    zoomOutAct = toolBar->addAction(QStringLiteral("缩小"));
-    zoomInAct = toolBar->addAction(QStringLiteral("放大"));
+    zoomOutAct = toolBar->addAction(QStringLiteral("−"));
+    zoomInAct = toolBar->addAction(QStringLiteral("+"));
 
     toolBar->addSeparator();
 
