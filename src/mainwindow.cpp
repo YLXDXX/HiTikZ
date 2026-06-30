@@ -579,9 +579,11 @@ void MainWindow::setupUI()
         if (filePath.isEmpty()) return;
 
         QString outPrefix = QFileInfo(filePath).absolutePath() + "/" + QFileInfo(filePath).completeBaseName();
+        QSettings settings("HiTikZ", "TikzManager");
+        int pngDpi = settings.value("png/dpi", 300).toInt();
         QProcess pngProc;
         pngProc.start(compiler->pdfToCairoCommand(), QStringList()
-            << "-png" << "-r" << "300" << "-singlefile" << pdfPath << outPrefix);
+            << "-png" << "-r" << QString::number(pngDpi) << "-singlefile" << pdfPath << outPrefix);
         pngProc.waitForFinished(15000);
         if (pngProc.exitCode() == 0 && QFile::exists(outPrefix + ".png")) {
             statusBar()->showMessage(QStringLiteral("PNG 导出成功"), kStatusBarShortMs);
