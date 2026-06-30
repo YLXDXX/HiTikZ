@@ -217,6 +217,8 @@ void MainWindow::setupUI()
     importExportMenu->addSeparator();
     QAction *exportTexAct = importExportMenu->addAction(QStringLiteral("导出为 .tex 文档"));
     QAction *exportPdfAct = importExportMenu->addAction(QStringLiteral("导出 PDF"));
+    QAction *exportPngAct = importExportMenu->addAction(QStringLiteral("导出 PNG 图片"));
+    QAction *exportSvgAct = importExportMenu->addAction(QStringLiteral("导出 SVG 图片"));
     importExportBtn->setMenu(importExportMenu);
     toolBar->addWidget(importExportBtn);
 
@@ -555,6 +557,68 @@ void MainWindow::setupUI()
                 QMessageBox::warning(this, QStringLiteral("导出失败"),
                     QStringLiteral("无法复制PDF文件。"));
             }
+        }
+    });
+
+    connect(exportPngAct, &QAction::triggered, this, [this]() {
+        QString pdfPath;
+        if (!currentSnippetId.isEmpty()) {
+            pdfPath = snippetDataPath(currentSnippetId) + "/preview.pdf";
+        }
+        if (pdfPath.isEmpty() || !QFile::exists(pdfPath)) {
+            pdfPath = compiler->pdfPath();
+        }
+        if (pdfPath.isEmpty() || !QFile::exists(pdfPath)) {
+            statusBar()->showMessage(QStringLiteral("请先编译生成PDF预览"), kStatusBarShortMs);
+            return;
+        }
+        QString defaultName = currentSnippetId.isEmpty() ? "output.png"
+            : snippetMgr->loadSnippet(currentSnippetId).name + ".png";
+        QString filePath = QFileDialog::getSaveFileName(this,
+            QStringLiteral("导出 PNG 图片"), defaultName, "PNG 图片 (*.png)");
+        if (filePath.isEmpty()) return;
+
+        QString outPrefix = QFileInfo(filePath).absolutePath() + "/" + QFileInfo(filePath).completeBaseName();
+        QProcess pngProc;
+        pngProc.start(compiler->pdfToCairoCommand(), QStringList()
+            << "-png" << "-r" << "300" << "-singlefile" << pdfPath << outPrefix);
+        pngProc.waitForFinished(15000);
+        if (pngProc.exitCode() == 0 && QFile::exists(outPrefix + ".png")) {
+            statusBar()->showMessage(QStringLiteral("PNG 导出成功"), kStatusBarShortMs);
+        } else {
+            QMessageBox::warning(this, QStringLiteral("导出失败"),
+                QStringLiteral("无法生成PNG图片。"));
+        }
+    });
+
+    connect(exportSvgAct, &QAction::triggered, this, [this]() {
+        QString pdfPath;
+        if (!currentSnippetId.isEmpty()) {
+            pdfPath = snippetDataPath(currentSnippetId) + "/preview.pdf";
+        }
+        if (pdfPath.isEmpty() || !QFile::exists(pdfPath)) {
+            pdfPath = compiler->pdfPath();
+        }
+        if (pdfPath.isEmpty() || !QFile::exists(pdfPath)) {
+            statusBar()->showMessage(QStringLiteral("请先编译生成PDF预览"), kStatusBarShortMs);
+            return;
+        }
+        QString defaultName = currentSnippetId.isEmpty() ? "output.svg"
+            : snippetMgr->loadSnippet(currentSnippetId).name + ".svg";
+        QString filePath = QFileDialog::getSaveFileName(this,
+            QStringLiteral("导出 SVG 图片"), defaultName, "SVG 图片 (*.svg)");
+        if (filePath.isEmpty()) return;
+
+        QString outSvg = QFileInfo(filePath).absolutePath() + "/" + QFileInfo(filePath).completeBaseName() + ".svg";
+        QProcess svgProc;
+        svgProc.start(compiler->pdfToCairoCommand(), QStringList()
+            << "-svg" << pdfPath << outSvg);
+        svgProc.waitForFinished(15000);
+        if (svgProc.exitCode() == 0 && QFile::exists(outSvg)) {
+            statusBar()->showMessage(QStringLiteral("SVG 导出成功"), kStatusBarShortMs);
+        } else {
+            QMessageBox::warning(this, QStringLiteral("导出失败"),
+                QStringLiteral("无法生成SVG图片。"));
         }
     });
 
