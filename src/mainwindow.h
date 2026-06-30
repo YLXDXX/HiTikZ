@@ -81,7 +81,7 @@ private:
     void startAutoSave();
     void performAutoSave();
     void clearDraft();
-    void checkDraftsOnStartup();
+    void clearAllDrafts();
 
     QString snippetDataPath(const QString &id) const;
 

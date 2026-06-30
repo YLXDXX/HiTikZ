@@ -118,10 +118,6 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
         checkSystemDependencies();
     });
 
-    QTimer::singleShot(200, this, [this]() {
-        checkDraftsOnStartup();
-    });
-
     applyGlobalHotkey();
     startAutoSave();
 }
@@ -399,11 +395,14 @@ void MainWindow::closeEvent(QCloseEvent *event)
                 }
             }
         } else if (clicked == discardAllBtn) {
+            clearAllDrafts();
         } else {
             event->ignore();
             return;
         }
     }
+
+    clearAllDrafts();
 
     if (trayIcon)
         trayIcon->hide();
@@ -1717,57 +1716,13 @@ void MainWindow::clearDraft()
     QFile::remove(draftPath);
 }
 
-void MainWindow::checkDraftsOnStartup()
+void MainWindow::clearAllDrafts()
 {
     QString draftDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/drafts/";
     QDir d(draftDir);
     if (!d.exists()) return;
 
     QStringList drafts = d.entryList(QStringList() << "*.json", QDir::Files);
-    if (drafts.isEmpty()) return;
-
-    int count = drafts.size();
-    int ret = QMessageBox::question(this, QStringLiteral("恢复草稿"),
-        QStringLiteral("发现 %1 个未保存的草稿。\n\n是否恢复最近编辑的内容？").arg(count),
-        QMessageBox::Yes | QMessageBox::No);
-
-    if (ret != QMessageBox::Yes) {
-        for (const QString &draft : drafts)
-            QFile::remove(draftDir + draft);
-        return;
-    }
-
-    QStringList paths = d.entryList(QStringList() << "*.json", QDir::Files, QDir::Time);
-    if (paths.isEmpty()) return;
-
-    QString latestPath = draftDir + paths.first();
-    QFile file(latestPath);
-    if (!file.open(QIODevice::ReadOnly)) return;
-
-    QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
-    file.close();
-
-    if (!doc.isObject()) return;
-
-    QJsonObject obj = doc.object();
-    QString sid = obj.value("snippetId").toString();
-    QString code = obj.value("code").toString();
-
-    if (!sid.isEmpty() && sid != "scratch" && snippetMgr->snippetExists(sid)) {
-        loadSnippetIntoEditor(sid);
-    } else if (!code.trimmed().isEmpty()) {
-        createNewTab(QString(), code, QStringLiteral("草稿"));
-    }
-
-    if (!code.trimmed().isEmpty()) {
-        CodeEditor *ed = currentEditor();
-        if (ed) {
-            if (nameEdit->text().isEmpty())
-                nameEdit->setText(obj.value("name").toString());
-            if (descEdit->toPlainText().isEmpty())
-                descEdit->setPlainText(obj.value("description").toString());
-        }
-    }
-
-    statusBar()->showMessage(QStringLiteral("已恢复草稿"), kStatusBarShortMs);
+    for (const QString &draft : drafts)
+        QFile::remove(draftDir + draft);
 }
