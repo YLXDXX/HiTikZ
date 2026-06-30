@@ -68,11 +68,12 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     QString resourceDir = QStringLiteral(RES_DIR);
     SettingsDialog::ensureTemplatesCopied(resourceDir + "/templates");
 
-    // Only copy presets on first run (empty presets directory)
+    // Only copy presets on first run (tracked via QSettings flag)
     QString presetDest = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/presets/";
-    QDir presetDir(presetDest);
-    if (!presetDir.exists() || presetDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot).isEmpty()) {
+    QSettings settings("HiTikZ", "TikzManager");
+    if (!settings.value("presets/installed", false).toBool()) {
         SnippetManager::copyPresetsFromResources(resourceDir + "/presets", presetDest);
+        settings.setValue("presets/installed", true);
     }
 
     snippetMgr = new SnippetManager(this);
