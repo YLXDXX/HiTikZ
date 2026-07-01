@@ -1167,13 +1167,23 @@ void MainWindow::setupConnections()
             snippetMgr->saveSnippet(s);
         });
 
-    connect(compileAct, &QAction::triggered, this, [this]() {
+    auto startCompile = [this]() {
+        m_compiling = true;
+        compileAct->setEnabled(false);
+        applyParamsAct->setEnabled(false);
+    };
+    auto endCompile = [this]() {
+        m_compiling = false;
+        compileAct->setEnabled(true);
+        applyParamsAct->setEnabled(true);
+    };
+
+    connect(compileAct, &QAction::triggered, this, [this, startCompile, endCompile]() {
         if (m_compiling) {
             statusBar()->showMessage(QStringLiteral("编译正在进行中，请稍候..."), kStatusBarShortMs);
             return;
         }
-        m_compiling = true;
-        compileAct->setEnabled(false);
+        startCompile();
 
         saveCurrentSnippet();
         QString code;
@@ -1184,7 +1194,7 @@ void MainWindow::setupConnections()
 
         if (currentSnippetId.isEmpty()) {
             CodeEditor *ed = currentEditor();
-            if (!ed) return;
+            if (!ed) { endCompile(); return; }
             code = applyParams(ed->toPlainText());
             templateId.clear();
             snippetId = "scratch";
@@ -1198,6 +1208,7 @@ void MainWindow::setupConnections()
 
         if (code.trimmed().isEmpty()) {
             statusBar()->showMessage(QStringLiteral("请先输入 TikZ 代码"), kStatusBarShortMs);
+            endCompile();
             return;
         }
 
@@ -1205,8 +1216,14 @@ void MainWindow::setupConnections()
         compiler->compile(code, templateId, snippetId, packages, tikzLibraries);
     });
 
-    connect(applyParamsAct, &QAction::triggered, this, [this]() {
+    connect(applyParamsAct, &QAction::triggered, this, [this, startCompile, endCompile]() {
+        if (m_compiling) {
+            statusBar()->showMessage(QStringLiteral("编译正在进行中，请稍候..."), kStatusBarShortMs);
+            return;
+        }
         if (currentSnippetId.isEmpty()) return;
+        startCompile();
+
         Snippet s = snippetMgr->loadSnippet(currentSnippetId);
         QString code = applyParams(s.code);
         logPanel->clear();
@@ -1219,9 +1236,8 @@ void MainWindow::setupConnections()
     });
 
     connect(compiler, &LatexCompiler::compilationFinished,
-        this, [this](bool success, const QString &pdfPath, const QString &log) {
-            m_compiling = false;
-            compileAct->setEnabled(true);
+        this, [this, endCompile](bool success, const QString &pdfPath, const QString &log) {
+            endCompile();
             if (m_batchGenerating) return;
             QString sid = currentSnippetId.isEmpty() ? QStringLiteral("scratch") : currentSnippetId;
             QString cmd = compiler->xelatexCommand()
