@@ -28,6 +28,10 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     QFormLayout *formLayout = new QFormLayout;
     xelatexPathEdit = new QLineEdit;
     pdftocairoPathEdit = new QLineEdit;
+    inkscapePathEdit = new QLineEdit;
+    svgToolCombo = new QComboBox;
+    svgToolCombo->addItem("pdftocairo", "pdftocairo");
+    svgToolCombo->addItem("inkscape", "inkscape");
     texInputsEdit = new QLineEdit;
     texInputsEdit->setPlaceholderText(QStringLiteral("额外的TEXINPUTS路径，用冒号分隔"));
     pngDpiSpin = new QSpinBox;
@@ -39,6 +43,8 @@ SettingsDialog::SettingsDialog(QWidget *parent)
 
     formLayout->addRow(QStringLiteral("xelatex 路径:"), xelatexPathEdit);
     formLayout->addRow(QStringLiteral("pdftocairo 路径:"), pdftocairoPathEdit);
+    formLayout->addRow(QStringLiteral("inkscape 路径:"), inkscapePathEdit);
+    formLayout->addRow(QStringLiteral("SVG 转换工具:"), svgToolCombo);
     formLayout->addRow(QStringLiteral("TEXINPUTS:"), texInputsEdit);
     formLayout->addRow(QStringLiteral("PNG DPI:"), pngDpiSpin);
     formLayout->addRow(QStringLiteral("代码字体大小:"), editorFontSizeSpin);
@@ -184,6 +190,8 @@ void SettingsDialog::loadSettings()
     QSettings settings("HiTikZ", "TikzManager");
     xelatexPathEdit->setText(settings.value("xelatex/path", "xelatex").toString());
     pdftocairoPathEdit->setText(settings.value("pdftocairo/path", "pdftocairo").toString());
+    inkscapePathEdit->setText(settings.value("inkscape/path", "inkscape").toString());
+    svgToolCombo->setCurrentIndex(svgToolCombo->findData(settings.value("svg/tool", "pdftocairo").toString()));
     texInputsEdit->setText(settings.value("paths/texinputs", "").toString());
     pngDpiSpin->setValue(settings.value("png/dpi", 300).toInt());
     editorFontSizeSpin->setValue(settings.value("editor/fontSize", 10).toInt());
@@ -202,6 +210,8 @@ void SettingsDialog::saveSettings()
     QSettings settings("HiTikZ", "TikzManager");
     settings.setValue("xelatex/path", xelatexPathEdit->text());
     settings.setValue("pdftocairo/path", pdftocairoPathEdit->text());
+    settings.setValue("inkscape/path", inkscapePathEdit->text());
+    settings.setValue("svg/tool", svgToolCombo->currentData().toString());
     settings.setValue("paths/texinputs", texInputsEdit->text());
     settings.setValue("png/dpi", pngDpiSpin->value());
     settings.setValue("editor/fontSize", editorFontSizeSpin->value());
@@ -220,6 +230,8 @@ void SettingsDialog::applyToCompiler(LatexCompiler *compiler)
     QSettings settings("HiTikZ", "TikzManager");
     compiler->setXelatexPath(settings.value("xelatex/path", "xelatex").toString());
     compiler->setPdfToCairoPath(settings.value("pdftocairo/path", "pdftocairo").toString());
+    compiler->setInkscapePath(settings.value("inkscape/path", "inkscape").toString());
+    compiler->setSvgTool(settings.value("svg/tool", "pdftocairo").toString());
     compiler->setTexInputs(settings.value("paths/texinputs", "").toString());
     compiler->setTemplateDir(templateDir());
 }

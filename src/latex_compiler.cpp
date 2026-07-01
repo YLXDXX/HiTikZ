@@ -11,6 +11,8 @@ LatexCompiler::LatexCompiler(QObject *parent)
     , process(nullptr)
     , xelatexPath("xelatex")
     , pdfToCairoPath("pdftocairo")
+    , inkscapePath("inkscape")
+    , svgTool_("pdftocairo")
 {
     tempDir = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + "/TikzManager/";
     QDir().mkpath(tempDir);
@@ -42,6 +44,16 @@ void LatexCompiler::setPdfToCairoPath(const QString &path)
     pdfToCairoPath = path;
 }
 
+void LatexCompiler::setInkscapePath(const QString &path)
+{
+    inkscapePath = path;
+}
+
+void LatexCompiler::setSvgTool(const QString &tool)
+{
+    svgTool_ = tool;
+}
+
 void LatexCompiler::setTexInputs(const QString &texInputs)
 {
     this->texInputs = texInputs;
@@ -55,6 +67,16 @@ QString LatexCompiler::xelatexCommand() const
 QString LatexCompiler::pdfToCairoCommand() const
 {
     return pdfToCairoPath;
+}
+
+QString LatexCompiler::inkscapeCommand() const
+{
+    return inkscapePath;
+}
+
+QString LatexCompiler::svgTool() const
+{
+    return svgTool_;
 }
 
 QString LatexCompiler::tempDirPath() const
@@ -94,6 +116,14 @@ bool LatexCompiler::checkPdfToCairoAvailable()
 {
     QProcess test;
     test.start("pdftocairo", QStringList() << "-v");
+    test.waitForFinished(3000);
+    return test.exitCode() == 0;
+}
+
+bool LatexCompiler::checkInkscapeAvailable()
+{
+    QProcess test;
+    test.start("inkscape", QStringList() << "--version");
     test.waitForFinished(3000);
     return test.exitCode() == 0;
 }
@@ -353,9 +383,6 @@ void LatexCompiler::convertToSvg(const QString &pdfPath)
     QFileInfo fi(pdfPath);
     QString outSvg = fi.absolutePath() + "/" + fi.completeBaseName() + ".svg";
 
-    QStringList args;
-    args << "-svg" << pdfPath << outSvg;
-
     QProcess *conv = new QProcess(this);
     connect(conv, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
         this, [this, conv, outSvg](int exitCode, QProcess::ExitStatus) {
@@ -364,5 +391,42 @@ void LatexCompiler::convertToSvg(const QString &pdfPath)
             conv->deleteLater();
         });
 
-    conv->start(pdfToCairoPath, args);
+    if (svgTool_ == "inkscape") {
+        QStringList args;
+        args << "--export-type=svg"
+             << "--pdf-poppler"
+             << "--export-text-to-path"
+             << "--pages=1"
+             << pdfPath
+             << "-o" << outSvg;
+        conv->start(inkscapePath, args);
+    } else {
+        QStringList args;
+        args << "-svg" << pdfPath << outSvg;
+        conv->start(pdfToCairoPath, args);
+    }
+}
+
+bool LatexCompiler::convertToSvgBlocking(const QString &pdfPath, const QString &outSvgPath)
+{
+    if (pdfPath.isEmpty() || !QFile::exists(pdfPath))
+        return false;
+
+    QProcess proc;
+    if (svgTool_ == "inkscape") {
+        QStringList args;
+        args << "--export-type=svg"
+             << "--pdf-poppler"
+             << "--export-text-to-path"
+             << "--pages=1"
+             << pdfPath
+             << "-o" << outSvgPath;
+        proc.start(inkscapePath, args);
+    } else {
+        QStringList args;
+        args << "-svg" << pdfPath << outSvgPath;
+        proc.start(pdfToCairoPath, args);
+    }
+    proc.waitForFinished(15000);
+    return (proc.exitCode() == 0 && QFile::exists(outSvgPath));
 }

@@ -953,12 +953,7 @@ void MainWindow::setupUI()
             QStringLiteral("导出 SVG 图片"), defaultName, "SVG 图片 (*.svg)");
         if (filePath.isEmpty()) return;
 
-        QString outSvg = QFileInfo(filePath).absolutePath() + "/" + QFileInfo(filePath).completeBaseName() + ".svg";
-        QProcess svgProc;
-        svgProc.start(compiler->pdfToCairoCommand(), QStringList()
-            << "-svg" << pdfPath << outSvg);
-        svgProc.waitForFinished(15000);
-        if (svgProc.exitCode() == 0 && QFile::exists(outSvg)) {
+        if (compiler->convertToSvgBlocking(pdfPath, filePath)) {
             statusBar()->showMessage(QStringLiteral("SVG 导出成功"), kStatusBarShortMs);
         } else {
             QMessageBox::warning(this, QStringLiteral("导出失败"),
@@ -1708,8 +1703,15 @@ void MainWindow::checkSystemDependencies()
     if (!LatexCompiler::checkXelatexAvailable())
         missing << QStringLiteral("xelatex");
 
-    if (!LatexCompiler::checkPdfToCairoAvailable())
-        missing << QStringLiteral("pdftocairo");
+    QSettings settings("HiTikZ", "TikzManager");
+    QString svgTool = settings.value("svg/tool", "pdftocairo").toString();
+    if (svgTool == "inkscape") {
+        if (!LatexCompiler::checkInkscapeAvailable())
+            missing << QStringLiteral("inkscape");
+    } else {
+        if (!LatexCompiler::checkPdfToCairoAvailable())
+            missing << QStringLiteral("pdftocairo");
+    }
 
     if (missing.isEmpty()) return;
 

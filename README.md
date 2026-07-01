@@ -72,7 +72,7 @@
 - **可配置快捷键**：全部快捷键可在设置面板中自定义键序列，支持清空禁用
 - **全局快捷键（KDE）**：KDE 桌面通过 KGlobalAccel 注册系统级快捷键
 - **代码字体调节**：设置面板中可调代码编辑区字体大小（8-48 pt）
-- **依赖检测**：启动时检测 `xelatex` 和 `pdftocairo`，缺失时弹出安装指引
+- **依赖检测**：启动时检测 `xelatex` 和当前配置的 SVG 转换工具（`pdftocairo` 或 `inkscape`），缺失时弹出安装指引
 - **9 个预置片段**：数学（几何 / 函数）、物理（力学）、电路（RLC / 分压 / 运放）各 3 个典型示例
 - **C++17 + Qt6 原生实现**：高性能，启动快，原生 Wayland 支持
 
@@ -89,7 +89,8 @@
 | **KF6GlobalAccel** | （可选）KDE 原生全局快捷键 |
 | **QHotkey** | 通过 CMake FetchContent 自动拉取（KF6GlobalAccel 不可用时的回退） |
 | **XeLaTeX** | TeX Live 2023+（或等效发行版） |
-| **pdftocairo** | poppler 工具集 |
+| **pdftocairo** | poppler 工具集（默认 SVG 转换工具） |
+| **Inkscape** | （可选）备选 SVG 转换工具，在设置面板中切换 |
 | **tar** | GNU tar（用于导入/导出存档） |
 | **unzip** | （可选）导入 .zip 格式存档时的回退工具 |
 
@@ -416,7 +417,7 @@ calc,er,angles,patterns,decorations.pathmorphing
 | 复制代码 | 复制参数替换后的 TikZ 核心代码 |
 | 复制完整文档 | 复制含模板头部的完整 LaTeX 文档 |
 | 复制 PNG | 从 PDF 转换 300 DPI PNG 后复制到剪贴板 |
-| 复制 SVG | 从 PDF 转换 SVG 后复制（附带 `image/svg+xml` MIME 类型） |
+| 复制 SVG | 从 PDF 转换 SVG 后复制（附带 `image/svg+xml` MIME 类型），转换工具可在设置中切换 |
 
 ### 导入与导出
 
@@ -426,7 +427,7 @@ calc,er,angles,patterns,decorations.pathmorphing
 - **导出为 Tex 文档**：生成含模板头部的完整可编译 LaTeX 文档
 - **导出为 PDF 文档**：复制预览 PDF 到指定路径
 - **导出为 PNG 图片**：通过 pdftocairo 将预览 PDF 转换为 PNG（DPI 遵循设置面板配置）
-- **导出为 SVG 图片**：通过 pdftocairo 将预览 PDF 转换为 SVG 矢量图
+- **导出为 SVG 图片**：通过 pdftocairo 或 Inkscape（可在设置面板中切换）将预览 PDF 转换为 SVG 矢量图
 
 **导入**：
 - **导入存档**：选择 `.tar.gz` 或 `.zip` 文件 → 异步解压并为每个片段分配新 UUID → 刷新列表。导入时自动清除 `isPreset` 标记，若缺失 `meta.json` 则自动创建片段
@@ -491,7 +492,7 @@ calc,er,angles,patterns,decorations.pathmorphing
 ```
 
 程序配置通过 `QSettings` 存储，包括：
-- `xelatex/path`, `pdftocairo/path`, `paths/texinputs`, `png/dpi`
+- `xelatex/path`, `pdftocairo/path`, `inkscape/path`, `svg/tool`, `paths/texinputs`, `png/dpi`
 - `editor/fontSize` — 代码字体大小
 - `shortcuts/copyCode`, `shortcuts/copyPng`, `shortcuts/copySvg`
 - `shortcuts/compile`, `shortcuts/applyParams`, `shortcuts/save`, `shortcuts/closeTab`
@@ -504,7 +505,8 @@ calc,er,angles,patterns,decorations.pathmorphing
 工具栏"设置"按钮打开设置对话框，包含以下区域：
 
 **路径设置**：
-- xelatex / pdftocairo 路径（默认从 `$PATH` 查找）
+- xelatex / pdftocairo / inkscape 路径（默认从 `$PATH` 查找）
+- SVG 转换工具选择：pdftocairo 或 inkscape
 - TEXINPUTS 环境变量
 - PNG DPI（72–1200，默认 300）
 - 代码字体大小（8–48，默认 10）
@@ -557,7 +559,7 @@ src/
 ├── mainwindow.h / mainwindow.cpp    # 主窗口（UI 编排、信号槽、业务逻辑）
 ├── search_panel.h / search_panel.cpp # 左栏组件（搜索框、分类树、缩略图、多选/右键菜单）
 ├── snippet_manager.h / .cpp         # 数据层（JSON CRUD、模糊搜索含双字索引、分类缓存、批量操作）
-├── latex_compiler.h / .cpp          # 编译引擎（xelatex + pdftocairo + 宏包/库注入）
+├── latex_compiler.h / .cpp          # 编译引擎（xelatex + pdftocairo/inkscape + 宏包/库注入）
 ├── code_editor.h / .cpp             # 编辑器（行号、当前行+选中词高亮、自动缩进、补全/高亮器集成）
 ├── tikz_highlighter.h / .cpp        # TikZ/LaTeX 语法高亮（QSyntaxHighlighter 子类，12 条优先规则）
 ├── tikz_completer.h / .cpp          # 智能代码补全（9 种上下文检测 + 多 QCompleter + 值提示）
@@ -605,7 +607,7 @@ MainWindow
 ├── QSplitter（垂直）    PDF 预览与元数据区可调分割
 │   ├── PdfPreviewWidget PDF 矢量预览（缩放/平移/适应，独立组件）
 │   └── QScrollArea      元数据编辑表单 + 参数控件
-├── LatexCompiler        编译引擎（xelatex + pdftocairo + 嵌套括号解析 + 行号映射）
+├── LatexCompiler        编译引擎（xelatex + pdftocairo/inkscape SVG转换 + 嵌套括号解析 + 行号映射）
 ├── SnippetManager       数据层（JSON 读写、双字索引搜索、分类缓存、批量操作）
 ├── SettingsDialog       设置面板（路径/快捷键/模板管理/工厂重置）
 └── KdeGlobalShortcut    KDE 全局快捷键（或 QHotkey 回退）
@@ -665,7 +667,8 @@ cd build && ctest --output-on-failure
 | **KF6GlobalAccel** | KDE 原生全局快捷键 |
 | **QHotkey** (fallback) | 非 KDE 环境的全局快捷键 |
 | **XeLaTeX** | LaTeX → PDF 编译 |
-| **pdftocairo** | PDF → PNG / SVG 转换 |
+| **pdftocairo** | PDF → PNG / SVG 转换（默认） |
+| **Inkscape** | PDF → SVG 转换（备选，可在设置中切换） |
 | **JSON** | 片段元数据格式 |
 | **tar / unzip** | 存档导入/导出 |
 
@@ -673,18 +676,9 @@ cd build && ctest --output-on-failure
 
 ## 已知问题
 
-### 1. 属性对话框保存后标签页跳转
+### 1. SVG 剪贴板粘贴到 Inkscape 样式变化
 
-右键缩略图 → 编辑属性 → 保存后，多标签页中的当前活动标签页有时会跳转到其他标签页而非停留在原来的标签页。
-
-- **现象**：当多个片段同时打开时，修改某个片段的属性并保存后，标签页可能切换到第一个片段
-- **根因定位中**：`showThumbnailContextMenu` 保存后调用 `refreshCategoryTree()` / `refreshSearch()` 触发了分类树和缩略图列表的选中信号链传播，尽管已通过 `m_suppressSelectEmit` 守卫阻止了 `snippetSelected` 的直接发射，但仍有其他路径可能触发标签页切换
-- **临时规避**：修改属性后手动切换回之前的标签页
-
-### 2. SVG 剪贴板粘贴到 Inkscape 样式变化
-
-通过工具栏"复制SVG"将 SVG 粘贴到 Inkscape 后图片样式发生变化，而导出为 SVG 文件再在 Inkscape 中打开则正常。
+通过工具栏"复制SVG"将 SVG 粘贴到 Inkscape 后图片样式发生变化，而导出为 SVG 文件再在 Inkscape 中打开则正常。此问题与使用的转换工具（pdftocairo 或 Inkscape）无关，剪贴板粘贴路径本身会导致样式丢失。
 
 - **现象**：粘贴后的图形颜色、线条或布局与原始预览不一致
-- **根因定位中**：两个路径均使用相同的 `pdftocairo -svg <pdf> <output>` 生成 SVG，文件内容理论上一致。问题可能出在 Inkscape 的"粘贴导入"与"文件打开"对 SVG `<defs>` / `<clipPath>` 等全局元素的处理方式不同，或 Wayland 剪贴板 MIME 类型传递过程中存在编码偏差
-- **临时规避**：使用"导出为 SVG 图片"保存为文件后通过 Inkscape 打开
+- **临时规避**：使用"导出为 SVG 图片"保存为文件后，在 Inkscape 中通过"文件 → 打开"或"文件 → 导入"打开该文件

@@ -16,6 +16,8 @@ public:
     void setTemplateDir(const QString &dir);
     void setXelatexPath(const QString &path);
     void setPdfToCairoPath(const QString &path);
+    void setInkscapePath(const QString &path);
+    void setSvgTool(const QString &tool);
     void setTexInputs(const QString &texInputs);
 
     QString tempDirPath() const;
@@ -28,11 +30,15 @@ public:
     void convertToPng(const QString &pdfPath, int dpi = 300);
     void convertToSvg();
     void convertToSvg(const QString &pdfPath);
+    bool convertToSvgBlocking(const QString &pdfPath, const QString &outSvgPath);
     QString xelatexCommand() const;
     QString pdfToCairoCommand() const;
+    QString inkscapeCommand() const;
+    QString svgTool() const;
 
     static bool checkXelatexAvailable();
     static bool checkPdfToCairoAvailable();
+    static bool checkInkscapeAvailable();
 
     QString wrapCode(const QString &texCode, const QString &templateId,
                     const QString &packages, const QString &tikzLibraries) const;
@@ -50,6 +56,8 @@ private:
     QString templateDir;
     QString xelatexPath;
     QString pdfToCairoPath;
+    QString inkscapePath;
+    QString svgTool_;
     QString texInputs;
     int m_userCodeStartLine = 1;
 

@@ -29,6 +29,8 @@ private:
 
     QLineEdit *xelatexPathEdit;
     QLineEdit *pdftocairoPathEdit;
+    QLineEdit *inkscapePathEdit;
+    QComboBox *svgToolCombo;
     QLineEdit *texInputsEdit;
     QSpinBox *pngDpiSpin;
     QSpinBox *editorFontSizeSpin;
