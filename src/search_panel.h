@@ -21,6 +21,7 @@ public:
     void refreshSearch();
     void refreshThumbnailList();
     void refreshTagFilter();
+    void applyUIFont(const QFont &font);
     QString currentCategory() const;
 
 signals:

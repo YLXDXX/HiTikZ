@@ -1993,6 +1993,9 @@ void MainWindow::applyAppearanceSettings()
 
     QApplication::setFont(QFont(QApplication::font().family(), uiFontSize));
 
+    QFont uiFont = QApplication::font();
+    searchPanel->applyUIFont(uiFont);
+
     QFont editorFont("monospace", fontSize);
     QFont logFont("monospace", qMax(8, fontSize - 1));
     logPanel->setFont(logFont);

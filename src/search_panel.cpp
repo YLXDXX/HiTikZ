@@ -197,6 +197,12 @@ void SearchPanel::setupUI()
     layout->addWidget(treeThumbSplitter, 1);
 }
 
+void SearchPanel::applyUIFont(const QFont &font)
+{
+    categoryTree->setFont(font);
+    thumbnailList->setFont(font);
+}
+
 void SearchPanel::refreshSearch()
 {
     QString query = searchBox->text().trimmed();
