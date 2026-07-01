@@ -1860,6 +1860,9 @@ void MainWindow::applyAppearanceSettings()
 {
     QSettings settings("HiTikZ", "TikzManager");
     int fontSize = settings.value("editor/fontSize", kDefaultFontSize).toInt();
+    int uiFontSize = settings.value("ui/fontSize", kDefaultFontSize).toInt();
+
+    QApplication::setFont(QFont(QApplication::font().family(), uiFontSize));
 
     QFont editorFont("monospace", fontSize);
     QFont logFont("monospace", qMax(8, fontSize - 1));

@@ -34,6 +34,7 @@ private:
     QLineEdit *texInputsEdit;
     QSpinBox *pngDpiSpin;
     QSpinBox *editorFontSizeSpin;
+    QSpinBox *uiFontSizeSpin;
     QKeySequenceEdit *copyCodeShortcutEdit;
     QKeySequenceEdit *copyPngShortcutEdit;
     QKeySequenceEdit *copySvgShortcutEdit;

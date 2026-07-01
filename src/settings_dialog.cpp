@@ -40,14 +40,18 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     editorFontSizeSpin = new QSpinBox;
     editorFontSizeSpin->setRange(8, 48);
     editorFontSizeSpin->setValue(10);
+    uiFontSizeSpin = new QSpinBox;
+    uiFontSizeSpin->setRange(8, 48);
+    uiFontSizeSpin->setValue(10);
 
-    formLayout->addRow(QStringLiteral("xelatex 路径:"), xelatexPathEdit);
-    formLayout->addRow(QStringLiteral("pdftocairo 路径:"), pdftocairoPathEdit);
-    formLayout->addRow(QStringLiteral("inkscape 路径:"), inkscapePathEdit);
+    formLayout->addRow(QStringLiteral("xelatex 命令:"), xelatexPathEdit);
+    formLayout->addRow(QStringLiteral("pdftocairo 命令:"), pdftocairoPathEdit);
+    formLayout->addRow(QStringLiteral("inkscape 命令:"), inkscapePathEdit);
     formLayout->addRow(QStringLiteral("SVG 转换工具:"), svgToolCombo);
-    formLayout->addRow(QStringLiteral("TEXINPUTS:"), texInputsEdit);
+    formLayout->addRow(QStringLiteral("额外环境变量:"), texInputsEdit);
     formLayout->addRow(QStringLiteral("PNG DPI:"), pngDpiSpin);
     formLayout->addRow(QStringLiteral("代码字体大小:"), editorFontSizeSpin);
+    formLayout->addRow(QStringLiteral("界面字体大小:"), uiFontSizeSpin);
     mainLayout->addLayout(formLayout);
 
     QGroupBox *shortcutGroup = new QGroupBox(QStringLiteral("快捷键设置"));
@@ -82,7 +86,7 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     QGroupBox *actionsGroup = new QGroupBox(QStringLiteral("工具"));
     QVBoxLayout *actionsLayout = new QVBoxLayout(actionsGroup);
     QPushButton *genPreviewBtn = new QPushButton(QStringLiteral("生成所有预览"));
-    QPushButton *resetBtn = new QPushButton(QStringLiteral("恢复出厂设置"));
+    QPushButton *resetBtn = new QPushButton(QStringLiteral("重置所有内容"));
     resetBtn->setStyleSheet("QPushButton { color: red; }");
     actionsLayout->addWidget(genPreviewBtn);
     actionsLayout->addWidget(resetBtn);
@@ -195,6 +199,7 @@ void SettingsDialog::loadSettings()
     texInputsEdit->setText(settings.value("paths/texinputs", "").toString());
     pngDpiSpin->setValue(settings.value("png/dpi", 300).toInt());
     editorFontSizeSpin->setValue(settings.value("editor/fontSize", 10).toInt());
+    uiFontSizeSpin->setValue(settings.value("ui/fontSize", 10).toInt());
     copyCodeShortcutEdit->setKeySequence(QKeySequence(settings.value("shortcuts/copyCode", "Ctrl+Shift+C").toString()));
     copyPngShortcutEdit->setKeySequence(QKeySequence(settings.value("shortcuts/copyPng", "Ctrl+Shift+P").toString()));
     copySvgShortcutEdit->setKeySequence(QKeySequence(settings.value("shortcuts/copySvg", "Ctrl+Shift+S").toString()));
@@ -215,6 +220,7 @@ void SettingsDialog::saveSettings()
     settings.setValue("paths/texinputs", texInputsEdit->text());
     settings.setValue("png/dpi", pngDpiSpin->value());
     settings.setValue("editor/fontSize", editorFontSizeSpin->value());
+    settings.setValue("ui/fontSize", uiFontSizeSpin->value());
     settings.setValue("shortcuts/copyCode", copyCodeShortcutEdit->keySequence().toString());
     settings.setValue("shortcuts/copyPng", copyPngShortcutEdit->keySequence().toString());
     settings.setValue("shortcuts/copySvg", copySvgShortcutEdit->keySequence().toString());

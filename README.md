@@ -494,6 +494,7 @@ calc,er,angles,patterns,decorations.pathmorphing
 程序配置通过 `QSettings` 存储，包括：
 - `xelatex/path`, `pdftocairo/path`, `inkscape/path`, `svg/tool`, `paths/texinputs`, `png/dpi`
 - `editor/fontSize` — 代码字体大小
+- `ui/fontSize` — 界面字体大小
 - `shortcuts/copyCode`, `shortcuts/copyPng`, `shortcuts/copySvg`
 - `shortcuts/compile`, `shortcuts/applyParams`, `shortcuts/save`, `shortcuts/closeTab`
 - `shortcuts/globalHotkey` — 全局快捷键
@@ -505,11 +506,12 @@ calc,er,angles,patterns,decorations.pathmorphing
 工具栏"设置"按钮打开设置对话框，包含以下区域：
 
 **路径设置**：
-- xelatex / pdftocairo / inkscape 路径（默认从 `$PATH` 查找）
+- xelatex / pdftocairo / inkscape 命令（默认从 `$PATH` 查找）
 - SVG 转换工具选择：pdftocairo 或 inkscape
-- TEXINPUTS 环境变量
+- 额外环境变量
 - PNG DPI（72–1200，默认 300）
 - 代码字体大小（8–48，默认 10）
+- 界面字体大小（8–48，默认 10）
 
 **快捷键设置**：
 - 全部 8 项操作均可自定义键序列
@@ -524,7 +526,7 @@ calc,er,angles,patterns,decorations.pathmorphing
 
 **工具**：
 - **生成所有预览** — 异步队列遍历全部片段编译生成 PDF + 缩略图 PNG（每片段 30 秒超时，状态栏实时进度）
-- **恢复出厂设置** — 删除所有用户数据，需输入"确定重置"二次确认（高危操作）
+- **重置所有内容** — 删除所有用户数据，需输入"确定重置"二次确认（高危操作）
 
 ---
 
