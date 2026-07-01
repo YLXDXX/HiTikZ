@@ -44,7 +44,7 @@
 - **TikZ 片段管理**：创建、编辑、保存、删除 TikZ 代码片段，附带名称 / 简介 / 分类 / 标签 / 宏包 / TikZ 库 / 模板元数据
 - **语法高亮**：TikZ/LaTeX 代码彩色高亮（命令蓝色、环境紫色、注释灰色、坐标橙色、数学模式 `$...$` / `\(...\)` / `\[...\]` 绿色等 12 类语法元素），支持 `\begin{comment}...\end{comment}` 多行注释块
 - **选中词高亮**：光标置于某单词或双击选中时，文档中所有相同单词自动高亮，快速定位变量/命令的使用位置
-- **智能代码补全**：9 种上下文感知补全（命令 `\`、环境 `\begin{`、选项 `[...]`、锚点 `.`、值 `=`、参数 `@@`、库 `\usetikzlibrary{` 等），含值提示（颜色、线宽、箭头等）
+- **智能代码补全**：9 种上下文感知补全（命令 `\`、环境 `\begin{`、选项 `[...]`、锚点 `.`、值 `=`、参数 `@@`、库 `\usetikzlibrary{` 等），含值提示（颜色、线宽、箭头等），覆盖 CircuitikZ 电路元件、tikz-3dplot、标准 LaTeX 数学符号等
 - **自动缩进**：换行时继承上一行缩进，`{` 或 `\begin` 结尾的行自动增加一级缩进
 - **多标签编辑器**：支持同时打开多个 TikZ 片段，通过标签页快速切换，重复打开同一片段自动切换到已有标签页
 - **撤销/重做**：支持 Ctrl+Z / Ctrl+Shift+Z，工具栏以 ↩ ↪ 符号表示
@@ -61,6 +61,7 @@
 - **多选批量操作**：Ctrl+点击多选缩略图，右键弹出批量导出 / 改分类 / 删除菜单，支持全选、导出全部
 - **属性编辑对话框**：右键缩略图（单选时）弹出属性对话框，可编辑全部元数据字段
 - **参数化功能**：通过 `% @param: var=默认值` 声明变量，代码中使用 `@@var@@` 占位，右栏动态生成参数控件，编辑器内 `@@` 可触发参数补全。scratch 模式（无已保存片段）下同样支持参数替换编译
+- **保存后自动编译**：可在设置中开启，点击保存按钮或按保存快捷键后自动编译并刷新 PDF 预览
 - **自动保存**：每 3 分钟自动保存所有打开标签页的完整状态（代码 + 名称 + 简介 + 标签 + 宏包 + TikZ 库 + 模板）为 JSON 草稿文件
 - **草稿恢复**：程序异常退出后重启时，自动弹出恢复对话框，列出所有未保存草稿的具体名称，可勾选需恢复的草稿、全选/取消全选、或一键全部丢弃，恢复的草稿自动创建为片段或关联到已有片段
 - **模板系统（极简）**：三个内置 LaTeX 模板仅含必要宏包（数学 / 物理 / 电路），额外宏包和 TikZ 库由每个片段自行声明
@@ -161,7 +162,7 @@ CMake 选项：
 | ↩ / ↪ | 撤销（Ctrl+Z）/ 重做（Ctrl+Shift+Z） |
 | 编译预览 | 保存并编译 TikZ 代码渲染 PDF（自动应用参数替换） |
 | 应用参数 | 不保存，仅用参数值替换后编译（用于临时预览参数效果） |
-| 保存 | 保存当前片段 |
+| 保存 | 保存当前片段（若在设置中开启"保存后自动编译"，则保存后自动触发编译） |
 | 复制代码 | 复制参数替换后的 TikZ 核心代码 |
 | 复制文档 | 复制含模板头部的完整 LaTeX 文档 |
 | 复制PNG | 复制 300 DPI PNG 到剪贴板 |
@@ -287,13 +288,13 @@ CMake 选项：
 
 | 上下文 | 触发条件 | 补全内容 | 示例 |
 |--------|---------|---------|------|
-| 命令 | 输入 `\` 后接字母 | ~150 个 TikZ 命令 | `\draw`、`\node`、`\coordinate`、`\foreach` |
-| 环境 | `\begin{` 未闭合 | ~30 个 LaTeX/TikZ 环境 | `tikzpicture`、`scope`、`axis`、`groupplot` |
-| 选项 | `[...]` 内 | ~200 个 TikZ 选项 | `thick`、`left color`、`rounded corners`、`yshift` |
-| 锚点 | 单词后跟 `.` | ~30 个节点锚点 | `north`、`south east`、`center`、`base` |
+| 命令 | 输入 `\` 后接字母 | ~300 个 TikZ/LaTeX 命令 | `\draw`、`\node`、`\tdplotsetmaincoords`、`\pgfmathsetmacro` |
+| 环境 | `\begin{` 未闭合 | ~70 个 LaTeX/TikZ 环境 | `tikzpicture`、`scope`、`axis`、`groupplot`、`matrix` |
+| 选项 | `[...]` 内 | ~250 个 TikZ 选项 | `thick`、`left color`、`wiper pos`、`tdplot_main_coords` |
+| 锚点 | 单词后跟 `.` | ~80 个节点锚点 | `north`、`south east`、`wiper`、`cathode`、`anode` |
 | 值 | `=` 后 | 颜色 / 线型 / 箭头的值提示 | 输入 `color=` 后列出全部颜色名 |
 | 参数 | `@@` 未闭合 | 代码中声明的参数变量 | 输入 `@@` 后显示 `angle`、`width` 等 |
-| TikZ 库 | `\usetikzlibrary{` 内 | ~100 个 TikZ 库名 | `calc`、`arrows`、`patterns`、`3d` |
+| TikZ 库 | `\usetikzlibrary{` 内 | ~120 个 TikZ 库名 | `calc`、`arrows.meta`、`circuitikz`、`3d`、`shapes.gates.logic` |
 | 通用词 | 输入任意已知词 | 命令、选项、锚点、颜色的并集 | 连续输入 2 个以上字母时触发 |
 
 **补全交互**：
@@ -302,6 +303,11 @@ CMake 选项：
 - ↑↓ 键切换选中项，Enter / Tab 上屏
 - Esc 关闭列表
 - 上下文检测使用轻量前缀扫描，将来可替换为完整 AST 扫描器
+
+**补全覆盖**：
+- **CircuitikZ**：常用电路元件名称（`resistor`、`capacitor`、`potentiometer`、`battery` 等）作为选项/命令补全；专用锚点（`wiper`、`cathode`、`anode`、`gate`、`tap` 等）作为锚点补全
+- **tikz-3dplot**：完整 25 个官方命令（`\tdplotsetmaincoords`、`\tdplotsetrotatedcoords`、`\tdplotdrawarc` 等）和样式键（`tdplot_main_coords`、`canvas is xy plane at z` 等）
+- **标准 LaTeX**：希腊字母、数学运算符与符号、定界符、重音、字体命令等
 
 ### LaTeX 编译与 PDF 预览
 
@@ -496,6 +502,7 @@ calc,er,angles,patterns,decorations.pathmorphing
 - `xelatex/path`, `pdftocairo/path`, `inkscape/path`, `svg/tool`, `paths/texinputs`, `png/dpi`
 - `editor/fontSize` — 代码字体大小
 - `ui/fontSize` — 界面字体大小
+- `behavior/autoCompileOnSave` — 保存后自动编译（默认关闭）
 - `shortcuts/copyCode`, `shortcuts/copyPng`, `shortcuts/copySvg`
 - `shortcuts/compile`, `shortcuts/applyParams`, `shortcuts/save`, `shortcuts/closeTab`
 - `shortcuts/globalHotkey` — 全局快捷键
@@ -518,6 +525,9 @@ calc,er,angles,patterns,decorations.pathmorphing
 - 全部 8 项操作均可自定义键序列
 - 清空键序列 = 禁用该快捷键
 - 按 Delete 键或点击清除按钮可清空
+
+**行为设置**：
+- **保存后自动编译** — 开启后点击保存按钮（或按保存快捷键）时自动触发编译并刷新 PDF 预览，无需手动点击"编译预览"
 
 **模板管理**：
 - 左侧列表展示所有 `.tex` 模板
@@ -656,7 +666,7 @@ MainWindow
 | `test_draft_recovery` | 草稿文件格式完整性（全字段 JSON 读写往返、空代码过滤、目录扫描） |
 | `test_tex_import` | .tex 文件导入代码提取（三段式解析）及宏包/TikZ 库声明解析 |
 | `test_params` | 参数声明正则解析与 `@@var@@` 替换正确性（单参数、多参数、负数、零值） |
-| `test_fixes` | 关键修复验证：行号正则锚定、注释优先级、wrapCode 无 document 前置注入、QProcess 启动检测、数据流状态检查 |
+| `test_fixes` | 关键修复验证：行号正则锚定、注释优先级、wrapCode 无 document 前置注入、QProcess 启动检测、数据流状态检查、自动编译设置读写 |
 
 运行测试：
 ```bash
