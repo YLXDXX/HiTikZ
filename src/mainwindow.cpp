@@ -59,7 +59,7 @@ static constexpr int kStatusBarLongMs = 5000;
 static constexpr int kPreviewDpi = 150;
 static constexpr int kBatchCompileTimeoutMs = 30000;
 static constexpr int kPngConvertTimeoutMs = 15000;
-static constexpr int kZoomApplyDelayMs = 200;
+static constexpr int kZoomApplyDelayMs = 30;
 static constexpr int kDefaultFontSize = 10;
 
 static const QRegularExpression paramLineRe(QStringLiteral("^%\\s*@param:.*(\n|\r\n?)?"), QRegularExpression::MultilineOption);
@@ -1248,7 +1248,7 @@ void MainWindow::setupConnections()
             setFormattedLog(success, cmd, log, m_userCodeStartLine);
             if (success) {
                 pdfPreview->reloadDocument(QFileInfo(pdfPath).absoluteFilePath());
-                QTimer::singleShot(30, pdfPreview, &PdfPreviewWidget::applyZoomPreference);
+                QTimer::singleShot(kZoomApplyDelayMs, pdfPreview, &PdfPreviewWidget::applyZoomPreference);
                 savePreviewData(pdfPath, currentSnippetId);
                 statusBar()->showMessage(QStringLiteral("编译成功"), kStatusBarShortMs);
             } else {
@@ -1523,7 +1523,7 @@ void MainWindow::loadPreviewForSnippet(const QString &id)
     QString previewPdf = snippetDataPath(id) + "/preview.pdf";
     if (QFile::exists(previewPdf)) {
         pdfPreview->reloadDocument(QFileInfo(previewPdf).absoluteFilePath());
-        QTimer::singleShot(30, pdfPreview, &PdfPreviewWidget::applyZoomPreference);
+        QTimer::singleShot(kZoomApplyDelayMs, pdfPreview, &PdfPreviewWidget::applyZoomPreference);
     } else {
         clearPdfPreview();
     }
