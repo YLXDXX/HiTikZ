@@ -73,7 +73,7 @@
 - **系统托盘**：最小化到托盘，全局快捷键一键呼出/隐藏，托盘菜单"退出"触发关闭前保存提示
 - **可配置快捷键**：全部快捷键可在设置面板中自定义键序列，支持清空禁用
 - **全局快捷键（KDE）**：KDE 桌面通过 KGlobalAccel 注册系统级快捷键
-- **代码字体调节**：设置面板中可调代码编辑区字体大小（8-48 pt）
+- **字体大小调节**：设置面板中可分别调整代码编辑区字体大小（8-48 pt）和全局界面字体大小（8-48 pt），左栏分类树和缩略图名称跟随界面字体设置
 - **依赖检测**：启动时检测 `xelatex` 和当前配置的 SVG 转换工具（`pdftocairo` 或 `inkscape`），缺失时弹出安装指引
 - **9 个预置片段**：数学（几何 / 函数）、物理（力学）、电路（RLC / 分压 / 运放）各 3 个典型示例
 - **C++17 + Qt6 原生实现**：高性能，启动快，原生 Wayland 支持
@@ -448,15 +448,15 @@ calc,er,angles,patterns,decorations.pathmorphing
 
 | 功能 | 默认快捷键 |
 |------|----------|
-| 全局快捷键：显示/隐藏窗口 | `Ctrl+Alt+T`（KDE 通过 KGlobalAccel 注册） |
+| 全局快捷键：显示/隐藏窗口 | 无（可在设置中自定义） |
 | 撤销 | `Ctrl+Z` |
 | 重做 | `Ctrl+Shift+Z` |
-| 复制 TikZ 代码 | `Ctrl+Shift+C` |
-| 复制 PNG | `Ctrl+Shift+P` |
-| 复制 SVG | `Ctrl+Shift+S` |
-| 编译预览 | 无（可在设置中自定义） |
+| 复制 TikZ 代码 | 无（可在设置中自定义） |
+| 复制 PNG | 无（可在设置中自定义） |
+| 复制 SVG | 无（可在设置中自定义） |
+| 编译预览 | `F6` |
 | 应用参数 | 无（可在设置中自定义） |
-| 保存 | 无（可在设置中自定义） |
+| 保存 | `Ctrl+S` |
 | 关闭标签页 | `Ctrl+W` |
 
 ---
@@ -502,7 +502,7 @@ calc,er,angles,patterns,decorations.pathmorphing
 - `xelatex/path`, `pdftocairo/path`, `inkscape/path`, `svg/tool`, `paths/texinputs`, `png/dpi`
 - `editor/fontSize` — 代码字体大小
 - `ui/fontSize` — 界面字体大小
-- `behavior/autoCompileOnSave` — 保存后自动编译（默认关闭）
+- `behavior/autoCompileOnSave` — 保存后自动编译（默认开启）
 - `shortcuts/copyCode`, `shortcuts/copyPng`, `shortcuts/copySvg`
 - `shortcuts/compile`, `shortcuts/applyParams`, `shortcuts/save`, `shortcuts/closeTab`
 - `shortcuts/globalHotkey` — 全局快捷键
@@ -519,7 +519,7 @@ calc,er,angles,patterns,decorations.pathmorphing
 - 额外环境变量
 - PNG DPI（72–1200，默认 300）
 - 代码字体大小（8–48，默认 10）
-- 界面字体大小（8–48，默认 10）
+- 界面字体大小（8–48，默认 10）— 影响左栏分类树、缩略图名称及全局界面字体
 
 **快捷键设置**：
 - 全部 8 项操作均可自定义键序列
@@ -527,7 +527,8 @@ calc,er,angles,patterns,decorations.pathmorphing
 - 按 Delete 键或点击清除按钮可清空
 
 **行为设置**：
-- **保存后自动编译** — 开启后点击保存按钮（或按保存快捷键）时自动触发编译并刷新 PDF 预览，无需手动点击"编译预览"
+- **保存后自动编译** — 开启后点击保存按钮（或按保存快捷键）时自动触发编译并刷新 PDF 预览，无需手动点击"编译预览"。默认开启。
+- **编译状态指示** — 状态栏左侧永久显示编译结果（绿色"编译成功" / 红色"编译失败，详见日志"），3 秒后自动消失
 
 **模板管理**：
 - 左侧列表展示所有 `.tex` 模板
