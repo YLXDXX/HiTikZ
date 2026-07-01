@@ -1074,6 +1074,15 @@ void MainWindow::setupUI()
 
     setCentralWidget(mainSplitter);
     applyAppearanceSettings();
+
+    m_compileStatusLabel = new QLabel;
+    m_compileStatusLabel->setVisible(false);
+    m_compileStatusTimer = new QTimer(this);
+    m_compileStatusTimer->setSingleShot(true);
+    connect(m_compileStatusTimer, &QTimer::timeout, this, [this]() {
+        m_compileStatusLabel->setVisible(false);
+    });
+    statusBar()->addWidget(m_compileStatusLabel);
     statusBar()->showMessage(QStringLiteral("就绪"), kStatusBarShortMs);
 }
 
@@ -1255,7 +1264,7 @@ void MainWindow::setupConnections()
         saveCurrentSnippet();
         refreshSearch();
         QSettings settings("HiTikZ", "TikzManager");
-        if (settings.value("behavior/autoCompileOnSave", false).toBool()) {
+        if (settings.value("behavior/autoCompileOnSave", true).toBool()) {
             compileAct->trigger();
         }
     });
@@ -1275,11 +1284,21 @@ void MainWindow::setupConnections()
                 pdfPreview->reloadDocument(QFileInfo(pdfPath).absoluteFilePath());
                 QTimer::singleShot(kZoomApplyDelayMs, pdfPreview, &PdfPreviewWidget::applyZoomPreference);
                 savePreviewData(pdfPath, currentSnippetId);
-                statusBar()->showMessage(QStringLiteral("编译成功"), kStatusBarShortMs);
+                if (m_compileStatusLabel) {
+                    m_compileStatusLabel->setText(QStringLiteral("编译成功"));
+                    m_compileStatusLabel->setStyleSheet("color: green; font-weight: bold; padding: 0 8px;");
+                    m_compileStatusLabel->setVisible(true);
+                    m_compileStatusTimer->start(kStatusBarShortMs);
+                }
             } else {
                 pdfPreview->clearDocument();
                 jumpToErrorLine(log);
-                statusBar()->showMessage(QStringLiteral("编译失败，详见日志"), kStatusBarShortMs);
+                if (m_compileStatusLabel) {
+                    m_compileStatusLabel->setText(QStringLiteral("编译失败，详见日志"));
+                    m_compileStatusLabel->setStyleSheet("color: red; font-weight: bold; padding: 0 8px;");
+                    m_compileStatusLabel->setVisible(true);
+                    m_compileStatusTimer->start(kStatusBarShortMs);
+                }
             }
         });
 }
@@ -1868,24 +1887,24 @@ void MainWindow::applyShortcuts()
 {
     QSettings settings("HiTikZ", "TikzManager");
 
-    auto setShortcut = [&](QShortcut *sc, const QString &key) {
-        QString val = settings.value(key).toString();
+    auto setShortcut = [&](QShortcut *sc, const QString &key, const QString &defaultVal = QString()) {
+        QString val = settings.value(key, defaultVal).toString();
         sc->setKey(val.isEmpty() ? QKeySequence() : QKeySequence(val));
     };
 
     setShortcut(copyCodeShortcut, "shortcuts/copyCode");
     setShortcut(copyPngShortcut, "shortcuts/copyPng");
     setShortcut(copySvgShortcut, "shortcuts/copySvg");
-    setShortcut(compileShortcut, "shortcuts/compile");
+    setShortcut(compileShortcut, "shortcuts/compile", "F6");
     setShortcut(applyParamsShortcut, "shortcuts/applyParams");
-    setShortcut(saveShortcut, "shortcuts/save");
-    setShortcut(closeTabShortcut, "shortcuts/closeTab");
+    setShortcut(saveShortcut, "shortcuts/save", "Ctrl+S");
+    setShortcut(closeTabShortcut, "shortcuts/closeTab", "Ctrl+W");
 }
 
 void MainWindow::applyGlobalHotkey()
 {
     QSettings settings("HiTikZ", "TikzManager");
-    QString keyStr = settings.value("shortcuts/globalHotkey", "Ctrl+Alt+T").toString();
+    QString keyStr = settings.value("shortcuts/globalHotkey", "").toString();
 
 #ifdef HAS_KGLOBALACCEL
     KdeGlobalShortcut *ks = KdeGlobalShortcut::instance();

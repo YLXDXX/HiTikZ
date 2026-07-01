@@ -164,6 +164,8 @@ private:
     QTimer *m_batchKillFallbackTimer = nullptr;
     QTimer *searchDebounceTimer = nullptr;
     QTimer *autoSaveTimer = nullptr;
+    QLabel *m_compileStatusLabel = nullptr;
+    QTimer *m_compileStatusTimer = nullptr;
 
 private:
     void processNextPreview();

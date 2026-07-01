@@ -23,7 +23,8 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     : QDialog(parent)
 {
     setWindowTitle(QStringLiteral("设置"));
-    setMinimumSize(600, 450);
+    setMinimumSize(650, 600);
+    resize(700, 650);
 
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
 
@@ -208,15 +209,15 @@ void SettingsDialog::loadSettings()
     pngDpiSpin->setValue(settings.value("png/dpi", 300).toInt());
     editorFontSizeSpin->setValue(settings.value("editor/fontSize", 10).toInt());
     uiFontSizeSpin->setValue(settings.value("ui/fontSize", 10).toInt());
-    copyCodeShortcutEdit->setKeySequence(QKeySequence(settings.value("shortcuts/copyCode", "Ctrl+Shift+C").toString()));
-    copyPngShortcutEdit->setKeySequence(QKeySequence(settings.value("shortcuts/copyPng", "Ctrl+Shift+P").toString()));
-    copySvgShortcutEdit->setKeySequence(QKeySequence(settings.value("shortcuts/copySvg", "Ctrl+Shift+S").toString()));
-    compileShortcutEdit->setKeySequence(QKeySequence(settings.value("shortcuts/compile", "").toString()));
+    copyCodeShortcutEdit->setKeySequence(QKeySequence(settings.value("shortcuts/copyCode", "").toString()));
+    copyPngShortcutEdit->setKeySequence(QKeySequence(settings.value("shortcuts/copyPng", "").toString()));
+    copySvgShortcutEdit->setKeySequence(QKeySequence(settings.value("shortcuts/copySvg", "").toString()));
+    compileShortcutEdit->setKeySequence(QKeySequence(settings.value("shortcuts/compile", "F6").toString()));
     applyParamsShortcutEdit->setKeySequence(QKeySequence(settings.value("shortcuts/applyParams", "").toString()));
-    saveShortcutEdit->setKeySequence(QKeySequence(settings.value("shortcuts/save", "").toString()));
+    saveShortcutEdit->setKeySequence(QKeySequence(settings.value("shortcuts/save", "Ctrl+S").toString()));
     closeTabShortcutEdit->setKeySequence(QKeySequence(settings.value("shortcuts/closeTab", "Ctrl+W").toString()));
-    globalHotkeyEdit->setKeySequence(QKeySequence(settings.value("shortcuts/globalHotkey", "Ctrl+Alt+T").toString()));
-    autoCompileOnSaveCheck->setChecked(settings.value("behavior/autoCompileOnSave", false).toBool());
+    globalHotkeyEdit->setKeySequence(QKeySequence(settings.value("shortcuts/globalHotkey", "").toString()));
+    autoCompileOnSaveCheck->setChecked(settings.value("behavior/autoCompileOnSave", true).toBool());
 }
 
 void SettingsDialog::saveSettings()
