@@ -59,7 +59,36 @@ void TikzCompleter::initCompleters()
                                 "pgfplots.groupplots","pgfplots.dateplot",
                                 "pgfplots.polar","pgfplots.smithchart",
                                 "pgfplots.statistics","pgfplots.ternary",
-                                "profiler","shadings","transparency"});
+                                "profiler","shadings","transparency",
+                                // ── More libraries ──
+                                "arrows.meta","calc","positioning","patterns",
+                                "decorations.pathreplacing",
+                                "decorations.pathmorphing",
+                                "decorations.markings",
+                                "decorations.shapes","decorations.text",
+                                "decorations.fractals","decorations.footprints",
+                                "shapes.geometric","shapes.misc","shapes.arrows",
+                                "shapes.symbols","shapes.multipart",
+                                "shapes.callouts","shapes.gates.logic",
+                                "shapes.gates.logic.IEC","shapes.gates.logic.US",
+                                "angles","quotes","through",
+                                "intersections","calc","fpu",
+                                "fixedpointarithmetic","math",
+                                "plotmarks","pgfplots.dateplot",
+                                "pgfplots.polar","pgfplots.statistics",
+                                "pgfplots.ternary","pgfplots.groupplots",
+                                "pgfplots.units","pgfplots.colorbrewer",
+                                "matrix","trees","mindmap","er","petri",
+                                "automata","chains","positioning",
+                                "topaths","backgrounds","calc","scopes",
+                                "fit","patterns","patterns.meta",
+                                "shadows","fadings","spy","datavisualization",
+                                "external","svg.path","lindenmayersystems",
+                                "graphdrawing","graphs","graphs.standard",
+                                "tikzmark","calligraphy","babel",
+                                "cd","circuitikz",
+                                "3d","perspective",
+                                });
 
     QStringList valueWords;
     valueWords << TikzWords::tikzColors()

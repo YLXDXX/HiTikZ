@@ -240,13 +240,14 @@ static int test_stream_status_check() {
 static int test_auto_compile_on_save() {
     int failed = 0;
 
-    // Feature: auto-compile on save
-    // Setting key: behavior/autoCompileOnSave
-    // Default: false (off)
     {
         QSettings settings("HiTikZ", "TikzManager");
 
-        // Test 1: Default value should be false
+        // Clean up any previous test key before starting
+        settings.remove("behavior/autoCompileOnSave");
+        settings.sync();
+
+        // Test 1: Default value should be false when key is absent
         bool defaultValue = settings.value("behavior/autoCompileOnSave", false).toBool();
         if (defaultValue) {
             fprintf(stderr, "FAIL: Test ACS-1 - default autoCompileOnSave should be false\n");
@@ -271,9 +272,10 @@ static int test_auto_compile_on_save() {
             failed++;
         }
 
-        // Test 4: Setting key name is correct
+        // Test 4: Setting key name exists after being set
+        settings.setValue("behavior/autoCompileOnSave", true);
+        settings.sync();
         if (settings.allKeys().contains("behavior/autoCompileOnSave")) {
-            // Key exists - expected after set
         } else {
             fprintf(stderr, "FAIL: Test ACS-4 - key 'behavior/autoCompileOnSave' should exist\n");
             failed++;
