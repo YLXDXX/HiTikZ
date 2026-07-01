@@ -1237,8 +1237,8 @@ void MainWindow::setupConnections()
 
     connect(compiler, &LatexCompiler::compilationFinished,
         this, [this, endCompile](bool success, const QString &pdfPath, const QString &log) {
-            endCompile();
             if (m_batchGenerating) return;
+            endCompile();
             QString sid = currentSnippetId.isEmpty() ? QStringLiteral("scratch") : currentSnippetId;
             QString cmd = compiler->xelatexCommand()
                 + " -interaction=nonstopmode -halt-on-error -shell-escape "
@@ -1546,6 +1546,9 @@ void MainWindow::generateAllPreviews()
     m_previewTotal = all.size();
     m_previewDone = 0;
     m_batchGenerating = true;
+    m_compiling = true;
+    compileAct->setEnabled(false);
+    applyParamsAct->setEnabled(false);
     statusBar()->showMessage(QStringLiteral("正在生成所有预览..."), 0);
 
     m_compileConn = connect(compiler, &LatexCompiler::compilationFinished,
@@ -1559,6 +1562,9 @@ void MainWindow::processNextPreview()
     if (m_previewQueue.isEmpty()) {
         disconnect(m_compileConn);
         m_batchGenerating = false;
+        m_compiling = false;
+        compileAct->setEnabled(true);
+        applyParamsAct->setEnabled(true);
         if (m_batchTimeoutTimer) {
             delete m_batchTimeoutTimer;
             m_batchTimeoutTimer = nullptr;
