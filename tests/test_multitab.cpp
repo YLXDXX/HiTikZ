@@ -117,6 +117,105 @@ static void test_close_tab(QTabWidget *tabWidget)
         "tab count should decrease by 1 after closing");
 }
 
+static void test_reopen_snippet_after_close(SnippetManager *snippetMgr, SearchPanel *searchPanel, QTabWidget *tabWidget)
+{
+    QString id = snippetMgr->createSnippet("Reopen Test", "test/reopen");
+    TEST_ASSERT(!id.isEmpty(), "should create reopen test snippet");
+
+    emit searchPanel->snippetSelected(id);
+    QApplication::processEvents();
+    TEST_ASSERT(tabWidget->count() >= 1, "tab should be created for reopen test snippet");
+
+    int tabIdx = -1;
+    for (int i = 0; i < tabWidget->count(); ++i) {
+        if (tabWidget->tabBar()->tabData(i).toString() == id) {
+            tabIdx = i;
+            break;
+        }
+    }
+    TEST_ASSERT(tabIdx >= 0, "should find tab for reopen test snippet");
+
+    if (tabIdx >= 0) {
+        QWidget *widget = tabWidget->widget(tabIdx);
+        tabWidget->removeTab(tabIdx);
+        widget->deleteLater();
+        QApplication::processEvents();
+    }
+
+    int countBefore = tabWidget->count();
+
+    emit searchPanel->snippetSelected(id);
+    QApplication::processEvents();
+
+    bool reopened = false;
+    for (int i = 0; i < tabWidget->count(); ++i) {
+        if (tabWidget->tabBar()->tabData(i).toString() == id) {
+            reopened = true;
+            break;
+        }
+    }
+    TEST_ASSERT(reopened, "snippet should be reopened after closing tab");
+    TEST_ASSERT(tabWidget->count() > countBefore,
+        "tab count should increase after reopening snippet");
+
+    snippetMgr->deleteSnippet(id);
+}
+
+static void test_snippet_modified_sync(SnippetManager *snippetMgr, SearchPanel *searchPanel, QTabWidget *tabWidget)
+{
+    QString id = snippetMgr->createSnippet("Sync Test", "test/sync");
+    TEST_ASSERT(!id.isEmpty(), "should create sync test snippet");
+
+    Snippet s = snippetMgr->loadSnippet(id);
+    s.name = "Initial Name";
+    s.description = "Initial Description";
+    QStringList tags;
+    tags << "tag1" << "tag2";
+    s.tags = tags;
+    s.packages = "testpkg";
+    s.tikzLibraries = "calc";
+    s.code = "\\draw (0,0) -- (1,1);";
+    snippetMgr->saveSnippet(s);
+
+    emit searchPanel->snippetSelected(id);
+    QApplication::processEvents();
+
+    int tabIdx = -1;
+    for (int i = 0; i < tabWidget->count(); ++i) {
+        if (tabWidget->tabBar()->tabData(i).toString() == id) {
+            tabIdx = i;
+            break;
+        }
+    }
+    TEST_ASSERT(tabIdx >= 0, "should find tab for sync test snippet");
+    TEST_ASSERT(tabWidget->currentIndex() == tabIdx, "sync test tab should be current");
+
+    Snippet modified = snippetMgr->loadSnippet(id);
+    modified.name = "Updated Name";
+    modified.description = "Updated Description";
+    QStringList newTags;
+    newTags << "newtag";
+    modified.tags = newTags;
+    modified.packages = "newpkg";
+    modified.tikzLibraries = "patterns";
+    modified.code = modified.code;
+    snippetMgr->saveSnippet(modified);
+
+    QApplication::processEvents();
+
+    Snippet loaded = snippetMgr->loadSnippet(id);
+    TEST_ASSERT(loaded.name == "Updated Name",
+        "snippet name should be updated in storage");
+    TEST_ASSERT(loaded.packages == "newpkg",
+        "snippet packages should be updated in storage");
+
+    QString tabTitle = tabWidget->tabText(tabIdx);
+    TEST_ASSERT(tabTitle.contains("Updated Name"),
+        "tab title should reflect updated snippet name");
+
+    snippetMgr->deleteSnippet(id);
+}
+
 static void cleanup_snippets(SnippetManager *mgr)
 {
     QList<Snippet> all = mgr->getAllSnippets(true);
@@ -158,6 +257,8 @@ int main(int argc, char *argv[])
         test_create_second_tab(snippetMgr, searchPanel, tabWidget);
         test_tab_switching(tabWidget);
         test_close_tab(tabWidget);
+        test_reopen_snippet_after_close(snippetMgr, searchPanel, tabWidget);
+        test_snippet_modified_sync(snippetMgr, searchPanel, tabWidget);
 
         cleanup_snippets(snippetMgr);
     }

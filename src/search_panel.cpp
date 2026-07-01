@@ -49,6 +49,16 @@ SearchPanel::SearchPanel(SnippetManager *mgr, QWidget *parent)
                 emit snippetSelected(id);
         });
 
+    connect(thumbnailList, &QListView::clicked,
+        this, [this](const QModelIndex &index) {
+            if (!index.isValid()) return;
+            if (m_suppressSelectEmit) return;
+            if (QApplication::keyboardModifiers() & Qt::ControlModifier) return;
+            QString id = index.data(Qt::UserRole).toString();
+            if (!id.isEmpty())
+                emit snippetSelected(id);
+        });
+
     connect(categoryTree->selectionModel(), &QItemSelectionModel::currentChanged,
         this, [this](const QModelIndex &current, const QModelIndex &) {
             if (!current.isValid()) return;

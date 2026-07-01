@@ -1087,6 +1087,27 @@ void MainWindow::setupConnections()
     connect(snippetMgr, &SnippetManager::categoriesChanged,
         this, &MainWindow::refreshCategoryTree);
 
+    connect(snippetMgr, &SnippetManager::snippetModified,
+        this, [this](const QString &id) {
+            if (id.isEmpty() || id != currentSnippetId) return;
+            int tabIdx = findTabForSnippet(id);
+            if (tabIdx < 0) return;
+            Snippet s = snippetMgr->loadSnippet(id);
+            if (s.id.isEmpty()) return;
+            m_loadingDepth++;
+            nameEdit->setText(s.name);
+            descEdit->setPlainText(s.description);
+            tagsEdit->setText(s.tags.join(", "));
+            packagesEdit->setText(s.packages);
+            tikzLibrariesEdit->setText(s.tikzLibraries);
+            if (!s.templateId.isEmpty()) {
+                int ti = templateCombo->findData(s.templateId);
+                if (ti >= 0) templateCombo->setCurrentIndex(ti);
+            }
+            updateTabTitle(tabIdx, s.name.isEmpty() ? id.left(8) : s.name);
+            m_loadingDepth--;
+        });
+
     connect(searchPanel, &SearchPanel::batchExportRequested, this, [this](const QStringList &ids) {
         QString filePath = QFileDialog::getSaveFileName(this,
             QStringLiteral("批量导出"), "selected_snippets.tar.gz", "TikZ 存档 (*.tar.gz)");
