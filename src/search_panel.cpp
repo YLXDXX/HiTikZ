@@ -23,6 +23,7 @@
 #include <QDialogButtonBox>
 #include <QScrollBar>
 #include <QSplitter>
+#include <QSignalBlocker>
 
 SearchPanel::SearchPanel(SnippetManager *mgr, QWidget *parent)
     : QWidget(parent), snippetMgr(mgr)
@@ -562,10 +563,23 @@ void SearchPanel::showThumbnailContextMenu(const QPoint &pos)
         if (!id.isEmpty()) {
             SnippetPropertiesDialog dlg(id, snippetMgr, this);
             if (dlg.exec() == QDialog::Accepted) {
-                m_suppressSelectEmit = true;
+                // 使用 QSignalBlocker 彻底阻断选择模型信号，
+                // 防止 currentChanged 触发 snippetSelected 导致标签页跳转
+                const QSignalBlocker thumbBlocker(thumbnailList->selectionModel());
+                const QSignalBlocker catBlocker(categoryTree->selectionModel());
+
                 refreshCategoryTree();
                 refreshSearch();
-                QTimer::singleShot(0, this, [this]() { m_suppressSelectEmit = false; });
+
+                // 刷新后恢复选中被编辑的片段（不触发信号）
+                for (int i = 0; i < thumbnailModel->rowCount(); ++i) {
+                    QModelIndex newIdx = thumbnailModel->index(i, 0);
+                    if (newIdx.data(Qt::UserRole).toString() == id) {
+                        thumbnailList->selectionModel()->setCurrentIndex(
+                            newIdx, QItemSelectionModel::ClearAndSelect);
+                        break;
+                    }
+                }
             }
         }
     }
