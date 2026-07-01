@@ -34,5 +34,8 @@ private:
     bool m_panning = false;
     QPoint m_panStart;
     int m_zoomPref = 0;
+    qreal m_savedHFrac = 0;
+    qreal m_savedVFrac = 0;
+    bool m_resumeScroll = false;
 };
 

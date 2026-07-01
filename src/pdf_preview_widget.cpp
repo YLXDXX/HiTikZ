@@ -22,6 +22,20 @@ PdfPreviewWidget::PdfPreviewWidget(QWidget *parent)
     m_pdfView->setMinimumHeight(0);
 
     layout->addWidget(m_pdfView);
+
+    connect(m_pdfDoc, &QPdfDocument::statusChanged, this, [this](QPdfDocument::Status s) {
+        if (s == QPdfDocument::Status::Ready && m_resumeScroll) {
+            m_resumeScroll = false;
+            QTimer::singleShot(50, this, [this]() {
+                QScrollBar *h = m_pdfView->horizontalScrollBar();
+                QScrollBar *v = m_pdfView->verticalScrollBar();
+                if (h && h->maximum() > 0)
+                    h->setValue(qRound(m_savedHFrac * h->maximum()));
+                if (v && v->maximum() > 0)
+                    v->setValue(qRound(m_savedVFrac * v->maximum()));
+            });
+        }
+    });
 }
 
 QPdfDocument *PdfPreviewWidget::document() const
@@ -139,6 +153,13 @@ void PdfPreviewWidget::applyZoomPreference()
 
 void PdfPreviewWidget::clearDocument()
 {
+    QScrollBar *h = m_pdfView->horizontalScrollBar();
+    QScrollBar *v = m_pdfView->verticalScrollBar();
+    if (hasDocument()) {
+        m_savedHFrac = (h && h->maximum() > 0) ? (qreal)h->value() / h->maximum() : 0;
+        m_savedVFrac = (v && v->maximum() > 0) ? (qreal)v->value() / v->maximum() : 0;
+        m_resumeScroll = true;
+    }
     m_pdfDoc->close();
 }
 
