@@ -1248,7 +1248,7 @@ void MainWindow::setupConnections()
             setFormattedLog(success, cmd, log, m_userCodeStartLine);
             if (success) {
                 pdfPreview->reloadDocument(QFileInfo(pdfPath).absoluteFilePath());
-    QTimer::singleShot(kZoomApplyDelayMs, pdfPreview, &PdfPreviewWidget::applyZoomPreference);
+                QTimer::singleShot(30, pdfPreview, &PdfPreviewWidget::applyZoomPreference);
                 savePreviewData(pdfPath, currentSnippetId);
                 statusBar()->showMessage(QStringLiteral("编译成功"), kStatusBarShortMs);
             } else {
@@ -1523,7 +1523,7 @@ void MainWindow::loadPreviewForSnippet(const QString &id)
     QString previewPdf = snippetDataPath(id) + "/preview.pdf";
     if (QFile::exists(previewPdf)) {
         pdfPreview->reloadDocument(QFileInfo(previewPdf).absoluteFilePath());
-        QTimer::singleShot(kZoomApplyDelayMs, pdfPreview, &PdfPreviewWidget::applyZoomPreference);
+        QTimer::singleShot(30, pdfPreview, &PdfPreviewWidget::applyZoomPreference);
     } else {
         clearPdfPreview();
     }
