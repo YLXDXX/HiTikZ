@@ -548,6 +548,11 @@ int SnippetManager::deleteCategory(const QString &category)
 
 static bool runProcessSync(QProcess &proc, int timeoutMs = 30000)
 {
+    if (proc.state() == QProcess::NotRunning) {
+        if (!proc.waitForStarted(3000))
+            return false;
+    }
+
     QEventLoop loop;
     QTimer timer;
     timer.setSingleShot(true);
@@ -555,8 +560,6 @@ static bool runProcessSync(QProcess &proc, int timeoutMs = 30000)
     QObject::connect(&proc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
                      &loop, &QEventLoop::quit);
     timer.start(timeoutMs);
-    if (proc.state() == QProcess::NotRunning)
-        return false;
     loop.exec();
     return proc.state() == QProcess::NotRunning;
 }

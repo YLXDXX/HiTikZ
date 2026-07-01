@@ -1,6 +1,7 @@
 #include "settings_dialog.h"
 #include "latex_compiler.h"
 #include "mainwindow.h"
+#include "snippet_manager.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QFormLayout>
@@ -347,12 +348,35 @@ void SettingsDialog::createTemplate()
     templateListWidget->setCurrentRow(idx >= 0 ? idx : 0);
 }
 
+void SettingsDialog::setSnippetManager(SnippetManager *mgr)
+{
+    m_snippetMgr = mgr;
+}
+
 void SettingsDialog::deleteTemplate()
 {
     QListWidgetItem *item = templateListWidget->currentItem();
     if (!item) return;
 
     QString name = item->text();
+
+    if (m_snippetMgr) {
+        QList<Snippet> all = m_snippetMgr->getAllSnippets(true);
+        QList<Snippet> presets = m_snippetMgr->getAllPresets(true);
+        all.append(presets);
+        QStringList usingSnippets;
+        for (const Snippet &s : all) {
+            if (s.templateId == name)
+                usingSnippets.append(s.name);
+        }
+        if (!usingSnippets.isEmpty()) {
+            QMessageBox::warning(this, QStringLiteral("无法删除"),
+                QStringLiteral("模板 \"%1\" 正在被以下片段使用，无法删除:\n\n%2")
+                    .arg(name, usingSnippets.join("\n")));
+            return;
+        }
+    }
+
     int ret = QMessageBox::warning(this, QStringLiteral("删除模板"),
         QStringLiteral("确定删除模板 \"%1\" 吗？").arg(name),
         QMessageBox::Yes | QMessageBox::No);

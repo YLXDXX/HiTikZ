@@ -238,6 +238,8 @@ QString LatexCompiler::wrapCode(const QString &texCode, const QString &templateI
         int docBegin = tmpl.indexOf(QStringLiteral("\\begin{document}"));
         if (docBegin >= 0) {
             tmpl = tmpl.insert(docBegin, extraPreamble);
+        } else {
+            tmpl = extraPreamble + "\n" + tmpl;
         }
     }
 
@@ -262,8 +264,10 @@ void LatexCompiler::compile(const QString &texCode, const QString &templateId, c
     if (!process) {
         process = new QProcess(this);
     } else {
-        if (process->state() != QProcess::NotRunning)
+        if (process->state() != QProcess::NotRunning) {
             process->kill();
+            process->waitForFinished(3000);
+        }
         process->disconnect();
     }
 
@@ -328,6 +332,17 @@ void LatexCompiler::compile(const QString &texCode, const QString &templateId, c
             emit compilationFinished(success, pdf, logOutput);
         });
 
+    connect(process, &QProcess::errorOccurred,
+        this, [this](QProcess::ProcessError) {
+            QString logOutput;
+            if (process) {
+                logOutput = process->readAllStandardOutput();
+                logOutput += "\n" + process->readAllStandardError();
+            }
+            emit compilationFinished(false, QString(), logOutput.isEmpty()
+                ? QStringLiteral("Process failed to start") : logOutput);
+        });
+
     QStringList args;
     args << "-interaction=nonstopmode"
          << "-halt-on-error"
@@ -364,6 +379,11 @@ void LatexCompiler::convertToPng(const QString &pdfPath, int dpi)
             emit conversionFinished(ok, ok ? png : QString());
             conv->deleteLater();
         });
+    connect(conv, &QProcess::errorOccurred,
+        this, [this, conv](QProcess::ProcessError) {
+            emit conversionFinished(false, QString());
+            conv->deleteLater();
+        });
 
     conv->start(pdfToCairoPath, args);
 }
@@ -388,6 +408,11 @@ void LatexCompiler::convertToSvg(const QString &pdfPath)
         this, [this, conv, outSvg](int exitCode, QProcess::ExitStatus) {
             bool ok = (exitCode == 0 && QFile::exists(outSvg));
             emit conversionFinished(ok, ok ? outSvg : QString());
+            conv->deleteLater();
+        });
+    connect(conv, &QProcess::errorOccurred,
+        this, [this, conv](QProcess::ProcessError) {
+            emit conversionFinished(false, QString());
             conv->deleteLater();
         });
 

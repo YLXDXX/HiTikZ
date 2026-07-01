@@ -17,6 +17,7 @@ public:
     static void applyToCompiler(class LatexCompiler *compiler);
     static QString templateDir();
     static void ensureTemplatesCopied(const QString &resourceTemplateDir);
+    void setSnippetManager(class SnippetManager *mgr);
 
 private:
     void loadSettings();
@@ -47,4 +48,5 @@ private:
     QPlainTextEdit *templateEdit;
 
     QString currentTemplateFile;
+    class SnippetManager *m_snippetMgr = nullptr;
 };

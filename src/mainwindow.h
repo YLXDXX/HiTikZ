@@ -147,18 +147,21 @@ private:
     QMenu *trayMenu;
 
     QString currentSnippetId;
+    bool m_compiling = false;
     bool m_batchGenerating = false;
     bool m_forceQuit = false;
     bool m_clipboardPngPending = false;
     bool m_clipboardSvgPending = false;
     int m_loadingDepth = 0;
     int m_userCodeStartLine = 1;
+    QMap<QString, QMap<QString, QString>> m_perSnippetParamValues;
     QList<Snippet> m_previewQueue;
     QString m_currentBatchSnippetId;
     int m_previewTotal = 0;
     int m_previewDone = 0;
     QMetaObject::Connection m_compileConn;
     QTimer *m_batchTimeoutTimer = nullptr;
+    QTimer *m_batchKillFallbackTimer = nullptr;
     QTimer *searchDebounceTimer = nullptr;
     QTimer *autoSaveTimer = nullptr;
 

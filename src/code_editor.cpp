@@ -28,6 +28,12 @@ CodeEditor::CodeEditor(QWidget *parent)
 
     m_completer = new TikzCompleter(this, this);
 
+    m_highlightDebounceTimer = new QTimer(this);
+    m_highlightDebounceTimer->setSingleShot(true);
+    m_highlightDebounceTimer->setInterval(200);
+    connect(m_highlightDebounceTimer, &QTimer::timeout,
+            this, &CodeEditor::performHighlightCurrentLine);
+
     setMouseTracking(true);
 }
 
@@ -147,6 +153,13 @@ void CodeEditor::focusOutEvent(QFocusEvent *event)
 }
 
 void CodeEditor::highlightCurrentLine()
+{
+    if (m_highlightDebounceTimer) {
+        m_highlightDebounceTimer->start();
+    }
+}
+
+void CodeEditor::performHighlightCurrentLine()
 {
     QList<QTextEdit::ExtraSelection> extraSelections;
 

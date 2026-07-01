@@ -47,6 +47,7 @@
 #include <memory>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QSaveFile>
 
 #define STRINGIFY(x) STRINGIFY_IMPL(x)
 #define STRINGIFY_IMPL(x) #x
@@ -634,6 +635,11 @@ void MainWindow::setupUI()
                 descEdit->clear();
                 pdfPreview->clearDocument();
                 while (tabWidget->count() > 0) {
+                    if (!maybeCloseTab(0)) {
+                        int next = tabWidget->count() - 1;
+                        tabWidget->setCurrentIndex(next >= 0 ? next : 0);
+                        break;
+                    }
                     QWidget *w = tabWidget->widget(0);
                     tabWidget->removeTab(0);
                     w->deleteLater();
@@ -649,8 +655,10 @@ void MainWindow::setupUI()
         int ret = QMessageBox::question(this, QStringLiteral("确认删除"),
             QStringLiteral("确定要删除此片段吗？"), QMessageBox::Yes | QMessageBox::No);
         if (ret == QMessageBox::Yes) {
-            snippetMgr->deleteSnippet(currentSnippetId);
             int tabIdx = findTabForSnippet(currentSnippetId);
+            if (tabIdx >= 0 && !maybeCloseTab(tabIdx))
+                return;
+            snippetMgr->deleteSnippet(currentSnippetId);
             if (tabIdx >= 0) {
                 QWidget *w = tabWidget->widget(tabIdx);
                 tabWidget->removeTab(tabIdx);
@@ -1030,6 +1038,7 @@ void MainWindow::setupUI()
 
     connect(settingsAct, &QAction::triggered, this, [this]() {
         SettingsDialog dlg(this);
+        dlg.setSnippetManager(snippetMgr);
         if (dlg.exec() == QDialog::Accepted) {
             SettingsDialog::applyToCompiler(compiler);
             applyShortcuts();
@@ -1110,6 +1119,12 @@ void MainWindow::setupConnections()
         for (const QString &id : ids) {
             int tabIdx = findTabForSnippet(id);
             if (tabIdx >= 0) {
+                tabWidget->setCurrentIndex(tabIdx);
+                currentSnippetId = id;
+                if (!maybeCloseTab(tabIdx)) {
+                    currentSnippetId.clear();
+                    continue;
+                }
                 if (id == currentSnippetId)
                     currentSnippetId.clear();
                 QWidget *w = tabWidget->widget(tabIdx);
@@ -1153,6 +1168,13 @@ void MainWindow::setupConnections()
         });
 
     connect(compileAct, &QAction::triggered, this, [this]() {
+        if (m_compiling) {
+            statusBar()->showMessage(QStringLiteral("编译正在进行中，请稍候..."), kStatusBarShortMs);
+            return;
+        }
+        m_compiling = true;
+        compileAct->setEnabled(false);
+
         saveCurrentSnippet();
         QString code;
         QString templateId;
@@ -1198,6 +1220,8 @@ void MainWindow::setupConnections()
 
     connect(compiler, &LatexCompiler::compilationFinished,
         this, [this](bool success, const QString &pdfPath, const QString &log) {
+            m_compiling = false;
+            compileAct->setEnabled(true);
             if (m_batchGenerating) return;
             QString sid = currentSnippetId.isEmpty() ? QStringLiteral("scratch") : currentSnippetId;
             QString cmd = compiler->xelatexCommand()
@@ -1351,6 +1375,19 @@ void MainWindow::clearParams()
 
 void MainWindow::parseParams()
 {
+    int tabIdx = tabWidget ? tabWidget->currentIndex() : -1;
+    QString tabSid = (tabIdx >= 0) ? tabWidget->tabBar()->tabData(tabIdx).toString() : QString();
+
+    if (!currentParams.isEmpty()) {
+        QMap<QString, QString> vals;
+        for (const ParamInfo &param : currentParams) {
+            vals[param.name] = param.edit->text();
+        }
+        QString key = !tabSid.isEmpty() ? tabSid : (currentSnippetId.isEmpty() ? QString() : currentSnippetId);
+        if (!key.isEmpty())
+            m_perSnippetParamValues[key] = vals;
+    }
+
     clearParams();
 
     CodeEditor *ed = currentEditor();
@@ -1376,10 +1413,23 @@ void MainWindow::parseParams()
         rowLayout->addWidget(label);
         rowLayout->addWidget(edit, 1);
 
+        if (!tabSid.isEmpty() && m_perSnippetParamValues.contains(tabSid)
+            && m_perSnippetParamValues[tabSid].contains(param.name)) {
+            edit->setText(m_perSnippetParamValues[tabSid][param.name]);
+        }
+
         param.edit = edit;
         currentParams.append(param);
         paramsLayout->addWidget(row);
         paramNames.append(param.name);
+
+        connect(edit, &QLineEdit::textChanged, this, [this, tabSid]() {
+            if (tabSid.isEmpty()) return;
+            QMap<QString, QString> vals;
+            for (const ParamInfo &p : currentParams)
+                vals[p.name] = p.edit->text();
+            m_perSnippetParamValues[tabSid] = vals;
+        });
     }
 
     paramsLayout->addStretch();
@@ -1497,6 +1547,10 @@ void MainWindow::processNextPreview()
             delete m_batchTimeoutTimer;
             m_batchTimeoutTimer = nullptr;
         }
+        if (m_batchKillFallbackTimer) {
+            delete m_batchKillFallbackTimer;
+            m_batchKillFallbackTimer = nullptr;
+        }
         statusBar()->showMessage(
             QStringLiteral("预览生成完毕: %1 个条目").arg(m_previewTotal), kStatusBarLongMs);
         refreshSearch();
@@ -1513,7 +1567,15 @@ void MainWindow::processNextPreview()
         m_batchTimeoutTimer->setSingleShot(true);
         connect(m_batchTimeoutTimer, &QTimer::timeout, this, [this]() {
             compiler->cancelCompile();
-            onBatchPreviewCompiled(false, QString(), QString());
+            m_batchTimeoutTimer->stop();
+            if (!m_batchKillFallbackTimer) {
+                m_batchKillFallbackTimer = new QTimer(this);
+                m_batchKillFallbackTimer->setSingleShot(true);
+                connect(m_batchKillFallbackTimer, &QTimer::timeout, this, [this]() {
+                    onBatchPreviewCompiled(false, QString(), QString());
+                });
+            }
+            m_batchKillFallbackTimer->start(2000);
         });
     }
     m_batchTimeoutTimer->start(kBatchCompileTimeoutMs);
@@ -1527,6 +1589,8 @@ void MainWindow::onBatchPreviewCompiled(bool success, const QString &pdfPath, co
 
     if (m_batchTimeoutTimer)
         m_batchTimeoutTimer->stop();
+    if (m_batchKillFallbackTimer)
+        m_batchKillFallbackTimer->stop();
 
     m_previewDone++;
     if (success) {
@@ -1612,7 +1676,8 @@ void MainWindow::setFormattedLog(bool success, const QString &command, const QSt
             int editorLine = fullLine - userCodeStartLine + 1;
             if (editorLine < 1) editorLine = 1;
             QString result = line;
-            result.replace(QRegularExpression("l\\.\\d+"), "l." + QString::number(editorLine));
+            static const QRegularExpression anchoredLineRe(QStringLiteral("^l\\.\\d+"));
+            result.replace(anchoredLineRe, QStringLiteral("l.") + QString::number(editorLine));
             return result;
         }
         return line;
@@ -1918,10 +1983,10 @@ void MainWindow::performAutoSave()
             obj["templateId"] = s.templateId;
         }
 
-        QFile file(draftPath);
-        if (file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+        QSaveFile file(draftPath);
+        if (file.open(QIODevice::WriteOnly)) {
             file.write(QJsonDocument(obj).toJson());
-            file.close();
+            file.commit();
         }
     }
 }

@@ -626,7 +626,7 @@ bool SearchPanel::eventFilter(QObject *obj, QEvent *event)
             QSet<QString> seen;
             bool anyUpdated = false;
 
-            while (!stream.atEnd()) {
+            while (!stream.atEnd() && stream.status() == QDataStream::Ok) {
                 int row, col;
                 QMap<int, QVariant> roleData;
                 stream >> row >> col >> roleData;

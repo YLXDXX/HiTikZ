@@ -28,7 +28,7 @@ TikzHighlighter::TikzHighlighter(QTextDocument *parent)
     m_paramFormat.setFontItalic(true);
 
     m_rules = {
-        {QRegularExpression(QStringLiteral("%[^\n]*")), m_commentFormat, 0},
+        {QRegularExpression(QStringLiteral("%[^\n]*")), m_commentFormat, 100},
         {QRegularExpression(QStringLiteral("\"[^\"]*\"")), m_stringFormat, 1},
         {QRegularExpression(QStringLiteral("@@[a-zA-Z_][a-zA-Z0-9_]*@@")), m_paramFormat, 2},
         {QRegularExpression(QStringLiteral("\\\\begin\\{[^}]*\\}|\\\\end\\{[^}]*\\}")), m_envFormat, 3},
@@ -53,10 +53,11 @@ void TikzHighlighter::highlightBlock(const QString &text)
         setFormat(0, text.length(), m_commentFormat);
         static const QRegularExpression endCommentRe(
             QString::fromUtf8(R"(\\end\{comment\})"));
-        bool hasEnd = endCommentRe.match(text).hasMatch();
+        QRegularExpressionMatch endMatch = endCommentRe.match(text);
+        bool hasEnd = endMatch.hasMatch();
         setCurrentBlockState(hasEnd ? Normal : InComment);
         if (!hasEnd) return;
-        int afterEnd = text.indexOf(endCommentRe) + endCommentRe.match(text).capturedLength();
+        int afterEnd = endMatch.capturedStart() + endMatch.capturedLength();
         if (afterEnd < text.length())
             applyRules(text.mid(afterEnd));
         return;

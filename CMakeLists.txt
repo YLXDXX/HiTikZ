@@ -149,3 +149,9 @@ add_executable(test_params
 )
 target_link_libraries(test_params PRIVATE Qt6::Core)
 add_test(NAME Params COMMAND test_params)
+
+add_executable(test_fixes
+    tests/test_fixes.cpp
+)
+target_link_libraries(test_fixes PRIVATE Qt6::Core)
+add_test(NAME Fixes COMMAND test_fixes)

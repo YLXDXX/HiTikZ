@@ -36,6 +36,9 @@ private:
     TikzHighlighter *m_highlighter;
     TikzCompleter *m_completer;
     bool m_focusInProgress = false;
+    QTimer *m_highlightDebounceTimer = nullptr;
+
+    void performHighlightCurrentLine();
 };
 
 class LineNumberArea : public QWidget {
