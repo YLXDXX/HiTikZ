@@ -24,6 +24,7 @@ public slots:
     void fitHeight();
     void applyZoomPreference();
     void clearDocument();
+    void reloadDocument(const QString &path);
 
 protected:
     bool eventFilter(QObject *obj, QEvent *event) override;

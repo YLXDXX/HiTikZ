@@ -163,6 +163,18 @@ void PdfPreviewWidget::clearDocument()
     m_pdfDoc->close();
 }
 
+void PdfPreviewWidget::reloadDocument(const QString &path)
+{
+    QScrollBar *h = m_pdfView->horizontalScrollBar();
+    QScrollBar *v = m_pdfView->verticalScrollBar();
+    if (hasDocument()) {
+        m_savedHFrac = (h && h->maximum() > 0) ? (qreal)h->value() / h->maximum() : 0;
+        m_savedVFrac = (v && v->maximum() > 0) ? (qreal)v->value() / v->maximum() : 0;
+        m_resumeScroll = true;
+    }
+    m_pdfDoc->load(path);
+}
+
 bool PdfPreviewWidget::eventFilter(QObject *obj, QEvent *event)
 {
     if (obj == m_pdfView->viewport()) {
