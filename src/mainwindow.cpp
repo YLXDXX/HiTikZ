@@ -1233,6 +1233,10 @@ void MainWindow::setupConnections()
     connect(saveAct, &QAction::triggered, this, [this]() {
         saveCurrentSnippet();
         refreshSearch();
+        QSettings settings("HiTikZ", "TikzManager");
+        if (settings.value("behavior/autoCompileOnSave", false).toBool()) {
+            compileAct->trigger();
+        }
     });
 
     connect(compiler, &LatexCompiler::compilationFinished,

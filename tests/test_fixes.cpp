@@ -7,6 +7,7 @@
 #include <QVariant>
 #include <QDebug>
 #include <QString>
+#include <QSettings>
 #include <cstdio>
 
 static int test_line_number_regex() {
@@ -209,11 +210,8 @@ static int test_qprocess_wait_for_started() {
 static int test_stream_status_check() {
     int failed = 0;
 
-    // Defect#17: Data stream should check status to avoid infinite loop
-    // Test that corrupted data doesn't cause infinite loop
     {
         QByteArray corruptData;
-        // Write partial data that will cause stream error
         corruptData.append(static_cast<char>('\xFF'));
         corruptData.append(static_cast<char>('\xFF'));
         corruptData.append(static_cast<char>('\xFF'));
@@ -232,11 +230,61 @@ static int test_stream_status_check() {
             }
         }
         if (iterations <= 100) {
-            // Stream should have exited due to error (not atEnd)
         }
     }
 
     if (failed == 0) fprintf(stderr, "PASS: Stream status check test\n");
+    return failed;
+}
+
+static int test_auto_compile_on_save() {
+    int failed = 0;
+
+    // Feature: auto-compile on save
+    // Setting key: behavior/autoCompileOnSave
+    // Default: false (off)
+    {
+        QSettings settings("HiTikZ", "TikzManager");
+
+        // Test 1: Default value should be false
+        bool defaultValue = settings.value("behavior/autoCompileOnSave", false).toBool();
+        if (defaultValue) {
+            fprintf(stderr, "FAIL: Test ACS-1 - default autoCompileOnSave should be false\n");
+            failed++;
+        }
+
+        // Test 2: Can be set to true and read back
+        settings.setValue("behavior/autoCompileOnSave", true);
+        settings.sync();
+        bool readBack = settings.value("behavior/autoCompileOnSave", false).toBool();
+        if (!readBack) {
+            fprintf(stderr, "FAIL: Test ACS-2 - autoCompileOnSave should read back as true\n");
+            failed++;
+        }
+
+        // Test 3: Can be set back to false
+        settings.setValue("behavior/autoCompileOnSave", false);
+        settings.sync();
+        readBack = settings.value("behavior/autoCompileOnSave", true).toBool();
+        if (readBack) {
+            fprintf(stderr, "FAIL: Test ACS-3 - autoCompileOnSave should read back as false\n");
+            failed++;
+        }
+
+        // Test 4: Setting key name is correct
+        if (settings.allKeys().contains("behavior/autoCompileOnSave")) {
+            // Key exists - expected after set
+        } else {
+            fprintf(stderr, "FAIL: Test ACS-4 - key 'behavior/autoCompileOnSave' should exist\n");
+            failed++;
+        }
+
+        // Cleanup: remove the test key
+        settings.remove("behavior/autoCompileOnSave");
+        settings.sync();
+    }
+
+    if (failed == 0) fprintf(stderr, "PASS: Auto-compile-on-save settings test\n");
     return failed;
 }
 
@@ -249,6 +297,7 @@ int main(int argc, char *argv[]) {
     failed += test_wrap_code_no_document();
     failed += test_qprocess_wait_for_started();
     failed += test_stream_status_check();
+    failed += test_auto_compile_on_save();
 
     if (failed > 0) {
         fprintf(stderr, "\n%d test(s) failed!\n", failed);

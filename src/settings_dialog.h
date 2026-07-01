@@ -4,6 +4,7 @@
 #include <QSpinBox>
 #include <QComboBox>
 #include <QPlainTextEdit>
+#include <QCheckBox>
 #include <QListWidget>
 #include <QSettings>
 #include <QStringList>
@@ -44,6 +45,7 @@ private:
     QKeySequenceEdit *saveShortcutEdit;
     QKeySequenceEdit *closeTabShortcutEdit;
     QKeySequenceEdit *globalHotkeyEdit;
+    QCheckBox *autoCompileOnSaveCheck;
     QListWidget *templateListWidget;
     QPlainTextEdit *templateEdit;
 

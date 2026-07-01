@@ -17,6 +17,7 @@
 #include <QInputDialog>
 #include <QMessageBox>
 #include <QGroupBox>
+#include <QCheckBox>
 
 SettingsDialog::SettingsDialog(QWidget *parent)
     : QDialog(parent)
@@ -54,6 +55,12 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     formLayout->addRow(QStringLiteral("代码字体大小:"), editorFontSizeSpin);
     formLayout->addRow(QStringLiteral("界面字体大小:"), uiFontSizeSpin);
     mainLayout->addLayout(formLayout);
+
+    QGroupBox *behaviorGroup = new QGroupBox(QStringLiteral("行为设置"));
+    QVBoxLayout *behaviorLayout = new QVBoxLayout(behaviorGroup);
+    autoCompileOnSaveCheck = new QCheckBox(QStringLiteral("保存后自动编译"));
+    behaviorLayout->addWidget(autoCompileOnSaveCheck);
+    mainLayout->addWidget(behaviorGroup);
 
     QGroupBox *shortcutGroup = new QGroupBox(QStringLiteral("快捷键设置"));
     QFormLayout *shortcutLayout = new QFormLayout(shortcutGroup);
@@ -209,6 +216,7 @@ void SettingsDialog::loadSettings()
     saveShortcutEdit->setKeySequence(QKeySequence(settings.value("shortcuts/save", "").toString()));
     closeTabShortcutEdit->setKeySequence(QKeySequence(settings.value("shortcuts/closeTab", "Ctrl+W").toString()));
     globalHotkeyEdit->setKeySequence(QKeySequence(settings.value("shortcuts/globalHotkey", "Ctrl+Alt+T").toString()));
+    autoCompileOnSaveCheck->setChecked(settings.value("behavior/autoCompileOnSave", false).toBool());
 }
 
 void SettingsDialog::saveSettings()
@@ -230,6 +238,7 @@ void SettingsDialog::saveSettings()
     settings.setValue("shortcuts/save", saveShortcutEdit->keySequence().toString());
     settings.setValue("shortcuts/closeTab", closeTabShortcutEdit->keySequence().toString());
     settings.setValue("shortcuts/globalHotkey", globalHotkeyEdit->keySequence().toString());
+    settings.setValue("behavior/autoCompileOnSave", autoCompileOnSaveCheck->isChecked());
 }
 
 void SettingsDialog::applyToCompiler(LatexCompiler *compiler)
