@@ -41,7 +41,10 @@ public:
     static bool checkInkscapeAvailable();
 
     QString wrapCode(const QString &texCode, const QString &templateId,
-                    const QString &packages, const QString &tikzLibraries) const;
+                    const QString &packages, const QString &tikzLibraries,
+                    const QString &customCommands = QString()) const;
+
+    static QString extractCustomCommands(const QString &texCode, QString &outCode);
 
     int userCodeStartLine() const;
 

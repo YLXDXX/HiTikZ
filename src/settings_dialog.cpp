@@ -36,7 +36,7 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     svgToolCombo->addItem("pdftocairo", "pdftocairo");
     svgToolCombo->addItem("inkscape", "inkscape");
     texInputsEdit = new QLineEdit;
-    texInputsEdit->setPlaceholderText(QStringLiteral("额外的TEXINPUTS路径，用冒号分隔"));
+    texInputsEdit->setPlaceholderText(QStringLiteral("额外的环境变量，用于相关命令查找，用冒号分隔"));
     pngDpiSpin = new QSpinBox;
     pngDpiSpin->setRange(72, 1200);
     pngDpiSpin->setValue(300);
@@ -51,7 +51,7 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     formLayout->addRow(QStringLiteral("pdftocairo 命令:"), pdftocairoPathEdit);
     formLayout->addRow(QStringLiteral("inkscape 命令:"), inkscapePathEdit);
     formLayout->addRow(QStringLiteral("SVG 转换工具:"), svgToolCombo);
-    formLayout->addRow(QStringLiteral("额外环境变量:"), texInputsEdit);
+    formLayout->addRow(QStringLiteral("环境变量:"), texInputsEdit);
     formLayout->addRow(QStringLiteral("PNG DPI:"), pngDpiSpin);
     formLayout->addRow(QStringLiteral("代码字体大小:"), editorFontSizeSpin);
     formLayout->addRow(QStringLiteral("界面字体大小:"), uiFontSizeSpin);

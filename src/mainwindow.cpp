@@ -440,6 +440,7 @@ void MainWindow::setupUI()
     QMenu *importExportMenu = new QMenu(importExportBtn);
     QAction *importMenuAct = importExportMenu->addAction(QStringLiteral("导入存档"));
     QAction *importTexAct = importExportMenu->addAction(QStringLiteral("导入 .tex 文件"));
+    QAction *importClipAct = importExportMenu->addAction(QStringLiteral("从剪贴板导入"));
     importExportMenu->addSeparator();
     QAction *exportMenuAct = importExportMenu->addAction(QStringLiteral("导出当前"));
     QAction *exportAllMenuAct = importExportMenu->addAction(QStringLiteral("导出全部"));
@@ -769,6 +770,31 @@ void MainWindow::setupUI()
             }
         }
 
+        // Parse \newcommand and \NewDocumentCommand from preamble
+        QString preambleCustomCmds;
+        QString preambleCleaned;
+        preambleCustomCmds = LatexCompiler::extractCustomCommands(preamble, preambleCleaned);
+        if (!preambleCustomCmds.trimmed().isEmpty()) {
+            preambleCustomCmds = preambleCustomCmds.trimmed() + "\n";
+        }
+
+        // Also extract custom commands from the body that appear before tikzpicture
+        QString bodyCustomCmds;
+        QString bodyCleaned;
+        bodyCustomCmds = LatexCompiler::extractCustomCommands(code, bodyCleaned);
+        if (!bodyCustomCmds.trimmed().isEmpty()) {
+            bodyCustomCmds = bodyCustomCmds.trimmed() + "\n";
+        }
+        code = bodyCleaned;
+
+        // Combine custom commands (preamble first, then body)
+        QString allCustomCmds = (preambleCustomCmds + bodyCustomCmds).trimmed();
+
+        // Build final code: custom commands at top, then tikz code below
+        if (!allCustomCmds.isEmpty()) {
+            code = allCustomCmds + "\n\n" + code;
+        }
+
         QString baseName = QFileInfo(filePath).completeBaseName();
         QString id = snippetMgr->createSnippet(baseName, QString());
         Snippet s = snippetMgr->loadSnippet(id);
@@ -782,6 +808,115 @@ void MainWindow::setupUI()
         refreshSearch();
         loadSnippetIntoEditor(id);
         statusBar()->showMessage(QStringLiteral("已导入: %1").arg(baseName), kStatusBarShortMs);
+    });
+
+    connect(importClipAct, &QAction::triggered, this, [this]() {
+        QString content = QApplication::clipboard()->text();
+        if (content.trimmed().isEmpty()) {
+            QMessageBox::warning(this, QStringLiteral("导入失败"),
+                QStringLiteral("剪贴板中没有文本内容。"));
+            return;
+        }
+
+        QString trimmed = content.trimmed();
+        QString clipName;
+        int firstLineEnd = trimmed.indexOf('\n');
+        if (firstLineEnd > 0) {
+            clipName = trimmed.left(firstLineEnd).trimmed();
+            if (clipName.startsWith('%'))
+                clipName = clipName.mid(1).trimmed();
+            if (clipName.length() > 40)
+                clipName = clipName.left(40);
+        }
+        if (clipName.isEmpty()) {
+            clipName = QStringLiteral("来自剪贴板");
+        }
+
+        QString preamble;
+        QString code;
+        int docBegin = content.indexOf(QStringLiteral("\\begin{document}"));
+        int docEnd = content.indexOf(QStringLiteral("\\end{document}"));
+        if (docBegin >= 0 && docEnd > docBegin) {
+            preamble = content.left(docBegin);
+            int codeStart = content.indexOf('\n', docBegin) + 1;
+            code = content.mid(codeStart, docEnd - codeStart).trimmed();
+        } else {
+            preamble = content;
+            int tikzBegin = content.indexOf(QStringLiteral("\\begin{tikzpicture}"));
+            int tikzEnd = content.indexOf(QStringLiteral("\\end{tikzpicture}"));
+            if (tikzBegin >= 0 && tikzEnd > tikzBegin) {
+                code = content.mid(tikzBegin, tikzEnd + 17 - tikzBegin);
+            } else {
+                code = content.trimmed();
+            }
+        }
+
+        if (code.isEmpty()) {
+            QMessageBox::warning(this, QStringLiteral("导入失败"),
+                QStringLiteral("未能从剪贴板内容中提取 TikZ 代码。"));
+            return;
+        }
+
+        QStringList packages;
+        QRegularExpression usepkgRe(QStringLiteral("\\\\usepackage(?:\\[([^\\]]*)\\])?\\{([^}]*)\\}"));
+        QRegularExpressionMatchIterator pkgIt = usepkgRe.globalMatch(preamble);
+        while (pkgIt.hasNext()) {
+            QRegularExpressionMatch m = pkgIt.next();
+            QString options = m.captured(1);
+            QString pkgList = m.captured(2);
+            QStringList pkgs = pkgList.split(',');
+            for (const QString &pkg : pkgs) {
+                QString t = pkg.trimmed();
+                if (t.isEmpty()) continue;
+                if (!options.isEmpty()) t = "[" + options + "]" + t;
+                packages.append(t);
+            }
+        }
+
+        QStringList libraries;
+        QRegularExpression uselibRe(QStringLiteral("\\\\usetikzlibrary\\{([^}]*)\\}"));
+        QRegularExpressionMatchIterator libIt = uselibRe.globalMatch(preamble);
+        while (libIt.hasNext()) {
+            QRegularExpressionMatch m = libIt.next();
+            QStringList libs = m.captured(1).split(',');
+            for (const QString &lib : libs) {
+                QString t = lib.trimmed();
+                if (!t.isEmpty()) libraries.append(t);
+            }
+        }
+
+        QString preambleCustomCmds;
+        QString preambleCleaned;
+        preambleCustomCmds = LatexCompiler::extractCustomCommands(preamble, preambleCleaned);
+        if (!preambleCustomCmds.trimmed().isEmpty()) {
+            preambleCustomCmds = preambleCustomCmds.trimmed() + "\n";
+        }
+
+        QString bodyCustomCmds;
+        QString bodyCleaned;
+        bodyCustomCmds = LatexCompiler::extractCustomCommands(code, bodyCleaned);
+        if (!bodyCustomCmds.trimmed().isEmpty()) {
+            bodyCustomCmds = bodyCustomCmds.trimmed() + "\n";
+        }
+        code = bodyCleaned;
+
+        QString allCustomCmds = (preambleCustomCmds + bodyCustomCmds).trimmed();
+        if (!allCustomCmds.isEmpty()) {
+            code = allCustomCmds + "\n\n" + code;
+        }
+
+        QString id = snippetMgr->createSnippet(clipName, QString());
+        Snippet s = snippetMgr->loadSnippet(id);
+        s.code = code;
+        s.name = clipName;
+        s.packages = packages.join(", ");
+        s.tikzLibraries = libraries.join(", ");
+        snippetMgr->saveSnippet(s);
+
+        refreshCategoryTree();
+        refreshSearch();
+        loadSnippetIntoEditor(id);
+        statusBar()->showMessage(QStringLiteral("已从剪贴板导入: %1").arg(clipName), kStatusBarShortMs);
     });
 
     connect(exportMenuAct, &QAction::triggered, this, [this]() {
@@ -838,7 +973,9 @@ void MainWindow::setupUI()
             QString code = applyParams(ed->toPlainText());
             static QRegularExpression paramLine("^%\\s*@param:.*(\n|\r\n?)?", QRegularExpression::MultilineOption);
             code.remove(paramLine);
-            QString fullDoc = compiler->wrapCode(code, QString(), QString(), QString());
+            QString cleanedCode;
+            QString customCmds = LatexCompiler::extractCustomCommands(code, cleanedCode);
+            QString fullDoc = compiler->wrapCode(cleanedCode, QString(), QString(), QString(), customCmds);
             QApplication::clipboard()->setText(fullDoc);
             statusBar()->showMessage(QStringLiteral("完整文档已复制到剪贴板"), 2000);
             return;
@@ -846,7 +983,9 @@ void MainWindow::setupUI()
         Snippet s = snippetMgr->loadSnippet(currentSnippetId);
         QString code = applyParams(s.code);
         code.remove(paramLineRe);
-        QString fullDoc = compiler->wrapCode(code, s.templateId, s.packages, s.tikzLibraries);
+        QString cleanedCode;
+        QString customCmds = LatexCompiler::extractCustomCommands(code, cleanedCode);
+        QString fullDoc = compiler->wrapCode(cleanedCode, s.templateId, s.packages, s.tikzLibraries, customCmds);
         QApplication::clipboard()->setText(fullDoc);
         statusBar()->showMessage(QStringLiteral("完整文档已复制到剪贴板"), 2000);
     };
@@ -867,7 +1006,9 @@ void MainWindow::setupUI()
         Snippet s = snippetMgr->loadSnippet(currentSnippetId);
         QString code = applyParams(s.code);
         code.remove(paramLineRe);
-        QString fullDoc = compiler->wrapCode(code, s.templateId, s.packages, s.tikzLibraries);
+        QString cleanedCode;
+        QString customCmds = LatexCompiler::extractCustomCommands(code, cleanedCode);
+        QString fullDoc = compiler->wrapCode(cleanedCode, s.templateId, s.packages, s.tikzLibraries, customCmds);
         QString filePath = QFileDialog::getSaveFileName(this,
             QStringLiteral("导出为 .tex 文档"), s.name + ".tex",
             "LaTeX 文档 (*.tex)");

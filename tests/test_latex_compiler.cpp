@@ -167,11 +167,274 @@ int main(int argc, char *argv[]) {
         else qDebug() << "PASS: Test 5 - error compilation correctly failed with log";
     }
 
+    // ──── Custom command extraction tests ────
+    fprintf(stderr, "=== Starting custom command tests ===\n");
+    int customTestsFailed = 0;
+
+    // Test 6: Basic \newcommand extraction (no args)
+    {
+        QString code = "\\newcommand{\\mycolor}{red}\n"
+                       "\\begin{tikzpicture}\n"
+                       "\\draw[\\mycolor] (0,0) -- (1,1);\n"
+                       "\\end{tikzpicture}";
+        QString outCode;
+        QString cmds = LatexCompiler::extractCustomCommands(code, outCode);
+        if (cmds.isEmpty() || !cmds.contains("\\newcommand{\\mycolor}{red}"))
+            { fprintf(stderr, "FAIL: Test 6 - basic newcommand not extracted\n"); customTestsFailed++; }
+        else if (outCode.contains("\\newcommand"))
+            { fprintf(stderr, "FAIL: Test 6 - newcommand still in output code\n"); customTestsFailed++; }
+        else if (!outCode.contains("\\draw[\\mycolor]"))
+            { fprintf(stderr, "FAIL: Test 6 - tikz code altered\n"); customTestsFailed++; }
+        else fprintf(stderr, "PASS: Test 6 - basic \\newcommand extraction\n");
+    }
+
+    // Test 7: \newcommand with number of args
+    {
+        QString code = "\\newcommand{\\myvec}[2]{\\left(#1,#2\\right)}\n"
+                       "\\begin{tikzpicture}\\end{tikzpicture}";
+        QString outCode;
+        QString cmds = LatexCompiler::extractCustomCommands(code, outCode);
+        if (!cmds.contains("\\newcommand{\\myvec}[2]{\\left(#1,#2\\right)}"))
+            { fprintf(stderr, "FAIL: Test 7 - newcommand with args not extracted\n"); customTestsFailed++; }
+        else fprintf(stderr, "PASS: Test 7 - \\newcommand with argument count\n");
+    }
+
+    // Test 8: \newcommand* (starred)
+    {
+        QString code = "\\newcommand*{\\myfunc}[2]{#1+#2}\n"
+                       "\\begin{tikzpicture}\\end{tikzpicture}";
+        QString outCode;
+        QString cmds = LatexCompiler::extractCustomCommands(code, outCode);
+        if (!cmds.contains("\\newcommand*{\\myfunc}[2]{#1+#2}"))
+            { fprintf(stderr, "FAIL: Test 8 - starred newcommand not extracted\n"); customTestsFailed++; }
+        else fprintf(stderr, "PASS: Test 8 - starred \\newcommand* extraction\n");
+    }
+
+    // Test 9: \renewcommand
+    {
+        QString code = "\\renewcommand{\\theequation}{Eq.\\arabic{equation}}\n"
+                       "\\begin{tikzpicture}\\end{tikzpicture}";
+        QString outCode;
+        QString cmds = LatexCompiler::extractCustomCommands(code, outCode);
+        if (!cmds.contains("\\renewcommand{\\theequation}{Eq.\\arabic{equation}}"))
+            { fprintf(stderr, "FAIL: Test 9 - renewcommand not extracted\n"); customTestsFailed++; }
+        else fprintf(stderr, "PASS: Test 9 - \\renewcommand extraction\n");
+    }
+
+    // Test 10: \providecommand
+    {
+        QString code = "\\providecommand{\\mydef}{default}\n"
+                       "\\begin{tikzpicture}\\end{tikzpicture}";
+        QString outCode;
+        QString cmds = LatexCompiler::extractCustomCommands(code, outCode);
+        if (!cmds.contains("\\providecommand{\\mydef}{default}"))
+            { fprintf(stderr, "FAIL: Test 10 - providecommand not extracted\n"); customTestsFailed++; }
+        else fprintf(stderr, "PASS: Test 10 - \\providecommand extraction\n");
+    }
+
+    // Test 11: \NewDocumentCommand
+    {
+        QString code = "\\NewDocumentCommand{\\mydraw}{ O{red} m }{\\draw[#1] #2;}\n"
+                       "\\begin{tikzpicture}\\end{tikzpicture}";
+        QString outCode;
+        QString cmds = LatexCompiler::extractCustomCommands(code, outCode);
+        if (!cmds.contains("\\NewDocumentCommand{\\mydraw}{ O{red} m }{\\draw[#1] #2;}"))
+            { fprintf(stderr, "FAIL: Test 11 - NewDocumentCommand not extracted\n"); customTestsFailed++; }
+        else fprintf(stderr, "PASS: Test 11 - \\NewDocumentCommand extraction\n");
+    }
+
+    // Test 12: \NewExpandableDocumentCommand
+    {
+        QString code = "\\NewExpandableDocumentCommand{\\mycalc}{ m m }{#1+#2}\n"
+                       "\\begin{tikzpicture}\\end{tikzpicture}";
+        QString outCode;
+        QString cmds = LatexCompiler::extractCustomCommands(code, outCode);
+        if (!cmds.contains("\\NewExpandableDocumentCommand{\\mycalc}{ m m }{#1+#2}"))
+            { fprintf(stderr, "FAIL: Test 12 - NewExpandableDocumentCommand not extracted\n"); customTestsFailed++; }
+        else fprintf(stderr, "PASS: Test 12 - \\NewExpandableDocumentCommand extraction\n");
+    }
+
+    // Test 13: \RenewDocumentCommand
+    {
+        QString code = "\\RenewDocumentCommand{\\mycmd}{ m }{new: #1}\n"
+                       "\\begin{tikzpicture}\\end{tikzpicture}";
+        QString outCode;
+        QString cmds = LatexCompiler::extractCustomCommands(code, outCode);
+        if (!cmds.contains("\\RenewDocumentCommand{\\mycmd}{ m }{new: #1}"))
+            { fprintf(stderr, "FAIL: Test 13 - RenewDocumentCommand not extracted\n"); customTestsFailed++; }
+        else fprintf(stderr, "PASS: Test 13 - \\RenewDocumentCommand extraction\n");
+    }
+
+    // Test 14: \ProvideDocumentCommand
+    {
+        QString code = "\\ProvideDocumentCommand{\\mydef}{}{default}\n"
+                       "\\begin{tikzpicture}\\end{tikzpicture}";
+        QString outCode;
+        QString cmds = LatexCompiler::extractCustomCommands(code, outCode);
+        if (!cmds.contains("\\ProvideDocumentCommand{\\mydef}{}{default}"))
+            { fprintf(stderr, "FAIL: Test 14 - ProvideDocumentCommand not extracted\n"); customTestsFailed++; }
+        else fprintf(stderr, "PASS: Test 14 - \\ProvideDocumentCommand extraction\n");
+    }
+
+    // Test 15: \DeclareDocumentCommand
+    {
+        QString code = "\\DeclareDocumentCommand{\\mycmd}{ m }{#1}\n"
+                       "\\begin{tikzpicture}\\end{tikzpicture}";
+        QString outCode;
+        QString cmds = LatexCompiler::extractCustomCommands(code, outCode);
+        if (!cmds.contains("\\DeclareDocumentCommand{\\mycmd}{ m }{#1}"))
+            { fprintf(stderr, "FAIL: Test 15 - DeclareDocumentCommand not extracted\n"); customTestsFailed++; }
+        else fprintf(stderr, "PASS: Test 15 - \\DeclareDocumentCommand extraction\n");
+    }
+
+    // Test 16: Multiple custom commands
+    {
+        QString code = "\\newcommand{\\RED}{red}\n"
+                       "\\newcommand{\\BLUE}{blue}\n"
+                       "\\begin{tikzpicture}\n"
+                       "\\draw[\\RED] (0,0) -- (1,1);\n"
+                       "\\end{tikzpicture}";
+        QString outCode;
+        QString cmds = LatexCompiler::extractCustomCommands(code, outCode);
+        if (!cmds.contains("\\RED"))
+            { fprintf(stderr, "FAIL: Test 16a - first command not extracted\n"); customTestsFailed++; }
+        if (!cmds.contains("\\BLUE"))
+            { fprintf(stderr, "FAIL: Test 16b - second command not extracted\n"); customTestsFailed++; }
+        if (cmds.count("\\newcommand") != 2)
+            { fprintf(stderr, "FAIL: Test 16c - should extract 2 newcommand\n"); customTestsFailed++; }
+        else fprintf(stderr, "PASS: Test 16 - multiple custom commands\n");
+    }
+
+    // Test 17: Commands inside tikzpicture should NOT be extracted
+    {
+        QString code = "\\begin{tikzpicture}\n"
+                       "\\newcommand{\\inside}{foo}\n"
+                       "\\end{tikzpicture}";
+        QString outCode;
+        QString cmds = LatexCompiler::extractCustomCommands(code, outCode);
+        if (!cmds.isEmpty())
+            { fprintf(stderr, "FAIL: Test 17 - command inside tikzpicture should not be extracted\n"); customTestsFailed++; }
+        else if (!outCode.contains("\\newcommand"))
+            { fprintf(stderr, "FAIL: Test 17 - outCode should still contain inner newcommand\n"); customTestsFailed++; }
+        else fprintf(stderr, "PASS: Test 17 - commands inside tikzpicture not extracted\n");
+    }
+
+    // Test 18: Commands before and after tikzpicture (only before extracted)
+    {
+        QString code = "\\newcommand{\\BEFORE}{1}\n"
+                       "\\begin{tikzpicture}\n"
+                       "\\newcommand{\\INSIDE}{2}\n"
+                       "\\end{tikzpicture}\n"
+                       "\\newcommand{\\AFTER}{3}\n"
+                       "\\begin{tikzpicture}\\end{tikzpicture}";
+        QString outCode;
+        QString cmds = LatexCompiler::extractCustomCommands(code, outCode);
+        if (!cmds.contains("\\BEFORE"))
+            { fprintf(stderr, "FAIL: Test 18a - before command not extracted\n"); customTestsFailed++; }
+        if (cmds.contains("\\AFTER"))
+            { fprintf(stderr, "FAIL: Test 18b - after first tikzpicture command extracted incorrectly\n"); customTestsFailed++; }
+        if (outCode.contains("\\BEFORE"))
+            { fprintf(stderr, "FAIL: Test 18c - before command still in outCode\n"); customTestsFailed++; }
+        else fprintf(stderr, "PASS: Test 18 - only commands before first tikzpicture extracted\n");
+    }
+
+    // Test 19: Multi-line custom command definition
+    {
+        QString code = "\\newcommand{\\mydrawing}{%\n"
+                       "  \\node[draw] at (0,0) {A};%\n"
+                       "  \\node[draw] at (1,0) {B};%\n"
+                       "}\n"
+                       "\\begin{tikzpicture}\\end{tikzpicture}";
+        QString outCode;
+        QString cmds = LatexCompiler::extractCustomCommands(code, outCode);
+        if (!cmds.contains("\\mydrawing"))
+            { fprintf(stderr, "FAIL: Test 19 - multi-line command not extracted\n"); customTestsFailed++; }
+        else fprintf(stderr, "PASS: Test 19 - multi-line custom command\n");
+    }
+
+    // Test 20: Mixed old and new format
+    {
+        QString code = "\\newcommand{\\OLD}{old}\n"
+                       "\\NewDocumentCommand{\\NEW}{}{new}\n"
+                       "\\begin{tikzpicture}\\end{tikzpicture}";
+        QString outCode;
+        QString cmds = LatexCompiler::extractCustomCommands(code, outCode);
+        if (!cmds.contains("\\OLD"))
+            { fprintf(stderr, "FAIL: Test 20a - old format not extracted\n"); customTestsFailed++; }
+        if (!cmds.contains("\\NEW"))
+            { fprintf(stderr, "FAIL: Test 20b - new format not extracted\n"); customTestsFailed++; }
+        else fprintf(stderr, "PASS: Test 20 - mixed old and new format commands\n");
+    }
+
+    // Test 21: \NewCommandCopy
+    {
+        QString code = "\\NewCommandCopy{\\mycopy}{\\existing}\n"
+                       "\\begin{tikzpicture}\\end{tikzpicture}";
+        QString outCode;
+        QString cmds = LatexCompiler::extractCustomCommands(code, outCode);
+        if (!cmds.contains("\\NewCommandCopy{\\mycopy}{\\existing}"))
+            { fprintf(stderr, "FAIL: Test 21 - NewCommandCopy not extracted\n"); customTestsFailed++; }
+        else fprintf(stderr, "PASS: Test 21 - \\NewCommandCopy extraction\n");
+    }
+
+    // Test 22: No custom commands (should return empty)
+    {
+        QString code = "\\begin{tikzpicture}\n"
+                       "\\draw (0,0) -- (1,1);\n"
+                       "\\end{tikzpicture}";
+        QString outCode;
+        QString cmds = LatexCompiler::extractCustomCommands(code, outCode);
+        if (!cmds.isEmpty())
+            { fprintf(stderr, "FAIL: Test 22 - should return empty for no custom commands\n"); customTestsFailed++; }
+        else if (outCode != code)
+            { fprintf(stderr, "FAIL: Test 22 - outCode should equal input when no commands\n"); customTestsFailed++; }
+        else fprintf(stderr, "PASS: Test 22 - no custom commands returns empty\n");
+    }
+
+    // Test 23: Commands with nested braces in definition
+    {
+        QString code = "\\newcommand{\\nested}{{\\bfseries #1}}\n"
+                       "\\begin{tikzpicture}\\end{tikzpicture}";
+        QString outCode;
+        QString cmds = LatexCompiler::extractCustomCommands(code, outCode);
+        if (!cmds.contains("\\nested"))
+            { fprintf(stderr, "FAIL: Test 23 - command with nested braces not extracted\n"); customTestsFailed++; }
+        else fprintf(stderr, "PASS: Test 23 - command with nested braces\n");
+    }
+
+    // Test 24: \renewcommand*
+    {
+        QString code = "\\renewcommand*{\\cmd}[2]{#1:#2}\n"
+                       "\\begin{tikzpicture}\\end{tikzpicture}";
+        QString outCode;
+        QString cmds = LatexCompiler::extractCustomCommands(code, outCode);
+        if (!cmds.contains("\\renewcommand*{\\cmd}[2]{#1:#2}"))
+            { fprintf(stderr, "FAIL: Test 24 - starred renewcommand not extracted\n"); customTestsFailed++; }
+        else fprintf(stderr, "PASS: Test 24 - starred \\renewcommand* extraction\n");
+    }
+
+    // Test 25: wrapCode injects custom commands into preamble
+    {
+        LatexCompiler compiler;
+        QString code = "\\begin{tikzpicture}\\draw (0,0)--(1,1);\\end{tikzpicture}";
+        QString cmds = "\\newcommand{\\CMD}{test}";
+        QString wrapped = compiler.wrapCode(code, "", "", "", cmds);
+        // Custom commands should appear before \\begin{document}
+        int docIdx = wrapped.indexOf("\\begin{document}");
+        int cmdIdx = wrapped.indexOf("\\newcommand");
+        if (cmdIdx < 0 || cmdIdx >= docIdx)
+            { fprintf(stderr, "FAIL: Test 25 - custom commands not injected before begin{document}\n"); customTestsFailed++; }
+        else fprintf(stderr, "PASS: Test 25 - wrapCode injects custom commands into preamble\n");
+    }
+
+    fprintf(stderr, "Custom command tests: %d failed\n", customTestsFailed);
+    failed += customTestsFailed;
+
     if (failed > 0) {
-        qDebug() << "\n" << failed << "test(s) failed!";
+        fprintf(stderr, "\n%d test(s) failed!\n", failed);
         return 1;
     }
 
-    qDebug() << "\nAll LatexCompiler tests passed!";
+    fprintf(stderr, "\nAll LatexCompiler tests passed!\n");
     return 0;
 }

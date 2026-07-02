@@ -151,7 +151,8 @@ QString LatexCompiler::loadTemplate(const QString &templateId) const
 }
 
 QString LatexCompiler::wrapCode(const QString &texCode, const QString &templateId,
-                                const QString &packages, const QString &tikzLibraries) const
+                                const QString &packages, const QString &tikzLibraries,
+                                const QString &customCommands) const
 {
     QString tmpl = loadTemplate(templateId);
     if (!tmpl.isEmpty() && tmpl.contains("%%% TIKZ_CODE_HERE %%%")) {
@@ -234,6 +235,15 @@ QString LatexCompiler::wrapCode(const QString &texCode, const QString &templateI
         }
     }
 
+    if (!customCommands.trimmed().isEmpty()) {
+        int docBeginPos = tmpl.indexOf(QStringLiteral("\\begin{document}"));
+        if (docBeginPos >= 0) {
+            tmpl = tmpl.insert(docBeginPos, customCommands.trimmed() + "\n");
+        } else {
+            tmpl = customCommands.trimmed() + "\n\n" + tmpl;
+        }
+    }
+
     if (!extraPreamble.isEmpty()) {
         int docBegin = tmpl.indexOf(QStringLiteral("\\begin{document}"));
         if (docBegin >= 0) {
@@ -244,6 +254,131 @@ QString LatexCompiler::wrapCode(const QString &texCode, const QString &templateI
     }
 
     return tmpl;
+}
+
+QString LatexCompiler::extractCustomCommands(const QString &texCode, QString &outCode)
+{
+    static const QRegularExpression cmdRe(
+        QStringLiteral("\\\\(?:new|renew|provide)command\\*?"
+                       "|\\\\New(?:Expandable)?DocumentCommand"
+                       "|\\\\RenewDocumentCommand"
+                       "|\\\\ProvideDocumentCommand"
+                       "|\\\\DeclareDocumentCommand"
+                       "|\\\\NewCommandCopy"));
+    outCode = texCode;
+
+    QStringList commands;
+    QString remaining = texCode;
+
+    while (true) {
+        QRegularExpression envRe(QStringLiteral("\\\\begin\\{(?:tikzpicture|circuitikz)\\}"));
+        int envStart = -1;
+        QRegularExpressionMatch envMatch = envRe.match(remaining);
+        if (envMatch.hasMatch()) {
+            envStart = envMatch.capturedStart();
+        }
+
+        QRegularExpressionMatch m = cmdRe.match(remaining);
+        if (!m.hasMatch()) break;
+
+        int cmdStart = m.capturedStart();
+        QString cmdName = m.captured();
+
+        if (envStart >= 0 && cmdStart > envStart) break;
+
+        int pos = cmdStart + m.capturedLength();
+        while (pos < remaining.length() && (remaining.at(pos) == ' ' || remaining.at(pos) == '\t')) {
+            pos++;
+        }
+
+        bool isDocCmd = cmdName.endsWith("DocumentCommand") || cmdName == "\\DeclareDocumentCommand";
+        bool isCopyCmd = (cmdName == "\\NewCommandCopy");
+        bool isOldCmd = !isDocCmd && !isCopyCmd;
+
+        int defStart = -1;
+        int defEnd = -1;
+
+        if (isCopyCmd) {
+            if (pos < remaining.length() && remaining.at(pos) == '{') {
+                int depth = 1;
+                pos++;
+                while (pos < remaining.length() && depth > 0) {
+                    if (remaining.at(pos) == '{') depth++;
+                    else if (remaining.at(pos) == '}') depth--;
+                    pos++;
+                }
+            }
+            if (pos < remaining.length() && remaining.at(pos) == '{') {
+                pos++;
+                int depth = 1;
+                while (pos < remaining.length() && depth > 0) {
+                    if (remaining.at(pos) == '{') depth++;
+                    else if (remaining.at(pos) == '}') depth--;
+                    pos++;
+                }
+            }
+            defEnd = pos;
+            defStart = cmdStart;
+        } else {
+            if (pos < remaining.length() && remaining.at(pos) == '{') {
+                int depth = 1;
+                pos++;
+                while (pos < remaining.length() && depth > 0) {
+                    if (remaining.at(pos) == '{') depth++;
+                    else if (remaining.at(pos) == '}') depth--;
+                    pos++;
+                }
+            }
+
+            if (isOldCmd && pos < remaining.length() && remaining.at(pos) == '[') {
+                int bdepth = 1;
+                pos++;
+                while (pos < remaining.length() && bdepth > 0) {
+                    if (remaining.at(pos) == '[') bdepth++;
+                    else if (remaining.at(pos) == ']') bdepth--;
+                    pos++;
+                }
+            }
+
+            if (isDocCmd && pos < remaining.length() && remaining.at(pos) == '{') {
+                int sdepth = 1;
+                pos++;
+                while (pos < remaining.length() && sdepth > 0) {
+                    if (remaining.at(pos) == '{') sdepth++;
+                    else if (remaining.at(pos) == '}') sdepth--;
+                    pos++;
+                }
+            }
+
+            if (pos < remaining.length() && remaining.at(pos) == '{') {
+                defStart = pos;
+                int ddepth = 1;
+                pos++;
+                while (pos < remaining.length() && ddepth > 0) {
+                    if (remaining.at(pos) == '{') ddepth++;
+                    else if (remaining.at(pos) == '}') ddepth--;
+                    pos++;
+                }
+                defEnd = pos;
+            }
+        }
+
+        if (defEnd > defStart) {
+            QString fullCmd = remaining.mid(cmdStart, defEnd - cmdStart);
+            commands.append(fullCmd);
+            remaining = remaining.left(cmdStart) + remaining.mid(defEnd);
+        } else {
+            break;
+        }
+    }
+
+    outCode = remaining;
+
+    if (commands.isEmpty()) {
+        return QString();
+    }
+
+    return commands.join('\n');
 }
 
 void LatexCompiler::cancelCompile()
@@ -274,7 +409,10 @@ void LatexCompiler::compile(const QString &texCode, const QString &templateId, c
     currentCompileDir = tempDir + snippetId;
     QDir().mkpath(currentCompileDir);
 
-    QString fullCode = wrapCode(texCode, templateId, packages, tikzLibraries);
+    QString cleanedCode;
+    QString customCmds = extractCustomCommands(texCode, cleanedCode);
+
+    QString fullCode = wrapCode(cleanedCode, templateId, packages, tikzLibraries, customCmds);
 
     {
         int docBeginIdx = fullCode.indexOf(QStringLiteral("\\begin{document}"));

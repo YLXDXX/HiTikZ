@@ -422,7 +422,7 @@ calc,er,angles,patterns,decorations.pathmorphing
 | 操作 | 说明 |
 |------|------|
 | 复制代码 | 复制参数替换后的 TikZ 核心代码 |
-| 复制完整文档 | 复制含模板头部的完整 LaTeX 文档 |
+| 复制文档 | 复制含模板头部的完整 LaTeX 文档 |
 | 复制 PNG | 从 PDF 转换 300 DPI PNG 后复制到剪贴板 |
 | 复制 SVG | 从 PDF 转换 SVG 后复制（附带 `image/svg+xml` MIME 类型），转换工具可在设置中切换 |
 
