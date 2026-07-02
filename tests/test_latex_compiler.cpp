@@ -610,6 +610,60 @@ int main(int argc, char *argv[]) {
         else fprintf(stderr, "PASS: Test 38 - multiple \\tikzset blocks\n");
     }
 
+    // Test 39: \tikzstyle extraction
+    {
+        QString code = "\\tikzstyle{mystyle}=[draw=red,fill=blue]\n"
+                       "\\begin{tikzpicture}\\end{tikzpicture}";
+        QString outCode;
+        QString cmds = LatexCompiler::extractCustomCommands(code, outCode);
+        if (!cmds.contains("\\tikzstyle"))
+            { fprintf(stderr, "FAIL: Test 39 - tikzstyle not extracted\n"); customTestsFailed++; }
+        else if (outCode.contains("\\tikzstyle"))
+            { fprintf(stderr, "FAIL: Test 39 - tikzstyle still in outCode\n"); customTestsFailed++; }
+        else fprintf(stderr, "PASS: Test 39 - \\tikzstyle extraction\n");
+    }
+
+    // Test 40: \tikzstyle with append (+=)
+    {
+        QString code = "\\tikzstyle{mystyle}+=[draw=red]\n"
+                       "\\begin{tikzpicture}\\end{tikzpicture}";
+        QString outCode;
+        QString cmds = LatexCompiler::extractCustomCommands(code, outCode);
+        if (!cmds.contains("\\tikzstyle"))
+            { fprintf(stderr, "FAIL: Test 40 - tikzstyle += not extracted\n"); customTestsFailed++; }
+        else fprintf(stderr, "PASS: Test 40 - \\tikzstyle += extraction\n");
+    }
+
+    // Test 41: Multiple \tikzstyle commands
+    {
+        QString code = "\\tikzstyle{EcolEP}=[blue!80!white]\n"
+                       "\\tikzstyle{charge+}=[ball color=red!50]\n"
+                       "\\tikzstyle{charge-}=[ball color=blue!50]\n"
+                       "\\begin{tikzpicture}\\end{tikzpicture}";
+        QString outCode;
+        QString cmds = LatexCompiler::extractCustomCommands(code, outCode);
+        int count = cmds.count("\\tikzstyle");
+        if (count != 3)
+            { fprintf(stderr, "FAIL: Test 41 - should extract 3 tikzstyle (got %d)\n", count); customTestsFailed++; }
+        else if (!cmds.contains("EcolEP"))
+            { fprintf(stderr, "FAIL: Test 41 - EcolEP style not extracted\n"); customTestsFailed++; }
+        else fprintf(stderr, "PASS: Test 41 - multiple \\tikzstyle commands\n");
+    }
+
+    // Test 42: \tikzstyle inside tikzpicture should NOT be extracted
+    {
+        QString code = "\\begin{tikzpicture}\n"
+                       "\\tikzstyle{every node}=[draw]\n"
+                       "\\end{tikzpicture}";
+        QString outCode;
+        QString cmds = LatexCompiler::extractCustomCommands(code, outCode);
+        if (!cmds.isEmpty())
+            { fprintf(stderr, "FAIL: Test 42 - tikzstyle inside tikzpicture should not be extracted\n"); customTestsFailed++; }
+        else if (!outCode.contains("\\tikzstyle"))
+            { fprintf(stderr, "FAIL: Test 42 - tikzstyle should remain in outCode\n"); customTestsFailed++; }
+        else fprintf(stderr, "PASS: Test 42 - \\tikzstyle inside tikzpicture not extracted\n");
+    }
+
     fprintf(stderr, "Custom command tests: %d failed\n", customTestsFailed);
     failed += customTestsFailed;
 
