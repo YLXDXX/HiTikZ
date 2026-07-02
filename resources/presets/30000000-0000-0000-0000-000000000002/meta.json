@@ -9,5 +9,5 @@
     "等效电容"
   ],
   "templateId": "default_math",
-  "packages": "physics,tikz,pgfplots,[siunitx]{circuitikz}"
+  "packages": "physics,tikz,pgfplots,[siunitx]circuitikz"
 }

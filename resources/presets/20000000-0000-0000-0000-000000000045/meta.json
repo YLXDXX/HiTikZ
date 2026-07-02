@@ -9,6 +9,6 @@
     "摩擦"
   ],
   "templateId": "default_physics",
-  "packages": "physics,siunitx,[outline]{contour}",
+  "packages": "physics,siunitx,[outline]contour",
   "tikzLibraries": "calc,angles,quotes,arrows.meta,patterns"
 }

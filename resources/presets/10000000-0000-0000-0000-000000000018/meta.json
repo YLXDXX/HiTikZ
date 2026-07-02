@@ -9,6 +9,6 @@
     "微分"
   ],
   "templateId": "default_math",
-  "packages": "tikz-3dplot,ifthen,[active,tightpage]{preview}",
+  "packages": "tikz-3dplot,ifthen,[active,tightpage]preview",
   "tikzLibraries": "math"
 }

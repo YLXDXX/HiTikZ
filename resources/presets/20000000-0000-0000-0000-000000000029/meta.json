@@ -9,6 +9,6 @@
     "左手定则"
   ],
   "templateId": "default_physics",
-  "packages": "amsmath,physics,tikz,pgfplots,tikz-3dplot,[outline]{contour}",
+  "packages": "amsmath,physics,tikz,pgfplots,tikz-3dplot,[outline]contour",
   "tikzLibraries": "angles,quotes,arrows,arrows.meta,calc,decorations.markings"
 }

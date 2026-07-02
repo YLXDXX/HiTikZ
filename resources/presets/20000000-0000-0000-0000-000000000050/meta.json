@@ -9,6 +9,6 @@
     "近似"
   ],
   "templateId": "default_physics",
-  "packages": "amsmath,physics,siunitx,tikz,pgfplots,[outline]{contour}",
+  "packages": "amsmath,physics,siunitx,tikz,pgfplots,[outline]contour",
   "tikzLibraries": "angles,quotes,arrows.meta,decorations.markings"
 }

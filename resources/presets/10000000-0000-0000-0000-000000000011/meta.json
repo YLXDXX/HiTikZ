@@ -9,6 +9,6 @@
     "参数"
   ],
   "templateId": "default_math",
-  "packages": "pgfplots,[outline]{contour},adjustbox",
+  "packages": "pgfplots,[outline]contour,adjustbox",
   "tikzLibraries": "positioning,calc,backgrounds,patterns"
 }

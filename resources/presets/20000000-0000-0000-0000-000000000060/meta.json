@@ -10,6 +10,6 @@
     "坐标系"
   ],
   "templateId": "default_physics",
-  "packages": "physics,tikz-3dplot,[outline]{contour}",
+  "packages": "physics,tikz-3dplot,[outline]contour",
   "tikzLibraries": "arrows.meta,3d,bending,angles,quotes"
 }

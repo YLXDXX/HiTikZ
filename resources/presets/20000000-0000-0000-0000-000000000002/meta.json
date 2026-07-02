@@ -9,6 +9,6 @@
     "时空"
   ],
   "templateId": "default_physics",
-  "packages": "amsmath,mathrsfs,xfp,[outline]{contour}",
+  "packages": "amsmath,mathrsfs,xfp,[outline]contour",
   "tikzLibraries": "decorations.markings,decorations.pathmorphing,angles,quotes,arrows.meta"
 }

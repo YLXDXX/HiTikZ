@@ -9,6 +9,6 @@
     "点电荷"
   ],
   "templateId": "default_physics",
-  "packages": "amsmath,mathabx,bm,physics,tikz,pgfplots,[outline]{contour},ifthen",
+  "packages": "amsmath,mathabx,bm,physics,tikz,pgfplots,[outline]contour,ifthen",
   "tikzLibraries": "3d,calc,intersections,decorations.markings"
 }

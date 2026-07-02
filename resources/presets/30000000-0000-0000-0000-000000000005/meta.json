@@ -10,5 +10,5 @@
     "射频"
   ],
   "templateId": "default_math",
-  "packages": "[siunitx]{circuitikz}"
+  "packages": "[siunitx]circuitikz"
 }

@@ -9,6 +9,6 @@
     "均匀带电球"
   ],
   "templateId": "default_physics",
-  "packages": "amsmath,bm,physics,tikz,pgfplots,[outline]{contour}",
+  "packages": "amsmath,bm,physics,tikz,pgfplots,[outline]contour",
   "tikzLibraries": "angles,quotes,decorations.markings,shapes,intersections"
 }

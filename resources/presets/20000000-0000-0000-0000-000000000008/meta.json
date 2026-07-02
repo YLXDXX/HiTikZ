@@ -9,6 +9,6 @@
     "动摩擦"
   ],
   "templateId": "default_physics",
-  "packages": "physics,ifthen,[outline]{contour}",
+  "packages": "physics,ifthen,[outline]contour",
   "tikzLibraries": "calc,angles,quotes,patterns"
 }

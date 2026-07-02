@@ -9,6 +9,6 @@
     "波形"
   ],
   "templateId": "default_math",
-  "packages": "physics,siunitx,tikz,pgfplots,[outline]{contour}",
+  "packages": "physics,siunitx,tikz,pgfplots,[outline]contour",
   "tikzLibraries": "angles,quotes,arrows.meta,decorations.markings"
 }

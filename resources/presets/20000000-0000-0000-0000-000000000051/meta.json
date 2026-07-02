@@ -9,6 +9,6 @@
     "耦合振动"
   ],
   "templateId": "default_physics",
-  "packages": "physics,siunitx,ifthen,[outline]{contour}",
+  "packages": "physics,siunitx,ifthen,[outline]contour",
   "tikzLibraries": "calc,angles,quotes,patterns"
 }

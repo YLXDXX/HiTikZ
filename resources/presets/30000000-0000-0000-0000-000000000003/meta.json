@@ -9,6 +9,6 @@
     "充放电"
   ],
   "templateId": "default_math",
-  "packages": "physics,tikz,pgfplots,[siunitx]{circuitikz},[outline]{contour}",
+  "packages": "physics,tikz,pgfplots,[siunitx]circuitikz,[outline]contour",
   "tikzLibraries": "arrows,arrows.meta,decorations.markings"
 }

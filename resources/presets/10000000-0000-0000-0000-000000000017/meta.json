@@ -10,6 +10,6 @@
     "积分"
   ],
   "templateId": "default_math",
-  "packages": "amsmath,amssymb,amsfonts,tikz-3dplot,ifthen,[active,tightpage]{preview}",
+  "packages": "amsmath,amssymb,amsfonts,tikz-3dplot,ifthen,[active,tightpage]preview",
   "tikzLibraries": "math"
 }

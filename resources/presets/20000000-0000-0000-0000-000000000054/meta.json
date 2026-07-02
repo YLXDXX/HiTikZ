@@ -9,6 +9,6 @@
     "大气压"
   ],
   "templateId": "default_physics",
-  "packages": "siunitx,physics,[outline]{contour}",
+  "packages": "siunitx,physics,[outline]contour",
   "tikzLibraries": "patterns,decorations.pathmorphing,arrows.meta"
 }

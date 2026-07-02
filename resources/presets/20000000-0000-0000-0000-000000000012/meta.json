@@ -10,6 +10,6 @@
     "流体"
   ],
   "templateId": "default_physics",
-  "packages": "physics,[outline]{contour}",
+  "packages": "physics,[outline]contour",
   "tikzLibraries": "patterns,decorations.pathmorphing,decorations.markings,arrows.meta,calc"
 }

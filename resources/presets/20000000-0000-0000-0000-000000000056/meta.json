@@ -9,6 +9,6 @@
     "可视化"
   ],
   "templateId": "default_physics",
-  "packages": "auto-pst-pdf,pst-magneticfield,[outline]{contour},pgfplots",
+  "packages": "auto-pst-pdf,pst-magneticfield,[outline]contour,pgfplots",
   "tikzLibraries": "calc,decorations.pathreplacing"
 }

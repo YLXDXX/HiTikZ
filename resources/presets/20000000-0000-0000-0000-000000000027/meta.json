@@ -9,6 +9,6 @@
     "磁场分布"
   ],
   "templateId": "default_physics",
-  "packages": "amsmath,physics,ifthen,tikz,pgfplots,tikz-3dplot,auto-pst-pdf,pst-magneticfield,[outline]{contour}",
+  "packages": "amsmath,physics,ifthen,tikz,pgfplots,tikz-3dplot,auto-pst-pdf,pst-magneticfield,[outline]contour",
   "tikzLibraries": "angles,quotes,arrows,arrows.meta,calc,decorations.markings"
 }

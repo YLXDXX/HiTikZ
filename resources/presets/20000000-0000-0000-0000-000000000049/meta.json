@@ -9,6 +9,6 @@
     "旋转"
   ],
   "templateId": "default_physics",
-  "packages": "physics,[outline]{contour}",
+  "packages": "physics,[outline]contour",
   "tikzLibraries": "calc,angles,quotes,arrows.meta,patterns,bending"
 }

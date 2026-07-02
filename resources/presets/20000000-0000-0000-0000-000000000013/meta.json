@@ -10,6 +10,6 @@
     "绝热"
   ],
   "templateId": "default_physics",
-  "packages": "amsmath,[outline]{contour}",
+  "packages": "amsmath,[outline]contour",
   "tikzLibraries": "arrows.meta,calc,decorations.markings"
 }

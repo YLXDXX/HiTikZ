@@ -272,7 +272,29 @@ QString LatexCompiler::extractCustomCommands(const QString &texCode, QString &ou
                        "|\\\\tikzstyle"
                        "|\\\\makeatletter"
                        "|\\\\makeatother"
-                       "|\\\\ctikzset"));
+                       "|\\\\ctikzset"
+                       "|\\\\pgfkeys"
+                       "|\\\\contourlength"
+                       "|\\\\usepgfplotslibrary"
+                       "|\\\\pgfmathsetmacro"
+                       "|\\\\pgfmathsetlength"
+                       "|\\\\newlength"
+                       "|\\\\newcounter"
+                       "|\\\\newsavebox"
+                       "|\\\\DeclareMathOperator"
+                       "|\\\\DeclareRobustCommand"
+                       "|\\\\pgfdeclareradialshading"
+                       "|\\\\pgfdeclaredecoration"
+                       "|\\\\tikzoption"
+                       "|\\\\setlength"
+                       "|\\\\sansmath"
+                       "|\\\\newif"
+                       "|\\\\PreviewEnvironment"
+                       "|\\\\pgfplotsset"
+                       "|\\\\def"
+                       "|\\\\tikzmath"
+                       "|\\\\pgfdeclarelayer"
+                       "|\\\\pgfsetlayers"));
     outCode = texCode;
 
     auto readBalancedBraces = [](const QString &s, int &pos) {
@@ -336,6 +358,42 @@ QString LatexCompiler::extractCustomCommands(const QString &texCode, QString &ou
         bool isCtikzset = (cmdName == "\\ctikzset");
         bool isOldCmd = !isDocCmd && !isCopyCmd && !isDeclRandom && !isDcfColor && !isColorlet && !isTikzset && !isTikzStyle && !isMakeat && !isCtikzset;
 
+        // Additional command flag checks
+        bool isPgfkeys = (cmdName == "\\pgfkeys");
+        bool isContourlength = (cmdName == "\\contourlength");
+        bool isUsepgfplotslibrary = (cmdName == "\\usepgfplotslibrary");
+        bool isPgfmathsetmacro = (cmdName == "\\pgfmathsetmacro");
+        bool isPgfmathsetlength = (cmdName == "\\pgfmathsetlength");
+        bool isNewlength = (cmdName == "\\newlength");
+        bool isNewcounter = (cmdName == "\\newcounter");
+        bool isNewsavebox = (cmdName == "\\newsavebox");
+        bool isDeclOp = (cmdName == "\\DeclareMathOperator");
+        bool isDeclRobust = (cmdName == "\\DeclareRobustCommand");
+        bool isPgfradial = (cmdName == "\\pgfdeclareradialshading");
+        bool isPgfdecoration = (cmdName == "\\pgfdeclaredecoration");
+        bool isTikzoption = (cmdName == "\\tikzoption");
+        bool isSetlength = (cmdName == "\\setlength");
+        bool isSansmath = (cmdName == "\\sansmath");
+        bool isNewif = (cmdName == "\\newif");
+        bool isPreviewEnv = (cmdName == "\\PreviewEnvironment");
+        bool isPgfplotsset = (cmdName == "\\pgfplotsset");
+        bool isDef = (cmdName == "\\def");
+        bool isTikzmath = (cmdName == "\\tikzmath");
+        bool isPgfdeclarelayer = (cmdName == "\\pgfdeclarelayer");
+        bool isPgfsetlayers = (cmdName == "\\pgfsetlayers");
+
+        // Re-classify: these are NOT oldCmd patterns
+        bool isSpecialCmd = isPgfkeys || isContourlength || isUsepgfplotslibrary ||
+                           isPgfmathsetmacro || isPgfmathsetlength ||
+                           isNewlength || isNewcounter || isNewsavebox ||
+                           isDeclOp || isDeclRobust ||
+                           isPgfradial || isPgfdecoration || isTikzoption ||
+                           isSetlength || isSansmath || isNewif ||
+                           isPreviewEnv || isPgfplotsset || isDef ||
+                           isTikzmath || isPgfdeclarelayer || isPgfsetlayers;
+
+        if (isSpecialCmd) isOldCmd = false;
+
         int defStart = -1;
         int defEnd = -1;
 
@@ -384,6 +442,122 @@ QString LatexCompiler::extractCustomCommands(const QString &texCode, QString &ou
         } else if (isMakeat) {
             defEnd = pos;
             defStart = cmdStart;
+        } else if (isPgfkeys || isContourlength || isUsepgfplotslibrary || isPgfplotsset) {
+            // Single brace arg: \pgfkeys{...}, \contourlength{N}, \usepgfplotslibrary{...}, \pgfplotsset{...}
+            readBalancedBraces(remaining, pos);
+            defEnd = pos;
+            defStart = cmdStart;
+        } else if (isPgfmathsetmacro || isPgfmathsetlength) {
+            // Two brace args: \pgfmathsetmacro{\name}{expr}
+            readBalancedBraces(remaining, pos);
+            skipWs(remaining, pos);
+            readBalancedBraces(remaining, pos);
+            defEnd = pos;
+            defStart = cmdStart;
+        } else if (isNewlength || isNewcounter || isNewsavebox) {
+            // One brace arg: \newlength{\name}, \newcounter{name}, \newsavebox{\name}
+            readBalancedBraces(remaining, pos);
+            defEnd = pos;
+            defStart = cmdStart;
+        } else if (isTikzoption) {
+            // Two brace args: \tikzoption{name}{code}
+            readBalancedBraces(remaining, pos);
+            skipWs(remaining, pos);
+            readBalancedBraces(remaining, pos);
+            defEnd = pos;
+            defStart = cmdStart;
+        } else if (isPgfradial) {
+            // Optional bracket + 2 brace args: \pgfdeclareradialshading[opts]{name}{spec}{spec}
+            if (pos < remaining.length() && remaining.at(pos) == '[') {
+                readBalancedBrackets(remaining, pos);
+                skipWs(remaining, pos);
+            }
+            readBalancedBraces(remaining, pos);
+            skipWs(remaining, pos);
+            readBalancedBraces(remaining, pos);
+            // May have 3rd brace
+            if (pos < remaining.length() && remaining.at(pos) == '{') {
+                readBalancedBraces(remaining, pos);
+            }
+            defEnd = pos;
+            defStart = cmdStart;
+        } else if (isPgfdecoration) {
+            // Complex: \pgfdeclaredecoration{name}{initial}{states...}
+            readBalancedBraces(remaining, pos);
+            skipWs(remaining, pos);
+            readBalancedBraces(remaining, pos);
+            skipWs(remaining, pos);
+            readBalancedBraces(remaining, pos);
+            defEnd = pos;
+            defStart = cmdStart;
+        } else if (isSetlength) {
+            // Special: \setlength\macro{value}
+            if (pos < remaining.length() && remaining.at(pos) == '\\') {
+                while (pos < remaining.length() && remaining.at(pos) != '[' && remaining.at(pos) != '{' && remaining.at(pos) != ' ' && remaining.at(pos) != '\t') {
+                    pos++;
+                }
+                skipWs(remaining, pos);
+            }
+            if (pos < remaining.length() && remaining.at(pos) == '{') {
+                readBalancedBraces(remaining, pos);
+            }
+            defEnd = pos;
+            defStart = cmdStart;
+        } else if (isSansmath) {
+            // No args: \sansmath
+            defEnd = pos;
+            defStart = cmdStart;
+        } else if (isNewif) {
+            // Special: \newif\ifname
+            if (pos < remaining.length() && remaining.at(pos) == '\\') {
+                while (pos < remaining.length() && remaining.at(pos).isLetter()) {
+                    pos++;
+                }
+            }
+            defEnd = pos;
+            defStart = cmdStart;
+        } else if (isPreviewEnv) {
+            // One brace arg: \PreviewEnvironment{name}
+            readBalancedBraces(remaining, pos);
+            defEnd = pos;
+            defStart = cmdStart;
+        } else if (isDef) {
+            // \def\name args{body}
+            if (pos < remaining.length() && remaining.at(pos) == '\\') {
+                while (pos < remaining.length() && remaining.at(pos) != '[' && remaining.at(pos) != '{') {
+                    pos++;
+                }
+            }
+            if (pos < remaining.length() && remaining.at(pos) == '{') {
+                defStart = pos;
+                readBalancedBraces(remaining, pos);
+                defEnd = pos;
+            }
+        } else if (isTikzmath || isPgfdeclarelayer || isPgfsetlayers) {
+            // Single brace arg: \tikzmath{...}, \pgfdeclarelayer{...}, \pgfsetlayers{...}
+            readBalancedBraces(remaining, pos);
+            defEnd = pos;
+            defStart = cmdStart;
+        } else if (isDeclOp) {
+            // Two brace args: \DeclareMathOperator{\name}{display}
+            readBalancedBraces(remaining, pos);
+            skipWs(remaining, pos);
+            readBalancedBraces(remaining, pos);
+            defEnd = pos;
+            defStart = cmdStart;
+        } else if (isDeclRobust) {
+            // Like \newcommand: \DeclareRobustCommand{\name}[N]{def}
+            readBalancedBraces(remaining, pos);
+            skipWs(remaining, pos);
+            if (pos < remaining.length() && remaining.at(pos) == '[') {
+                readBalancedBrackets(remaining, pos);
+                skipWs(remaining, pos);
+            }
+            if (pos < remaining.length() && remaining.at(pos) == '{') {
+                defStart = pos;
+                readBalancedBraces(remaining, pos);
+                defEnd = pos;
+            }
         } else {
             if (pos < remaining.length() && remaining.at(pos) == '{') {
                 readBalancedBraces(remaining, pos);

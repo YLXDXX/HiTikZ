@@ -9,5 +9,5 @@
     "微积分"
   ],
   "templateId": "default_math",
-  "packages": "physics,[outline]{contour}"
+  "packages": "physics,[outline]contour"
 }

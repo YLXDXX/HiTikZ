@@ -9,6 +9,6 @@
     "电场强度"
   ],
   "templateId": "default_physics",
-  "packages": "physics,bm,tikz,pgfplots,[outline]{contour}",
+  "packages": "physics,bm,tikz,pgfplots,[outline]contour",
   "tikzLibraries": "decorations.markings,intersections,calc,angles,quotes"
 }

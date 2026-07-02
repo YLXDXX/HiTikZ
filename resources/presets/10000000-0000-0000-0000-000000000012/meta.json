@@ -9,6 +9,6 @@
     "Argand图"
   ],
   "templateId": "default_math",
-  "packages": "physics,[outline]{contour}",
+  "packages": "physics,[outline]contour",
   "tikzLibraries": "intersections,decorations.markings,angles,quotes,bending,3d"
 }

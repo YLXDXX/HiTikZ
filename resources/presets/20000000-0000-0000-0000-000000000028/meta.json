@@ -9,6 +9,6 @@
     "N-S极"
   ],
   "templateId": "default_physics",
-  "packages": "amsmath,mathabx,bm,physics,tikz,pgfplots,[outline]{contour}",
+  "packages": "amsmath,mathabx,bm,physics,tikz,pgfplots,[outline]contour",
   "tikzLibraries": "angles,quotes,calc,decorations.markings"
 }
