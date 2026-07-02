@@ -1,22 +1,52 @@
-\begin{tikzpicture}[scale=0.8]
-  \coordinate (A) at (0,0);
-  \coordinate (B) at (4,0);
-  \coordinate (C) at (0,3);
-  \draw[thick] (A) -- (B) -- (C) -- cycle;
-  \draw[thick] (A) rectangle (0.3,0.3);
-  \node[below left] at (A) {$A$};
-  \node[below right] at (B) {$B$};
-  \node[above left] at (C) {$C$};
-  \node at (2,-0.2) {$a$};
-  \node at (-0.2,1.5) {$b$};
-  \node at (2.2,1.7) {$c$};
-  \fill[red!20] (0,0) -- (4,0) -- (4,-3) -- (0,-3) -- cycle;
-  \draw[red,thick] (0,0) -- (4,0) -- (4,-3) -- (0,-3) -- cycle;
-  \node[red] at (2,-1.5) {$a^2$};
-  \fill[blue!20] (0,0) -- (0,3) -- (-3,3) -- (-3,0) -- cycle;
-  \draw[blue,thick] (0,0) -- (0,3) -- (-3,3) -- (-3,0) -- cycle;
-  \node[blue] at (-1.5,1.5) {$b^2$};
-  \fill[green!20] (4,0) -- (0,3) -- (0+3*3/5,3+4*3/5) -- (4+3*3/5,0+4*3/5) -- cycle;
-  \draw[green,thick] (4,0) -- (0,3) -- (0+3*3/5,3+4*3/5) -- (4+3*3/5,0+4*3/5) -- cycle;
-  \node[green!60!black] at (2.8,2.8) {$c^2$};
+\pgfplotsset{compat=1.18}
+\usepgfplotslibrary{fillbetween}
+\tikzset{every node/.style={font=\sffamily}}
+\definecolor{linecolor}{HTML}{7AD7F0}
+\definecolor{grad1}{HTML}{92DFF3}
+\definecolor{grad2}{HTML}{B7E9F7}
+\definecolor{grad3}{HTML}{DBF3FA}
+\definecolor{grad4}{HTML}{F5FCFF}
+\begin{tikzpicture}
+  \begin{axis}[
+    width = 17.5cm,
+    height = 7.25cm,
+    xmin = -4.5, xmax = 4.5,
+    ymin = 0,
+    axis x line* = bottom,
+    hide y axis,
+    xtick = {-4,...,4},
+    xtick align = outside,
+    xticklabels = {$(\mu-4\sigma)$, $(\mu-3\sigma)$, $(\mu-2\sigma)$,
+      $(\mu-\sigma)$, $\vphantom{(}\mu$, $(\mu+\sigma)$, $(\mu+2\sigma)$,
+      $(\mu+3\sigma)$, $(\mu+4\sigma)$},
+  ]
+  \pgfplotsinvokeforeach {-3,-2,-1,0,1,2,3} {
+    \draw[linecolor, thin] (axis cs: #1,-1)
+      -- (axis cs: #1,{(1/sqrt(2*pi))*exp((-1/2)*(#1)^2)+0.05});
+  }
+  \addplot [
+    domain = -4.5:4.5,
+    samples = 251,
+    color = black,
+    name path = dist
+  ]
+  {(1/sqrt(2*pi))*exp((-1/2)*x^2)};
+
+  \path [name path = base] (\pgfkeysvalueof{/pgfplots/xmin},0)
+    -- (\pgfkeysvalueof{/pgfplots/xmax},0);
+
+  \node at (axis cs: -0.5,0.15) {34\%};
+  \node at (axis cs: 0.5,0.15) {34\%};
+  \node at (axis cs: -1.5,0.058) {13.5\%};
+  \node at (axis cs: 1.5,0.058) {13.5\%};
+  \node[inner sep=0, pin={[pin edge={lightgray}]90:2.35\%}] at (axis cs: -2.5,0.0) {};
+  \node[inner sep=0, pin={[pin edge={lightgray}]90:2.35\%}] at (axis cs: 2.5,0.0) {};
+  \node[inner sep=0, pin={[pin edge={lightgray}]90:0.15\%}] at (axis cs: -3.5,0) {};
+  \node[inner sep=0, pin={[pin edge={lightgray}]90:0.15\%}] at (axis cs: 3.5,0) {};
+
+  \addplot [white] fill between [of = dist and base, soft clip = {domain=-4:4}];
+  \addplot [grad4] fill between [of = dist and base, soft clip = {domain=-3:3}];
+  \addplot [grad3] fill between [of = dist and base, soft clip = {domain=-2:2}];
+  \addplot [grad2] fill between [of = dist and base, soft clip = {domain=-1:1}];
+\end{axis}
 \end{tikzpicture}

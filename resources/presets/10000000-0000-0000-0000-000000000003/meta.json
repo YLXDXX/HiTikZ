@@ -1,8 +1,13 @@
 {
   "id": "10000000-0000-0000-0000-000000000003",
-  "name": "立方体投影",
-  "description": "三维立方体的斜二测投影",
+  "name": "垂线作图",
+  "description": "点到直线的垂线，使用calc库进行坐标投影计算",
   "category": "数学/几何",
-  "tags": ["立方体","3D","投影"],
-  "templateId": "default_math"
+  "tags": [
+    "几何",
+    "垂线",
+    "calc"
+  ],
+  "templateId": "default_math",
+  "tikzLibraries": "calc"
 }

@@ -1,8 +1,14 @@
 {
   "id": "20000000-0000-0000-0000-000000000002",
-  "name": "单摆运动",
-  "description": "单摆：悬挂点、摆线、摆球和重力矢量",
-  "category": "物理/力学",
-  "tags": ["单摆","简谐运动","力学"],
-  "templateId": "default_physics"
+  "name": "彭罗斯图",
+  "description": "闵可夫斯基和史瓦西时空的彭罗斯图",
+  "category": "物理/相对论",
+  "tags": [
+    "相对论",
+    "彭罗斯图",
+    "时空"
+  ],
+  "templateId": "default_physics",
+  "packages": "amsmath,mathrsfs,xfp,[outline]{contour}",
+  "tikzLibraries": "decorations.markings,decorations.pathmorphing,angles,quotes,arrows.meta"
 }

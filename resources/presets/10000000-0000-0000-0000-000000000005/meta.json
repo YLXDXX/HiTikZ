@@ -1,0 +1,12 @@
+{
+  "id": "10000000-0000-0000-0000-000000000005",
+  "name": "简单曲线",
+  "description": "使用plot[smooth]绘制光滑曲线，展示tension参数效果",
+  "category": "数学/几何",
+  "tags": [
+    "曲线",
+    "smooth",
+    "绘图"
+  ],
+  "templateId": "default_math"
+}

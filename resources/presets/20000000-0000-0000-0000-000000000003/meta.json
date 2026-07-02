@@ -1,9 +1,14 @@
 {
   "id": "20000000-0000-0000-0000-000000000003",
-  "name": "弹簧振子",
-  "description": "水平弹簧振子：墙壁、弹簧、质量块和平衡位置",
+  "name": "弹簧",
+  "description": "弹簧振子的胡克定律与简谐运动。",
   "category": "物理/力学",
-  "tags": ["弹簧","振子","简谐运动"],
+  "tags": [
+    "弹簧",
+    "胡克定律",
+    "弹性"
+  ],
   "templateId": "default_physics",
-  "tikzLibraries": "patterns,decorations.pathmorphing"
+  "packages": "physics,[outline]{contour}",
+  "tikzLibraries": "patterns,snakes,arrows.meta"
 }

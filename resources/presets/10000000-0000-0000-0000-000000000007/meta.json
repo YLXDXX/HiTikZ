@@ -1,0 +1,14 @@
+{
+  "id": "10000000-0000-0000-0000-000000000007",
+  "name": "自定义光滑曲线端点",
+  "description": "修改plothandler以支持自定义首尾支撑点，精确控制曲线方向",
+  "category": "数学/几何",
+  "tags": [
+    "曲线",
+    "自定义",
+    "pdf内部",
+    "高级"
+  ],
+  "templateId": "default_math",
+  "tikzLibraries": "decorations.pathreplacing,shapes.misc"
+}

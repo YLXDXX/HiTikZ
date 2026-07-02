@@ -1,0 +1,14 @@
+{
+  "id": "20000000-0000-0000-0000-000000000011",
+  "name": "载流导线磁场",
+  "description": "载流长直导线的磁场（右手定则）。",
+  "category": "物理/电磁学",
+  "tags": [
+    "载流导线",
+    "右手定则",
+    "安培定则"
+  ],
+  "templateId": "default_physics",
+  "packages": "amsmath,physics,tikz,pgfplots,tikz-3dplot,[outline]{contour}",
+  "tikzLibraries": "angles,quotes,arrows,arrows.meta,calc,decorations.markings"
+}

@@ -1,8 +1,13 @@
 {
   "id": "10000000-0000-0000-0000-000000000002",
-  "name": "三角函数图像",
-  "description": "正弦函数和余弦函数在坐标轴上的曲线",
-  "category": "数学/函数",
-  "tags": ["三角函数","正弦","余弦"],
-  "templateId": "default_math"
+  "name": "函数平均值",
+  "description": "函数平均值的几何解释与积分中值定理图示。",
+  "category": "数学/微积分",
+  "tags": [
+    "积分",
+    "中值定理",
+    "微积分"
+  ],
+  "templateId": "default_math",
+  "packages": "physics,[outline]{contour}"
 }

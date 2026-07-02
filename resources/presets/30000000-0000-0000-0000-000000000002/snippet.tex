@@ -1,9 +1,0 @@
-\begin{circuitikz}
-  \draw (0,0) to[V=$V_{in}$] (0,3);
-  \draw (0,3) to[R=$R_1$,i=$I$] (3,3);
-  \draw (3,3) to[R=$R_2$] (3,0);
-  \draw (3,0) to[short] (0,0);
-  \draw (3,3) to[short,*-o] (5,3) node[right] {$V_{out}$};
-  \draw (3,0) to[short,*-o] (5,0) node[right] {GND};
-  \node at (1.5,1.5) {$V_{out}=V_{in}\frac{R_2}{R_1+R_2}$};
-\end{circuitikz}

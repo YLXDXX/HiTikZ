@@ -1,8 +1,14 @@
 {
   "id": "10000000-0000-0000-0000-000000000001",
-  "name": "勾股定理",
-  "description": "勾股定理几何证明：直角三角形三边正方形面积关系",
-  "category": "数学/几何",
-  "tags": ["勾股定理","几何","三角形"],
-  "templateId": "default_math"
+  "name": "正态分布",
+  "description": "正态分布曲线及标准差区域图示，展示34%-13.5%-2.35%的经验法则",
+  "category": "数学/统计",
+  "tags": [
+    "正态分布",
+    "高斯分布",
+    "统计",
+    "pgfplots"
+  ],
+  "templateId": "default_math",
+  "packages": "pgfplots"
 }

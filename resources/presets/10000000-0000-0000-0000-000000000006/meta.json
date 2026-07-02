@@ -1,0 +1,13 @@
+{
+  "id": "10000000-0000-0000-0000-000000000006",
+  "name": "光滑曲线的控制点",
+  "description": "展示smooth curve的控制点和切线，可视化曲线生成算法",
+  "category": "数学/几何",
+  "tags": [
+    "曲线",
+    "控制点",
+    "贝塞尔"
+  ],
+  "templateId": "default_math",
+  "tikzLibraries": "decorations.pathreplacing,shapes.misc"
+}

@@ -1,0 +1,13 @@
+{
+  "id": "10000000-0000-0000-0000-000000000004",
+  "name": "抛物线轨迹",
+  "description": "抛出角度对抛物轨迹的影响，展示不同初始角度的抛体运动",
+  "category": "数学/函数",
+  "tags": [
+    "抛物线",
+    "抛体",
+    "角度"
+  ],
+  "templateId": "default_math",
+  "tikzLibraries": "patterns,backgrounds,angles,quotes"
+}

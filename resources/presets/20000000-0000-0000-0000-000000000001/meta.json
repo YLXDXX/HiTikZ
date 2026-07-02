@@ -1,9 +1,15 @@
 {
   "id": "20000000-0000-0000-0000-000000000001",
-  "name": "斜面受力分析",
-  "description": "斜面上物体的重力分解：支持力N、下滑力mg sinθ",
-  "category": "物理/力学",
-  "tags": ["斜面","受力分析","力学"],
+  "name": "喷注向量与MT2变量",
+  "description": "高能物理中喷注（jet）动量向量与MT2变量的构造示意图。",
+  "category": "物理/粒子物理",
+  "tags": [
+    "喷注",
+    "MT2",
+    "粒子物理",
+    "SUSY"
+  ],
   "templateId": "default_physics",
-  "tikzLibraries": "patterns"
+  "packages": "amsmath,physics",
+  "tikzLibraries": "calc,decorations.pathreplacing"
 }

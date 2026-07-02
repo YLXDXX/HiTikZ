@@ -1,9 +1,0 @@
-{
-  "id": "30000000-0000-0000-0000-000000000002",
-  "name": "分压电路",
-  "description": "两个电阻串联构成的分压电路",
-  "category": "电路/基础",
-  "tags": ["分压","串联","电阻"],
-  "templateId": "default_circuit",
-  "packages": "amsmath"
-}

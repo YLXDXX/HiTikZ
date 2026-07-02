@@ -1,0 +1,13 @@
+{
+  "id": "10000000-0000-0000-0000-000000000008",
+  "name": "双曲正切函数",
+  "description": "tanh(x)曲线，展示±1渐近线及原点附近线性近似",
+  "category": "数学/函数",
+  "tags": [
+    "双曲函数",
+    "正切",
+    "pgfplots"
+  ],
+  "templateId": "default_math",
+  "packages": "pgfplots"
+}
