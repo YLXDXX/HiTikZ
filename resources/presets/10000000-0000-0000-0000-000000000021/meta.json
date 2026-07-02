@@ -1,0 +1,13 @@
+{
+  "id": "10000000-0000-0000-0000-000000000021",
+  "name": "角平分线",
+  "description": "角平分线的几何作图方法与性质。",
+  "category": "数学/几何",
+  "tags": [
+    "角平分线",
+    "几何作图",
+    "平分"
+  ],
+  "templateId": "default_math",
+  "tikzLibraries": "calc"
+}

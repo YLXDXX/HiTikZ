@@ -1,0 +1,13 @@
+{
+  "id": "20000000-0000-0000-0000-000000000061",
+  "name": "布洛赫球",
+  "description": "布洛赫球面，量子比特（qubit）的几何表示。",
+  "category": "物理/量子",
+  "tags": [
+    "布洛赫球",
+    "量子比特",
+    "量子计算"
+  ],
+  "templateId": "default_physics",
+  "tikzLibraries": "angles,quotes"
+}

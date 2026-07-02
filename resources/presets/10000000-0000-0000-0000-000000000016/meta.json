@@ -1,0 +1,13 @@
+{
+  "id": "10000000-0000-0000-0000-000000000016",
+  "name": "平面到环面",
+  "description": "平面到环面的拓扑映射示意图。",
+  "category": "数学/拓扑",
+  "tags": [
+    "拓扑映射",
+    "环面",
+    "同胚"
+  ],
+  "templateId": "default_math",
+  "tikzLibraries": "decorations.markings,arrows"
+}

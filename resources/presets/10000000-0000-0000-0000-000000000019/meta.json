@@ -1,0 +1,14 @@
+{
+  "id": "10000000-0000-0000-0000-000000000019",
+  "name": "球坐标表面积微分",
+  "description": "球坐标系下的表面积微分元图示。",
+  "category": "数学/微积分",
+  "tags": [
+    "球坐标",
+    "面积元",
+    "微分"
+  ],
+  "templateId": "default_math",
+  "packages": "amsmath,amssymb,amsfonts,tikz-3dplot,ifthen,[active,tightpage]{preview}",
+  "tikzLibraries": "math"
+}

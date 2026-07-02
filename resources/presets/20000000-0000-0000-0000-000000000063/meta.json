@@ -1,0 +1,13 @@
+{
+  "id": "20000000-0000-0000-0000-000000000063",
+  "name": "抛体运动",
+  "description": "抛体运动的轨迹、速度分解与运动时间。",
+  "category": "物理/力学",
+  "tags": [
+    "抛体运动",
+    "抛物线",
+    "运动学"
+  ],
+  "templateId": "default_physics",
+  "tikzLibraries": "calc"
+}

@@ -1,0 +1,14 @@
+{
+  "id": "10000000-0000-0000-0000-000000000018",
+  "name": "直角坐标体积微分",
+  "description": "直角坐标系下的体积微分元图示。",
+  "category": "数学/微积分",
+  "tags": [
+    "直角坐标",
+    "体积元",
+    "微分"
+  ],
+  "templateId": "default_math",
+  "packages": "tikz-3dplot,ifthen,[active,tightpage]{preview}",
+  "tikzLibraries": "math"
+}

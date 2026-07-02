@@ -1,0 +1,13 @@
+{
+  "id": "10000000-0000-0000-0000-000000000022",
+  "name": "线性回归",
+  "description": "最小二乘法线性回归的几何解释。",
+  "category": "数学/统计",
+  "tags": [
+    "线性回归",
+    "最小二乘法",
+    "统计"
+  ],
+  "templateId": "default_math",
+  "tikzLibraries": "arrows,intersections"
+}

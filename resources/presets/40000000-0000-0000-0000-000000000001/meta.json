@@ -1,0 +1,13 @@
+{
+  "id": "40000000-0000-0000-0000-000000000001",
+  "name": "元素周期表",
+  "description": "化学元素周期表，包含各元素的基本信息。",
+  "category": "化学",
+  "tags": [
+    "元素周期表",
+    "化学",
+    "元素"
+  ],
+  "templateId": "default_math",
+  "tikzLibraries": "shapes,calc"
+}

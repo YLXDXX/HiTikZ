@@ -1,0 +1,13 @@
+{
+  "id": "10000000-0000-0000-0000-000000000020",
+  "name": "角度与标注",
+  "description": "使用PGF 3.0 angles和quotes库绘制角度与标注。",
+  "category": "数学/几何",
+  "tags": [
+    "角度",
+    "quotes库",
+    "PGF 3.0"
+  ],
+  "templateId": "default_math",
+  "tikzLibraries": "quotes,angles"
+}

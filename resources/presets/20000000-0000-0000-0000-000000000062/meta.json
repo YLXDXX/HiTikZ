@@ -1,0 +1,13 @@
+{
+  "id": "20000000-0000-0000-0000-000000000062",
+  "name": "伯努利方程",
+  "description": "伯努利方程的物理图解，展示能量守恒在流体中的应用。",
+  "category": "物理/流体力学",
+  "tags": [
+    "伯努利",
+    "能量守恒",
+    "流体"
+  ],
+  "templateId": "default_physics",
+  "tikzLibraries": "calc"
+}

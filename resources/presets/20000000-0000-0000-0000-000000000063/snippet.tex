@@ -1,0 +1,42 @@
+\def\angle{70} % launch angle
+\def\v{6}   % initial velocity
+\def\g{9.8} % gravitational acceleration
+\def\r{0.1} % ball radius
+
+\begin{tikzpicture}[
+    scale=4,
+    axis/.style={-stealth},
+]
+
+    \pgfmathsetmacro{\tGround}{{2*\v*sin(\angle)/\g}}
+    \newcommand{\Ballx}[1]{{\v*#1*\tGround*cos(\angle)}}
+    \newcommand{\Bally}[1]{{-0.5*\g*#1*#1*\tGround*\tGround+\v*#1*\tGround*sin(\angle)}}
+    
+    % Axis
+    \draw[axis] (-0.3,0) -- ($1.2*(\Ballx{1},0)$) node[right] {$x$};
+    \draw[axis] (0,-0.3) -- ($1.2*(0,\Bally{0.5})$) node[above] {$y$};
+
+    % Angle
+    \filldraw[opacity=0.5] (\r*1.6,0) arc(0:\angle:\r*1.6)node[opacity=1,midway,above right]{$\theta$} -- (0,0) -- cycle;
+
+    % Ball
+    \newcommand{\DrawBall}[2][black]{
+        \filldraw[ball color=#1!50!] (\Ballx{#2},\Bally{#2}) circle(\r);
+        \draw[-stealth,#1] (\Ballx{#2},\Bally{#2})
+            --++({0.1*\v*cos(\angle)}, {-0.1*\g*#2*\tGround + 0.1*\v*sin(\angle)}); % velocity
+    }
+
+    \foreach \t in {0,0.2,0.8,1} {
+        \DrawBall[black]{\t}
+    }
+    
+    \draw[densely dotted] (\Ballx{0.2},0) node[below] {$x=v_0t\cos\theta$}
+        -- (\Ballx{0.2},\Bally{0.2})
+        -- (0,\Bally{0.2}) node[left] {$\displaystyle y=-\frac{1}{2}gt^2+v_0t\sin\theta$};
+    
+    \DrawBall[red]{0.5}
+    
+    % Trajectory
+    \draw[samples=256,densely dotted,domain=0:1,variable=\t] plot(\Ballx{\t},\Bally{\t});
+
+\end{tikzpicture}

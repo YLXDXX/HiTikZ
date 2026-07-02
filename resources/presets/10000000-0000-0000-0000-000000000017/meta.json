@@ -1,0 +1,15 @@
+{
+  "id": "10000000-0000-0000-0000-000000000017",
+  "name": "柱坐标体积微分",
+  "description": "柱坐标系下的体积微分元图示。",
+  "category": "数学/微积分",
+  "tags": [
+    "柱坐标",
+    "体积元",
+    "微分",
+    "积分"
+  ],
+  "templateId": "default_math",
+  "packages": "amsmath,amssymb,amsfonts,tikz-3dplot,ifthen,[active,tightpage]{preview}",
+  "tikzLibraries": "math"
+}
