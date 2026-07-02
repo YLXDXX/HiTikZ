@@ -235,21 +235,21 @@ QString LatexCompiler::wrapCode(const QString &texCode, const QString &templateI
         }
     }
 
-    if (!customCommands.trimmed().isEmpty()) {
-        int docBeginPos = tmpl.indexOf(QStringLiteral("\\begin{document}"));
-        if (docBeginPos >= 0) {
-            tmpl = tmpl.insert(docBeginPos, customCommands.trimmed() + "\n");
-        } else {
-            tmpl = customCommands.trimmed() + "\n\n" + tmpl;
-        }
-    }
-
     if (!extraPreamble.isEmpty()) {
         int docBegin = tmpl.indexOf(QStringLiteral("\\begin{document}"));
         if (docBegin >= 0) {
             tmpl = tmpl.insert(docBegin, extraPreamble);
         } else {
             tmpl = extraPreamble + "\n" + tmpl;
+        }
+    }
+
+    if (!customCommands.trimmed().isEmpty()) {
+        int docBeginPos = tmpl.indexOf(QStringLiteral("\\begin{document}"));
+        if (docBeginPos >= 0) {
+            tmpl = tmpl.insert(docBeginPos, customCommands.trimmed() + "\n");
+        } else {
+            tmpl = customCommands.trimmed() + "\n\n" + tmpl;
         }
     }
 
@@ -285,16 +285,22 @@ QString LatexCompiler::extractCustomCommands(const QString &texCode, QString &ou
                        "|\\\\DeclareRobustCommand"
                        "|\\\\pgfdeclareradialshading"
                        "|\\\\pgfdeclaredecoration"
+                       "|\\\\pgfdeclareverticalshading"
                        "|\\\\tikzoption"
                        "|\\\\setlength"
                        "|\\\\sansmath"
                        "|\\\\newif"
+                       "|\\\\newboolean"
+                       "|\\\\setboolean"
+                       "|\\\\setcounter"
                        "|\\\\PreviewEnvironment"
                        "|\\\\pgfplotsset"
                        "|\\\\def"
                        "|\\\\tikzmath"
                        "|\\\\pgfdeclarelayer"
-                       "|\\\\pgfsetlayers"));
+                       "|\\\\pgfsetlayers"
+                       "|\\\\tdplotsetmaincoords"
+                       "|\\\\pgfmathdeclarefunction"));
     outCode = texCode;
 
     auto readBalancedBraces = [](const QString &s, int &pos) {
@@ -381,6 +387,12 @@ QString LatexCompiler::extractCustomCommands(const QString &texCode, QString &ou
         bool isTikzmath = (cmdName == "\\tikzmath");
         bool isPgfdeclarelayer = (cmdName == "\\pgfdeclarelayer");
         bool isPgfsetlayers = (cmdName == "\\pgfsetlayers");
+        bool isNewboolean = (cmdName == "\\newboolean");
+        bool isSetboolean = (cmdName == "\\setboolean");
+        bool isSetcounter = (cmdName == "\\setcounter");
+        bool isPgfverticalshading = (cmdName == "\\pgfdeclareverticalshading");
+        bool isTdplotsetmaincoords = (cmdName == "\\tdplotsetmaincoords");
+        bool isPgfmathdeclarefunction = (cmdName == "\\pgfmathdeclarefunction");
 
         // Re-classify: these are NOT oldCmd patterns
         bool isSpecialCmd = isPgfkeys || isContourlength || isUsepgfplotslibrary ||
@@ -390,7 +402,9 @@ QString LatexCompiler::extractCustomCommands(const QString &texCode, QString &ou
                            isPgfradial || isPgfdecoration || isTikzoption ||
                            isSetlength || isSansmath || isNewif ||
                            isPreviewEnv || isPgfplotsset || isDef ||
-                           isTikzmath || isPgfdeclarelayer || isPgfsetlayers;
+                           isTikzmath || isPgfdeclarelayer || isPgfsetlayers ||
+                           isNewboolean || isSetboolean || isSetcounter ||
+                           isPgfverticalshading || isTdplotsetmaincoords || isPgfmathdeclarefunction;
 
         if (isSpecialCmd) isOldCmd = false;
 
@@ -558,6 +572,54 @@ QString LatexCompiler::extractCustomCommands(const QString &texCode, QString &ou
                 readBalancedBraces(remaining, pos);
                 defEnd = pos;
             }
+        } else if (isNewboolean) {
+            // One brace arg: \newboolean{name}
+            readBalancedBraces(remaining, pos);
+            defEnd = pos;
+            defStart = cmdStart;
+        } else if (isSetboolean || isSetcounter) {
+            // Two brace args: \setboolean{name}{value}, \setcounter{name}{value}
+            readBalancedBraces(remaining, pos);
+            skipWs(remaining, pos);
+            readBalancedBraces(remaining, pos);
+            defEnd = pos;
+            defStart = cmdStart;
+        } else if (isPgfverticalshading) {
+            // Complex: \pgfdeclareverticalshading[opts]{name}{point1}{point2}{...}
+            if (pos < remaining.length() && remaining.at(pos) == '[') {
+                readBalancedBrackets(remaining, pos);
+                skipWs(remaining, pos);
+            }
+            readBalancedBraces(remaining, pos);
+            skipWs(remaining, pos);
+            readBalancedBraces(remaining, pos);
+            skipWs(remaining, pos);
+            readBalancedBraces(remaining, pos);
+            // May have more braces
+            while (pos < remaining.length() && remaining.at(pos) == '{') {
+                readBalancedBraces(remaining, pos);
+                if (pos < remaining.length()) skipWs(remaining, pos);
+            }
+            defEnd = pos;
+            defStart = cmdStart;
+        } else if (isTdplotsetmaincoords) {
+            // Three brace args: \tdplotsetmaincoords{theta}{phi}{psi}
+            readBalancedBraces(remaining, pos);
+            skipWs(remaining, pos);
+            readBalancedBraces(remaining, pos);
+            skipWs(remaining, pos);
+            readBalancedBraces(remaining, pos);
+            defEnd = pos;
+            defStart = cmdStart;
+        } else if (isPgfmathdeclarefunction) {
+            // Complex: \pgfmathdeclarefunction{name}{N}{definition}
+            readBalancedBraces(remaining, pos);
+            skipWs(remaining, pos);
+            readBalancedBraces(remaining, pos);
+            skipWs(remaining, pos);
+            readBalancedBraces(remaining, pos);
+            defEnd = pos;
+            defStart = cmdStart;
         } else {
             if (pos < remaining.length() && remaining.at(pos) == '{') {
                 readBalancedBraces(remaining, pos);
