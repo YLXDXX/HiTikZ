@@ -1,0 +1,13 @@
+{
+  "id": "30000000-0000-0000-0000-000000000001",
+  "name": "变压器电路",
+  "description": "变压器等效电路模型。",
+  "category": "电路",
+  "tags": [
+    "变压器",
+    "等效电路",
+    "互感"
+  ],
+  "templateId": "default_circuit",
+  "packages": "siunitx"
+}

@@ -1,0 +1,14 @@
+{
+  "id": "20000000-0000-0000-0000-000000000040",
+  "name": "电场线2",
+  "description": "电场线分布图，展示不同电荷分布的电场。",
+  "category": "物理/电磁学",
+  "tags": [
+    "电场线",
+    "点电荷",
+    "高斯定理"
+  ],
+  "templateId": "default_physics",
+  "packages": "amsmath,bm,tikz,pgfplots,ifthen,etoolbox",
+  "tikzLibraries": "decorations.markings,intersections,calc"
+}

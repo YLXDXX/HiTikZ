@@ -1,0 +1,14 @@
+{
+  "id": "20000000-0000-0000-0000-000000000021",
+  "name": "相位延迟片",
+  "description": "相位延迟片（波片）的光学原理图。",
+  "category": "物理/光学",
+  "tags": [
+    "波片",
+    "相位延迟",
+    "双折射"
+  ],
+  "templateId": "default_physics",
+  "packages": "amsmath",
+  "tikzLibraries": "3d,shapes.multipart,arrows.meta,angles,quotes,calc"
+}

@@ -1,0 +1,15 @@
+{
+  "id": "20000000-0000-0000-0000-000000000060",
+  "name": "CMS三维坐标轴",
+  "description": "CMS（紧凑渺子线圈）探测器的三维坐标轴系统。",
+  "category": "物理/粒子物理",
+  "tags": [
+    "CMS",
+    "探测器",
+    "LHC",
+    "坐标系"
+  ],
+  "templateId": "default_physics",
+  "packages": "physics,tikz-3dplot,[outline]{contour}",
+  "tikzLibraries": "arrows.meta,3d,bending,angles,quotes"
+}

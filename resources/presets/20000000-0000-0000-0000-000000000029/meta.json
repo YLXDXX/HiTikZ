@@ -1,0 +1,14 @@
+{
+  "id": "20000000-0000-0000-0000-000000000029",
+  "name": "导线磁场力",
+  "description": "磁场中载流导线的安培力分析。",
+  "category": "物理/电磁学",
+  "tags": [
+    "安培力",
+    "载流导线",
+    "左手定则"
+  ],
+  "templateId": "default_physics",
+  "packages": "amsmath,physics,tikz,pgfplots,tikz-3dplot,[outline]{contour}",
+  "tikzLibraries": "angles,quotes,arrows,arrows.meta,calc,decorations.markings"
+}

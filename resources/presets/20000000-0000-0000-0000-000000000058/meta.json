@@ -1,0 +1,13 @@
+{
+  "id": "20000000-0000-0000-0000-000000000058",
+  "name": "变压器",
+  "description": "变压器结构示意图，展示铁芯与绕组。",
+  "category": "物理/电磁学",
+  "tags": [
+    "变压器",
+    "互感",
+    "铁芯"
+  ],
+  "templateId": "default_circuit",
+  "packages": "siunitx"
+}

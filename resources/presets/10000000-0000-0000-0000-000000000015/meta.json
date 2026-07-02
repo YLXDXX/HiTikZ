@@ -1,0 +1,14 @@
+{
+  "id": "10000000-0000-0000-0000-000000000015",
+  "name": "极坐标",
+  "description": "极坐标曲线绘制，如玫瑰线、阿基米德螺线等。",
+  "category": "数学/函数",
+  "tags": [
+    "极坐标",
+    "曲线",
+    "函数图像"
+  ],
+  "templateId": "default_math",
+  "packages": "physics,bm",
+  "tikzLibraries": "angles,quotes,intersections"
+}

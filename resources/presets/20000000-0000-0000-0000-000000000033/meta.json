@@ -1,0 +1,13 @@
+{
+  "id": "20000000-0000-0000-0000-000000000033",
+  "name": "黑体辐射颜色",
+  "description": "黑体辐射频谱与对应颜色的分布图。",
+  "category": "物理/热力学",
+  "tags": [
+    "黑体辐射",
+    "普朗克",
+    "色温"
+  ],
+  "templateId": "default_physics",
+  "packages": "physics,siunitx"
+}

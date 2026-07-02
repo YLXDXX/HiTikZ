@@ -1,0 +1,14 @@
+{
+  "id": "20000000-0000-0000-0000-000000000036",
+  "name": "平面电场",
+  "description": "均匀带电平面的电场，展示高斯面的选取。",
+  "category": "物理/电磁学",
+  "tags": [
+    "均匀电场",
+    "面电荷",
+    "高斯面"
+  ],
+  "templateId": "default_physics",
+  "packages": "amsmath,physics,bm,tikz,pgfplots,[outline]{contour}",
+  "tikzLibraries": "angles,quotes,decorations.markings,shapes"
+}

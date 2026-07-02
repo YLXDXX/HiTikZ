@@ -1,0 +1,13 @@
+{
+  "id": "20000000-0000-0000-0000-000000000052",
+  "name": "电磁波谱",
+  "description": "电磁波全谱，从无线电波到伽马射线。",
+  "category": "物理/电磁学",
+  "tags": [
+    "电磁波",
+    "光谱",
+    "频率"
+  ],
+  "templateId": "default_physics",
+  "packages": "ifthen,physics,siunitx"
+}

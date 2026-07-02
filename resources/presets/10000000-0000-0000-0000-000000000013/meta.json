@@ -1,0 +1,13 @@
+{
+  "id": "10000000-0000-0000-0000-000000000013",
+  "name": "球体体积",
+  "description": "球体体积的几何推导与积分计算。",
+  "category": "数学/几何",
+  "tags": [
+    "球体积",
+    "积分",
+    "微积分"
+  ],
+  "templateId": "default_math",
+  "packages": "tikz-3dplot"
+}

@@ -1,0 +1,14 @@
+{
+  "id": "20000000-0000-0000-0000-000000000020",
+  "name": "透镜像差",
+  "description": "透镜像差（球差、色差等）的示意图。",
+  "category": "物理/光学",
+  "tags": [
+    "像差",
+    "球差",
+    "色差",
+    "光学"
+  ],
+  "templateId": "default_physics",
+  "tikzLibraries": "calc,decorations.markings"
+}

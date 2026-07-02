@@ -1,0 +1,14 @@
+{
+  "id": "20000000-0000-0000-0000-000000000056",
+  "name": "磁力线",
+  "description": "多种磁场线的绘制示例。",
+  "category": "物理/电磁学",
+  "tags": [
+    "磁力线",
+    "磁场",
+    "可视化"
+  ],
+  "templateId": "default_physics",
+  "packages": "auto-pst-pdf,pst-magneticfield,[outline]{contour},pgfplots",
+  "tikzLibraries": "calc,decorations.pathreplacing"
+}

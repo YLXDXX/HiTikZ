@@ -1,0 +1,14 @@
+{
+  "id": "20000000-0000-0000-0000-000000000044",
+  "name": "物体稳定性",
+  "description": "刚体平衡的稳定性分析。",
+  "category": "物理/力学",
+  "tags": [
+    "稳定性",
+    "平衡",
+    "刚体"
+  ],
+  "templateId": "default_physics",
+  "packages": "physics,siunitx",
+  "tikzLibraries": "arrows.meta"
+}

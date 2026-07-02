@@ -1,0 +1,14 @@
+{
+  "id": "20000000-0000-0000-0000-000000000022",
+  "name": "加速度",
+  "description": "加速度的物理概念图示，速度变化的几何解释。",
+  "category": "物理/力学",
+  "tags": [
+    "加速度",
+    "运动学",
+    "速度变化"
+  ],
+  "templateId": "default_physics",
+  "packages": "graphicx,physics,bm",
+  "tikzLibraries": "angles,quotes,calc,decorations.markings,intersections"
+}

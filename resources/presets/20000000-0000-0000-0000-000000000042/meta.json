@@ -1,0 +1,14 @@
+{
+  "id": "20000000-0000-0000-0000-000000000042",
+  "name": "镜像电荷（平面）",
+  "description": "无穷大导电平面前点电荷的镜像法。",
+  "category": "物理/电磁学",
+  "tags": [
+    "镜像法",
+    "导电平面",
+    "镜像电荷"
+  ],
+  "templateId": "default_physics",
+  "packages": "physics,bm,tikz,pgfplots",
+  "tikzLibraries": "3d,calc,intersections,decorations.markings"
+}

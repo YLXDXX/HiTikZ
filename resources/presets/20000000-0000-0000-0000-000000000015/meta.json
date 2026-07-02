@@ -1,0 +1,13 @@
+{
+  "id": "20000000-0000-0000-0000-000000000015",
+  "name": "棱镜",
+  "description": "棱镜分光示意图，展示光的色散。",
+  "category": "物理/光学",
+  "tags": [
+    "棱镜",
+    "色散",
+    "折射"
+  ],
+  "templateId": "default_physics",
+  "tikzLibraries": "angles,quotes,shapes,decorations.markings,calc"
+}

@@ -1,0 +1,14 @@
+{
+  "id": "20000000-0000-0000-0000-000000000014",
+  "name": "透镜",
+  "description": "透镜的光学成像原理，包括凸透镜和凹透镜。",
+  "category": "物理/光学",
+  "tags": [
+    "透镜",
+    "成像",
+    "焦距",
+    "光学"
+  ],
+  "templateId": "default_physics",
+  "tikzLibraries": "decorations.markings,calc"
+}

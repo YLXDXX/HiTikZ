@@ -1,0 +1,14 @@
+{
+  "id": "20000000-0000-0000-0000-000000000057",
+  "name": "分子振动",
+  "description": "分子的振动模式（伸缩、弯曲等）示意图。",
+  "category": "化学/物理化学",
+  "tags": [
+    "分子振动",
+    "红外光谱",
+    "简正模式"
+  ],
+  "templateId": "default_physics",
+  "packages": "ifthen",
+  "tikzLibraries": "calc,patterns,snakes,decorations.pathmorphing,intersections,arrows.meta"
+}

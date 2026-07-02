@@ -1,0 +1,14 @@
+{
+  "id": "20000000-0000-0000-0000-000000000059",
+  "name": "变压器绕组",
+  "description": "变压器绕组结构与接线图。",
+  "category": "物理/电磁学",
+  "tags": [
+    "变压器",
+    "绕组",
+    "线圈"
+  ],
+  "templateId": "default_circuit",
+  "packages": "siunitx",
+  "tikzLibraries": "angles,quotes,shapes,decorations.markings,calc"
+}

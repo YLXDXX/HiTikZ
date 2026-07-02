@@ -1,0 +1,14 @@
+{
+  "id": "20000000-0000-0000-0000-000000000051",
+  "name": "摆与滑块",
+  "description": "摆与滑块的耦合动力学系统分析。",
+  "category": "物理/力学",
+  "tags": [
+    "摆",
+    "滑块",
+    "耦合振动"
+  ],
+  "templateId": "default_physics",
+  "packages": "physics,siunitx,ifthen,[outline]{contour}",
+  "tikzLibraries": "calc,angles,quotes,patterns"
+}

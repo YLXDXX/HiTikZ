@@ -1,0 +1,14 @@
+{
+  "id": "20000000-0000-0000-0000-000000000043",
+  "name": "镜像电荷（球体）",
+  "description": "接地导体球前点电荷的镜像法（method of images）。",
+  "category": "物理/电磁学",
+  "tags": [
+    "镜像法",
+    "导体球",
+    "点电荷"
+  ],
+  "templateId": "default_physics",
+  "packages": "amsmath,mathabx,bm,physics,tikz,pgfplots,[outline]{contour},ifthen",
+  "tikzLibraries": "3d,calc,intersections,decorations.markings"
+}

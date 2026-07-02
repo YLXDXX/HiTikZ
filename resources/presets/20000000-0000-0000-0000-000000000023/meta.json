@@ -1,0 +1,14 @@
+{
+  "id": "20000000-0000-0000-0000-000000000023",
+  "name": "毕奥-萨伐尔定律",
+  "description": "毕奥-萨伐尔定律，电流元产生磁场的计算图解。",
+  "category": "物理/电磁学",
+  "tags": [
+    "毕奥-萨伐尔",
+    "磁场",
+    "电流元"
+  ],
+  "templateId": "default_physics",
+  "packages": "physics",
+  "tikzLibraries": "angles,quotes"
+}

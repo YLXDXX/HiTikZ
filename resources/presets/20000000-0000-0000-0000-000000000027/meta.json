@@ -1,0 +1,14 @@
+{
+  "id": "20000000-0000-0000-0000-000000000027",
+  "name": "磁场回路",
+  "description": "载流回路的磁场分布（毕奥-萨伐尔应用）。",
+  "category": "物理/电磁学",
+  "tags": [
+    "载流回路",
+    "磁矩",
+    "磁场分布"
+  ],
+  "templateId": "default_physics",
+  "packages": "amsmath,physics,ifthen,tikz,pgfplots,tikz-3dplot,auto-pst-pdf,pst-magneticfield,[outline]{contour}",
+  "tikzLibraries": "angles,quotes,arrows,arrows.meta,calc,decorations.markings"
+}
