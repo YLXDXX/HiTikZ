@@ -664,6 +664,69 @@ int main(int argc, char *argv[]) {
         else fprintf(stderr, "PASS: Test 42 - \\tikzstyle inside tikzpicture not extracted\n");
     }
 
+    // Test 43: \newcommand with optional default argument [nargs][default]
+    {
+        QString code = "\\newcommand\\hand[2][0]{\\draw #1 #2;}\n"
+                       "\\begin{tikzpicture}\\end{tikzpicture}";
+        QString outCode;
+        QString cmds = LatexCompiler::extractCustomCommands(code, outCode);
+        if (!cmds.contains("\\hand[2][0]"))
+            { fprintf(stderr, "FAIL: Test 43 - newcommand with optional default not extracted\n"); customTestsFailed++; }
+        else fprintf(stderr, "PASS: Test 43 - \\newcommand with optional default arg\n");
+    }
+
+    // Test 44: \ctikzset extraction
+    {
+        QString code = "\\ctikzset{bipoles/length=1cm}\n"
+                       "\\begin{circuitikz}\\end{circuitikz}";
+        QString outCode;
+        QString cmds = LatexCompiler::extractCustomCommands(code, outCode);
+        if (!cmds.contains("\\ctikzset"))
+            { fprintf(stderr, "FAIL: Test 44 - ctikzset not extracted\n"); customTestsFailed++; }
+        else if (outCode.contains("\\ctikzset"))
+            { fprintf(stderr, "FAIL: Test 44 - ctikzset still in outCode\n"); customTestsFailed++; }
+        else fprintf(stderr, "PASS: Test 44 - \\ctikzset extraction\n");
+    }
+
+    // Test 45: \makeatletter block with commands (regression for extra newline)
+    {
+        QString code = "\\makeatletter\n"
+                       "\\newcommand{\\xy}[3]{%\n"
+                       "  \\tikz@scan@one@point#1\\relax\n"
+                       "  \\edef#2{\\the\\pgf@x}%\n"
+                       "  \\edef#3{\\the\\pgf@y}%\n"
+                       "}\n"
+                       "\\makeatother\n"
+                       "\\begin{tikzpicture}\\end{tikzpicture}";
+        QString outCode;
+        QString cmds = LatexCompiler::extractCustomCommands(code, outCode);
+        if (!cmds.contains("\\makeatletter"))
+            { fprintf(stderr, "FAIL: Test 45a - makeatletter not extracted\n"); customTestsFailed++; }
+        if (!cmds.contains("\\makeatother"))
+            { fprintf(stderr, "FAIL: Test 45b - makeatother not extracted\n"); customTestsFailed++; }
+        if (!cmds.contains("\\newcommand"))
+            { fprintf(stderr, "FAIL: Test 45c - newcommand inside makeat block not extracted\n"); customTestsFailed++; }
+        if (outCode.contains("\\makeatletter") || outCode.contains("\\makeatother"))
+            { fprintf(stderr, "FAIL: Test 45d - makeat tokens still in outCode\n"); customTestsFailed++; }
+        if (outCode.contains("\\newcommand"))
+            { fprintf(stderr, "FAIL: Test 45e - newcommand still in outCode\n"); customTestsFailed++; }
+        else fprintf(stderr, "PASS: Test 45 - \\makeatletter block with commands\n");
+    }
+
+    // Test 46: \ctikzset inside circuitikz should NOT be extracted
+    {
+        QString code = "\\begin{circuitikz}\n"
+                       "\\ctikzset{bipoles/length=2cm}\n"
+                       "\\end{circuitikz}";
+        QString outCode;
+        QString cmds = LatexCompiler::extractCustomCommands(code, outCode);
+        if (!cmds.isEmpty())
+            { fprintf(stderr, "FAIL: Test 46 - ctikzset inside circuitikz should not be extracted\n"); customTestsFailed++; }
+        else if (!outCode.contains("\\ctikzset"))
+            { fprintf(stderr, "FAIL: Test 46 - ctikzset should remain in outCode\n"); customTestsFailed++; }
+        else fprintf(stderr, "PASS: Test 46 - \\ctikzset inside circuitikz not extracted\n");
+    }
+
     fprintf(stderr, "Custom command tests: %d failed\n", customTestsFailed);
     failed += customTestsFailed;
 

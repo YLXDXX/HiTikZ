@@ -269,7 +269,10 @@ QString LatexCompiler::extractCustomCommands(const QString &texCode, QString &ou
                        "|\\\\definecolor"
                        "|\\\\colorlet"
                        "|\\\\tikzset"
-                       "|\\\\tikzstyle"));
+                       "|\\\\tikzstyle"
+                       "|\\\\makeatletter"
+                       "|\\\\makeatother"
+                       "|\\\\ctikzset"));
     outCode = texCode;
 
     auto readBalancedBraces = [](const QString &s, int &pos) {
@@ -329,7 +332,9 @@ QString LatexCompiler::extractCustomCommands(const QString &texCode, QString &ou
         bool isColorlet = (cmdName == "\\colorlet");
         bool isTikzset = (cmdName == "\\tikzset");
         bool isTikzStyle = (cmdName == "\\tikzstyle");
-        bool isOldCmd = !isDocCmd && !isCopyCmd && !isDeclRandom && !isDcfColor && !isColorlet && !isTikzset && !isTikzStyle;
+        bool isMakeat = (cmdName == "\\makeatletter" || cmdName == "\\makeatother");
+        bool isCtikzset = (cmdName == "\\ctikzset");
+        bool isOldCmd = !isDocCmd && !isCopyCmd && !isDeclRandom && !isDcfColor && !isColorlet && !isTikzset && !isTikzStyle && !isMakeat && !isCtikzset;
 
         int defStart = -1;
         int defEnd = -1;
@@ -364,12 +369,19 @@ QString LatexCompiler::extractCustomCommands(const QString &texCode, QString &ou
             readBalancedBraces(remaining, pos);
             defEnd = pos;
             defStart = cmdStart;
+        } else if (isCtikzset) {
+            readBalancedBraces(remaining, pos);
+            defEnd = pos;
+            defStart = cmdStart;
         } else if (isTikzStyle) {
             readBalancedBraces(remaining, pos);
             skipWs(remaining, pos);
             while (pos < remaining.length() && remaining.at(pos) == '+') pos++;
             while (pos < remaining.length() && remaining.at(pos) != '[') pos++;
             readBalancedBrackets(remaining, pos);
+            defEnd = pos;
+            defStart = cmdStart;
+        } else if (isMakeat) {
             defEnd = pos;
             defStart = cmdStart;
         } else {
@@ -381,6 +393,9 @@ QString LatexCompiler::extractCustomCommands(const QString &texCode, QString &ou
                 }
             }
 
+            if (isOldCmd && pos < remaining.length() && remaining.at(pos) == '[') {
+                readBalancedBrackets(remaining, pos);
+            }
             if (isOldCmd && pos < remaining.length() && remaining.at(pos) == '[') {
                 readBalancedBrackets(remaining, pos);
             }
@@ -399,19 +414,27 @@ QString LatexCompiler::extractCustomCommands(const QString &texCode, QString &ou
         if (defEnd > defStart) {
             QString fullCmd = remaining.mid(cmdStart, defEnd - cmdStart);
             commands.append(fullCmd);
-            remaining = remaining.left(cmdStart) + remaining.mid(defEnd);
+            int cleanStart = defEnd;
+            while (cleanStart < remaining.length() && (remaining.at(cleanStart) == ' ' || remaining.at(cleanStart) == '\t' || remaining.at(cleanStart) == '\n' || remaining.at(cleanStart) == '\r')) {
+                cleanStart++;
+            }
+            int cleanEnd = cmdStart;
+            while (cleanEnd > 0 && (remaining.at(cleanEnd - 1) == ' ' || remaining.at(cleanEnd - 1) == '\t' || remaining.at(cleanEnd - 1) == '\n' || remaining.at(cleanEnd - 1) == '\r')) {
+                cleanEnd--;
+            }
+            remaining = remaining.left(cleanEnd) + remaining.mid(cleanStart);
         } else {
             break;
         }
     }
 
-    outCode = remaining;
+    outCode = remaining.trimmed();
 
     if (commands.isEmpty()) {
         return QString();
     }
 
-    return commands.join('\n');
+    return commands.join('\n').trimmed();
 }
 
 void LatexCompiler::cancelCompile()
