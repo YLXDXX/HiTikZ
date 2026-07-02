@@ -264,19 +264,50 @@ QString LatexCompiler::extractCustomCommands(const QString &texCode, QString &ou
                        "|\\\\RenewDocumentCommand"
                        "|\\\\ProvideDocumentCommand"
                        "|\\\\DeclareDocumentCommand"
-                       "|\\\\NewCommandCopy"));
+                       "|\\\\NewCommandCopy"
+                       "|\\\\pgfmathdeclarerandomlist"
+                       "|\\\\definecolor"
+                       "|\\\\colorlet"));
     outCode = texCode;
+
+    auto readBalancedBraces = [](const QString &s, int &pos) {
+        int count = 0;
+        int start = pos;
+        if (pos >= s.length() || s.at(pos) != '{') return;
+        pos++;
+        count = 1;
+        while (pos < s.length() && count > 0) {
+            if (s.at(pos) == '{') count++;
+            else if (s.at(pos) == '}') count--;
+            pos++;
+        }
+    };
+
+    auto readBalancedBrackets = [](const QString &s, int &pos) {
+        int count = 0;
+        if (pos >= s.length() || s.at(pos) != '[') return;
+        pos++;
+        count = 1;
+        while (pos < s.length() && count > 0) {
+            if (s.at(pos) == '[') count++;
+            else if (s.at(pos) == ']') count--;
+            pos++;
+        }
+    };
+
+    auto skipWs = [](const QString &s, int &pos) {
+        while (pos < s.length() && (s.at(pos) == ' ' || s.at(pos) == '\t' || s.at(pos) == '\n' || s.at(pos) == '\r')) {
+            pos++;
+        }
+    };
 
     QStringList commands;
     QString remaining = texCode;
 
     while (true) {
         QRegularExpression envRe(QStringLiteral("\\\\begin\\{(?:tikzpicture|circuitikz)\\}"));
-        int envStart = -1;
         QRegularExpressionMatch envMatch = envRe.match(remaining);
-        if (envMatch.hasMatch()) {
-            envStart = envMatch.capturedStart();
-        }
+        int envStart = envMatch.hasMatch() ? envMatch.capturedStart() : -1;
 
         QRegularExpressionMatch m = cmdRe.match(remaining);
         if (!m.hasMatch()) break;
@@ -287,78 +318,64 @@ QString LatexCompiler::extractCustomCommands(const QString &texCode, QString &ou
         if (envStart >= 0 && cmdStart > envStart) break;
 
         int pos = cmdStart + m.capturedLength();
-        while (pos < remaining.length() && (remaining.at(pos) == ' ' || remaining.at(pos) == '\t')) {
-            pos++;
-        }
+        skipWs(remaining, pos);
 
         bool isDocCmd = cmdName.endsWith("DocumentCommand") || cmdName == "\\DeclareDocumentCommand";
         bool isCopyCmd = (cmdName == "\\NewCommandCopy");
-        bool isOldCmd = !isDocCmd && !isCopyCmd;
+        bool isDeclRandom = (cmdName == "\\pgfmathdeclarerandomlist");
+        bool isDcfColor = (cmdName == "\\definecolor");
+        bool isColorlet = (cmdName == "\\colorlet");
+        bool isOldCmd = !isDocCmd && !isCopyCmd && !isDeclRandom && !isDcfColor && !isColorlet;
 
         int defStart = -1;
         int defEnd = -1;
 
         if (isCopyCmd) {
-            if (pos < remaining.length() && remaining.at(pos) == '{') {
-                int depth = 1;
-                pos++;
-                while (pos < remaining.length() && depth > 0) {
-                    if (remaining.at(pos) == '{') depth++;
-                    else if (remaining.at(pos) == '}') depth--;
-                    pos++;
-                }
-            }
-            if (pos < remaining.length() && remaining.at(pos) == '{') {
-                pos++;
-                int depth = 1;
-                while (pos < remaining.length() && depth > 0) {
-                    if (remaining.at(pos) == '{') depth++;
-                    else if (remaining.at(pos) == '}') depth--;
-                    pos++;
-                }
-            }
+            readBalancedBraces(remaining, pos);
+            skipWs(remaining, pos);
+            readBalancedBraces(remaining, pos);
+            defEnd = pos;
+            defStart = cmdStart;
+        } else if (isDeclRandom) {
+            readBalancedBraces(remaining, pos);
+            skipWs(remaining, pos);
+            readBalancedBraces(remaining, pos);
+            defEnd = pos;
+            defStart = cmdStart;
+        } else if (isDcfColor) {
+            readBalancedBraces(remaining, pos);
+            skipWs(remaining, pos);
+            readBalancedBraces(remaining, pos);
+            skipWs(remaining, pos);
+            readBalancedBraces(remaining, pos);
+            defEnd = pos;
+            defStart = cmdStart;
+        } else if (isColorlet) {
+            readBalancedBraces(remaining, pos);
+            skipWs(remaining, pos);
+            readBalancedBraces(remaining, pos);
             defEnd = pos;
             defStart = cmdStart;
         } else {
             if (pos < remaining.length() && remaining.at(pos) == '{') {
-                int depth = 1;
-                pos++;
-                while (pos < remaining.length() && depth > 0) {
-                    if (remaining.at(pos) == '{') depth++;
-                    else if (remaining.at(pos) == '}') depth--;
+                readBalancedBraces(remaining, pos);
+            } else if (pos < remaining.length() && remaining.at(pos) == '\\') {
+                while (pos < remaining.length() && remaining.at(pos) != '[' && remaining.at(pos) != '{') {
                     pos++;
                 }
             }
 
             if (isOldCmd && pos < remaining.length() && remaining.at(pos) == '[') {
-                int bdepth = 1;
-                pos++;
-                while (pos < remaining.length() && bdepth > 0) {
-                    if (remaining.at(pos) == '[') bdepth++;
-                    else if (remaining.at(pos) == ']') bdepth--;
-                    pos++;
-                }
+                readBalancedBrackets(remaining, pos);
             }
 
             if (isDocCmd && pos < remaining.length() && remaining.at(pos) == '{') {
-                int sdepth = 1;
-                pos++;
-                while (pos < remaining.length() && sdepth > 0) {
-                    if (remaining.at(pos) == '{') sdepth++;
-                    else if (remaining.at(pos) == '}') sdepth--;
-                    pos++;
-                }
+                readBalancedBraces(remaining, pos);
             }
 
             if (pos < remaining.length() && remaining.at(pos) == '{') {
                 defStart = pos;
-                int ddepth = 1;
-                pos++;
-                while (pos < remaining.length() && ddepth > 0) {
-                    if (remaining.at(pos) == '{') ddepth++;
-                    else if (remaining.at(pos) == '}') ddepth--;
-                    pos++;
-                }
+                readBalancedBraces(remaining, pos);
                 defEnd = pos;
             }
         }

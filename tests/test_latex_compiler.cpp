@@ -427,6 +427,134 @@ int main(int argc, char *argv[]) {
         else fprintf(stderr, "PASS: Test 25 - wrapCode injects custom commands into preamble\n");
     }
 
+    // Test 26: \newcommand with unbraced command name (e.g. \newcommand\foo{def})
+    {
+        QString code = "\\newcommand\\testcmd{value}\n"
+                       "\\begin{tikzpicture}\\end{tikzpicture}";
+        QString outCode;
+        QString cmds = LatexCompiler::extractCustomCommands(code, outCode);
+        if (!cmds.contains("\\newcommand\\testcmd{value}"))
+            { fprintf(stderr, "FAIL: Test 26 - newcommand without braces on name not extracted\n"); customTestsFailed++; }
+        else if (outCode.contains("\\newcommand"))
+            { fprintf(stderr, "FAIL: Test 26 - newcommand still in outCode\n"); customTestsFailed++; }
+        else fprintf(stderr, "PASS: Test 26 - \\newcommand without braces on name\n");
+    }
+
+    // Test 27: \newcommand with unbraced name and optional args
+    {
+        QString code = "\\newcommand\\myvec[2]{\\left(#1,#2\\right)}\n"
+                       "\\begin{tikzpicture}\\end{tikzpicture}";
+        QString outCode;
+        QString cmds = LatexCompiler::extractCustomCommands(code, outCode);
+        if (!cmds.contains("\\newcommand\\myvec[2]{\\left(#1,#2\\right)}"))
+            { fprintf(stderr, "FAIL: Test 27 - unbraced newcommand with args not extracted\n"); customTestsFailed++; }
+        else fprintf(stderr, "PASS: Test 27 - unbraced \\newcommand with args\n");
+    }
+
+    // Test 28: \newcommand* with unbraced name
+    {
+        QString code = "\\newcommand*\\mycmd{value}\n"
+                       "\\begin{tikzpicture}\\end{tikzpicture}";
+        QString outCode;
+        QString cmds = LatexCompiler::extractCustomCommands(code, outCode);
+        if (!cmds.contains("\\newcommand*\\mycmd{value}"))
+            { fprintf(stderr, "FAIL: Test 28 - starred newcommand without braces not extracted\n"); customTestsFailed++; }
+        else fprintf(stderr, "PASS: Test 28 - starred \\newcommand* without braces\n");
+    }
+
+    // Test 29: \pgfmathdeclarerandomlist extraction
+    {
+        QString code = "\\pgfmathdeclarerandomlist{mylist}{{item1}{item2}}\n"
+                       "\\begin{tikzpicture}\\end{tikzpicture}";
+        QString outCode;
+        QString cmds = LatexCompiler::extractCustomCommands(code, outCode);
+        if (!cmds.contains("\\pgfmathdeclarerandomlist"))
+            { fprintf(stderr, "FAIL: Test 29 - pgfmathdeclarerandomlist not extracted\n"); customTestsFailed++; }
+        else fprintf(stderr, "PASS: Test 29 - \\pgfmathdeclarerandomlist extraction\n");
+    }
+
+    // Test 30: \definecolor extraction
+    {
+        QString code = "\\definecolor{myblue}{RGB}{20,20,100}\n"
+                       "\\begin{tikzpicture}\\end{tikzpicture}";
+        QString outCode;
+        QString cmds = LatexCompiler::extractCustomCommands(code, outCode);
+        if (!cmds.contains("\\definecolor"))
+            { fprintf(stderr, "FAIL: Test 30 - definecolor not extracted\n"); customTestsFailed++; }
+        else fprintf(stderr, "PASS: Test 30 - \\definecolor extraction\n");
+    }
+
+    // Test 31: \colorlet extraction
+    {
+        QString code = "\\colorlet{myshadow}{blueprintcolor!50!white}\n"
+                       "\\begin{tikzpicture}\\end{tikzpicture}";
+        QString outCode;
+        QString cmds = LatexCompiler::extractCustomCommands(code, outCode);
+        if (!cmds.contains("\\colorlet"))
+            { fprintf(stderr, "FAIL: Test 31 - colorlet not extracted\n"); customTestsFailed++; }
+        else fprintf(stderr, "PASS: Test 31 - \\colorlet extraction\n");
+    }
+
+    // Test 32: Mixed newcommand braced and unbraced
+    {
+        QString code = "\\newcommand{\\BRACED}{a}\n"
+                       "\\newcommand\\NBRACED{b}\n"
+                       "\\begin{tikzpicture}\\end{tikzpicture}";
+        QString outCode;
+        QString cmds = LatexCompiler::extractCustomCommands(code, outCode);
+        if (!cmds.contains("\\BRACED"))
+            { fprintf(stderr, "FAIL: Test 32a - braced newcommand not extracted\n"); customTestsFailed++; }
+        if (!cmds.contains("\\NBRACED"))
+            { fprintf(stderr, "FAIL: Test 32b - unbraced newcommand not extracted\n"); customTestsFailed++; }
+        else fprintf(stderr, "PASS: Test 32 - mixed braced and unbraced newcommand\n");
+    }
+
+    // Test 33: Complete document with many custom commands (regression)
+    {
+        QString code =
+            "\\definecolor{blueprintcolor}{RGB}{20,20,100}\n"
+            "\\colorlet{shadow}{blueprintcolor!50!white}\n"
+            "\\colorlet{light}{white!90!blueprintcolor}\n"
+            "\\newcommand\\defaultside{0.6}\n"
+            "\\newcommand\\floorheight{0.08}\n"
+            "\\newcommand\\storeymin{20}\n"
+            "\\newcommand\\storeymax{40}\n"
+            "\\newcommand\\window{0.05}\n"
+            "\\newcommand\\xaxis{210}\n"
+            "\\newcommand\\yaxis{-30}\n"
+            "\\pgfmathdeclarerandomlist{facade}{{\\hlines}{\\vlines}{\\grid}}\n"
+            "\\newcommand\\vthickness{thin}\n"
+            "\\newcommand\\hthickness{thin}\n"
+            "\\begin{tikzpicture}\n"
+            "\\draw (0,0) -- (1,1);\n"
+            "\\end{tikzpicture}";
+        QString outCode;
+        QString cmds = LatexCompiler::extractCustomCommands(code, outCode);
+        int cmdCount = cmds.count("\\newcommand") + cmds.count("\\pgfmathdeclarerandomlist")
+                       + cmds.count("\\definecolor") + cmds.count("\\colorlet");
+        if (cmdCount < 13)
+            { fprintf(stderr, "FAIL: Test 33 - not all commands extracted (got %d)\n", cmdCount); customTestsFailed++; }
+        else if (outCode.contains("\\definecolor") || outCode.contains("\\newcommand"))
+            { fprintf(stderr, "FAIL: Test 33 - commands still in outCode\n"); customTestsFailed++; }
+        else if (!outCode.contains("\\draw (0,0) -- (1,1);"))
+            { fprintf(stderr, "FAIL: Test 33 - tikz code altered\n"); customTestsFailed++; }
+        else fprintf(stderr, "PASS: Test 33 - complete document with mixed commands\n");
+    }
+
+    // Test 34: Multi-line \newcommand with unbraced name
+    {
+        QString code = "\\newcommand\\mylines{%\n"
+                       "  \\node at (0,0) {A};%\n"
+                       "  \\node at (1,0) {B};%\n"
+                       "}\n"
+                       "\\begin{tikzpicture}\\end{tikzpicture}";
+        QString outCode;
+        QString cmds = LatexCompiler::extractCustomCommands(code, outCode);
+        if (!cmds.contains("\\mylines"))
+            { fprintf(stderr, "FAIL: Test 34 - multi-line unbraced command not extracted\n"); customTestsFailed++; }
+        else fprintf(stderr, "PASS: Test 34 - multi-line unbraced \\newcommand\n");
+    }
+
     fprintf(stderr, "Custom command tests: %d failed\n", customTestsFailed);
     failed += customTestsFailed;
 
