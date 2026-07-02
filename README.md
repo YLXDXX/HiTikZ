@@ -2,7 +2,7 @@
 
 > 面向 Linux (KDE 6 / Wayland) 的 TikZ/PGF 矢量图形管理工具。
 > 创建、编辑、预览、搜索、导出 TikZ 图像并支持批量操作。
-> 当前版本：1.0（2026-07-01 更新）
+> 当前版本：1.0（2026-07-02 更新）
 
 ---
 
@@ -23,6 +23,7 @@
   - [自动保存与草稿恢复](#自动保存与草稿恢复)
   - [模板系统](#模板系统)
   - [宏包与 TikZ 库](#宏包与-tikz-库)
+  - [自定义命令处理](#自定义命令处理)
   - [完整文档复制](#完整文档复制)
   - [多选与批量操作](#多选与批量操作)
   - [剪贴板操作](#剪贴板操作)
@@ -67,7 +68,9 @@
 - **模板系统（极简）**：三个内置 LaTeX 模板仅含必要宏包（数学 / 物理 / 电路），额外宏包和 TikZ 库由每个片段自行声明
 - **完整文档复制**：一键复制含模板头部 + 片段的完整可编译 LaTeX 文档（现更名为"复制文档"）
 - **格式导出**：编译生成的 PDF 可转换并复制为 PNG/SVG 到剪贴板，也可直接导出为 `.tex` / `.pdf` / `.png` / `.svg` 文件
-- **导入 .tex 文件**：支持导入单个 `.tex` 文件，自动提取 TikZ 代码（三段式回退）并从导言区解析 `\usepackage` 宏包和 `\usetikzlibrary` 库声明，文件名作为片段名称
+- **导入 .tex 文件**：支持导入单个 `.tex` 文件，自动提取 TikZ 代码（三段式回退），从导言区解析 `\usepackage` 宏包、`\usetikzlibrary` 库声明及自定义命令，自动检测模板（含 circuitikz 时自动选用电路模板），文件名作为片段名称
+- **从剪贴板导入**：无需手动保存文件，直接粘贴完整 `.tex` 源码即可导入，自动解析宏包、库、自定义命令和模板
+- **自定义命令智能处理**：自动识别并提取 `\newcommand`（含 `*` 变体及 `\cmd` 无花括号语法）、`\NewDocumentCommand`、`\tikzset`、`\tikzstyle`、`\ctikzset`、`\definecolor`、`\colorlet`、`\pgfmathdeclarerandomlist`、`\makeatletter`/`\makeatother` 等 14 类定义命令，编译时自动注入导言区，复制文档时正确编排（完整语法说明见[自定义命令处理](#自定义命令处理)）
 - **存档导入/导出**：片段以 tar.gz 格式打包，支持单选 / 多选批量 / 全部导出，同时支持导出为独立 .tex 文档、PDF、PNG、SVG 格式
 - **标签过滤**：搜索框下方自动展示所有片段的标签徽章，点击筛选，多标签 AND 组合；大量标签时自动折叠为两行并通过弹出窗口选择
 - **系统托盘**：最小化到托盘，全局快捷键一键呼出/隐藏，托盘菜单"退出"触发关闭前保存提示
@@ -403,9 +406,37 @@ calc,er,angles,patterns,decorations.pathmorphing
 
 两者均在编译时注入到模板 `\begin{document}` 之前。
 
+### 自定义命令处理
+
+在 TikZ 代码编辑器中，与 TikZ 绘图层无关的 LaTeX 定义命令（`\newcommand`、`\tikzset` 等）约定写在 `\begin{tikzpicture}` 或 `\begin{circuitikz}` 环境**之外**（上方）。系统自动检测并抽取这些命令，在编译和复制文档时将其放入导言区（`\documentclass` 之后、`\begin{document}` 之前），确保编译正确。
+
+**支持的定义命令清单**（共 14 类）：
+
+| 命令 | 语法示例 | 说明 |
+|------|---------|------|
+| `\newcommand` / `\renewcommand` / `\providecommand` | `\newcommand{\foo}[2]{#1+#2}` 或 `\newcommand\foo[2]{#1+#2}` | 旧格式，支持 `*` 变体 |
+| `\newcommand` 可选默认值 | `\newcommand\foo[2][default]{#1+#2}` | 第二个 `[...]` 为可选参数默认值 |
+| `\NewDocumentCommand` / `\RenewDocumentCommand` / `\ProvideDocumentCommand` / `\DeclareDocumentCommand` | `\NewDocumentCommand{\foo}{ O{red} m }{\draw[#1] #2;}` | xparse 新格式 |
+| `\NewExpandableDocumentCommand` | `\NewExpandableDocumentCommand{\foo}{ m }{#1}` | 可展开变体 |
+| `\NewCommandCopy` | `\NewCommandCopy{\new}{\old}` | 命令复制 |
+| `\tikzset` | `\tikzset{style/.style={draw=red}, pic/.pic={...}}` | TikZ 样式和 pic 定义 |
+| `\tikzstyle` | `\tikzstyle{name}=[options]` 或 `\tikzstyle{name}+=[...]` | 旧版 TikZ 样式（兼容） |
+| `\ctikzset` | `\ctikzset{bipoles/length=1cm}` | CircuitikZ 全局设置 |
+| `\definecolor` | `\definecolor{myblue}{RGB}{20,20,100}` | 颜色定义 |
+| `\colorlet` | `\colorlet{myshadow}{blue!50!white}` | 颜色别名 |
+| `\pgfmathdeclarerandomlist` | `\pgfmathdeclarerandomlist{lst}{{a}{b}}` | PGF 随机列表声明 |
+| `\makeatletter` / `\makeatother` | `\makeatletter` … `\makeatother` | @ 字符类别切换（包裹含 @ 的自定义命令） |
+
+**抽取规则**：
+- 仅提取 `\begin{tikzpicture}` / `\begin{circuitikz}` **之前**的定义命令
+- 环境内部的命令（如图内 `\tikzset`）原样保留不提取
+- 多行定义、嵌套花括号、混合格式（新旧混用、花括号/无花括号混用）均正确解析
+- 编译时：抽取 → 注入模板 `\begin{document}` 前
+- 复制文档/导出 .tex 时：抽取 → 注入完整文档导言区
+
 ### 完整文档复制
 
-工具栏"复制文档"按钮将当前片段的模板头部 + 额外宏包 + TikZ 库 + 参数替换后的 TikZ 代码组合成**完整可编译的 LaTeX 文档**复制到剪贴板。
+工具栏"复制文档"按钮将当前片段的模板头部 + 额外宏包 + TikZ 库 + 自定义命令 + 参数替换后的 TikZ 代码组合成**完整可编译的 LaTeX 文档**复制到剪贴板。
 
 ### 多选与批量操作
 
@@ -438,7 +469,12 @@ calc,er,angles,patterns,decorations.pathmorphing
 
 **导入**：
 - **导入存档**：选择 `.tar.gz` 或 `.zip` 文件 → 异步解压并为每个片段分配新 UUID → 刷新列表。导入时自动清除 `isPreset` 标记，若缺失 `meta.json` 则自动创建片段
-- **导入 .tex 文件**：选择单个 `.tex` 文件 → 自动提取 TikZ 代码（`\begin{document}...\end{document}` 之间 → `\begin{tikzpicture}...\end{tikzpicture}` → 全文回退三段式解析），同时从导言区解析 `\usepackage{}`（含可选参数 `[...]`）和 `\usetikzlibrary{}` 声明，自动填入片段的宏包和 TikZ 库字段，文件名自动作为片段名称，创建为新片段后加载到编辑器
+- **导入 .tex 文件**：选择单个 `.tex` 文件 → 自动提取 TikZ 代码（`\begin{document}...\end{document}` 之间 → `\begin{tikzpicture}...\end{tikzpicture}` → 全文回退三段式解析），同时从导言区解析：
+  - `\usepackage{}`（含可选参数 `[...]`）→ 填入宏包字段
+  - `\usetikzlibrary{}` → 填入 TikZ 库字段
+  - 自定义命令（`\newcommand`、`\tikzset` 等）→ 提取后放置在 TikZ 代码上方
+  - 文件名自动作为片段名称，根据宏包自动选择模板（含 circuitikz → `default_circuit`，否则 `default_math`）
+- **从剪贴板导入**：直接读取剪贴板中的完整 `.tex` 源代码，执行与 `.tex` 导入相同的解析流程（宏包、库、自定义命令、模板自动检测），以文件第一行或注释作为片段名称，无需先创建文件
 
 ---
 
@@ -625,7 +661,7 @@ MainWindow
 ├── QSplitter（垂直）    PDF 预览与元数据区可调分割
 │   ├── PdfPreviewWidget PDF 矢量预览（缩放/平移/适应，独立组件）
 │   └── QScrollArea      元数据编辑表单 + 参数控件
-├── LatexCompiler        编译引擎（xelatex + pdftocairo/inkscape SVG转换 + 嵌套括号解析 + 行号映射）
+├── LatexCompiler        编译引擎（xelatex + pdftocairo/inkscape SVG转换 + 嵌套括号解析 + 行号映射 + 自定义命令抽取/注入）
 ├── SnippetManager       数据层（JSON 读写、双字索引搜索、分类缓存、批量操作）
 ├── SettingsDialog       设置面板（路径/快捷键/模板管理/工厂重置）
 └── KdeGlobalShortcut    KDE 全局快捷键（或 QHotkey 回退）
@@ -659,7 +695,7 @@ MainWindow
 | 测试 | 内容 |
 |------|------|
 | `test_snippet_manager` | 片段创建/读取/更新/删除，loadCode，renameCategory，ZIP 导入/导出往返 |
-| `test_latex_compiler` | xelatex 可用性检测，基本编译，PDF 生成，PNG 转换，SVG 转换，错误编译日志验证 |
+| `test_latex_compiler` | xelatex 可用性检测，基本编译，PDF 生成，PNG 转换，SVG 转换，错误编译日志验证，自定义命令抽取（41 项测试覆盖 14 类定义命令） |
 | `test_search` | 精确匹配、子序列匹配、连续加分、中文搜索、标签过滤、分类统计 |
 | `test_packages_libraries` | 宏包字符串解析（含嵌套括号选项），TikZ 库解析，模板注入正确性，往返序列化 |
 | `test_highlighter_regex` | 数学模式 `$...$`、`\(...\)`、`\[...\]` 正则表达式匹配验正 |
