@@ -802,6 +802,13 @@ void MainWindow::setupUI()
         s.name = baseName;
         s.packages = packages.join(", ");
         s.tikzLibraries = libraries.join(", ");
+        {
+            QString allPkgs = packages.join(" ").toLower();
+            if (allPkgs.contains("circuitikz"))
+                s.templateId = "default_circuit";
+            else
+                s.templateId = "default_math";
+        }
         snippetMgr->saveSnippet(s);
 
         refreshCategoryTree();
@@ -911,6 +918,13 @@ void MainWindow::setupUI()
         s.name = clipName;
         s.packages = packages.join(", ");
         s.tikzLibraries = libraries.join(", ");
+        {
+            QString allPkgs = packages.join(" ").toLower();
+            if (allPkgs.contains("circuitikz"))
+                s.templateId = "default_circuit";
+            else
+                s.templateId = "default_math";
+        }
         snippetMgr->saveSnippet(s);
 
         refreshCategoryTree();
