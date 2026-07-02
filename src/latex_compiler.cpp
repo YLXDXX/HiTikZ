@@ -267,7 +267,8 @@ QString LatexCompiler::extractCustomCommands(const QString &texCode, QString &ou
                        "|\\\\NewCommandCopy"
                        "|\\\\pgfmathdeclarerandomlist"
                        "|\\\\definecolor"
-                       "|\\\\colorlet"));
+                       "|\\\\colorlet"
+                       "|\\\\tikzset"));
     outCode = texCode;
 
     auto readBalancedBraces = [](const QString &s, int &pos) {
@@ -325,7 +326,8 @@ QString LatexCompiler::extractCustomCommands(const QString &texCode, QString &ou
         bool isDeclRandom = (cmdName == "\\pgfmathdeclarerandomlist");
         bool isDcfColor = (cmdName == "\\definecolor");
         bool isColorlet = (cmdName == "\\colorlet");
-        bool isOldCmd = !isDocCmd && !isCopyCmd && !isDeclRandom && !isDcfColor && !isColorlet;
+        bool isTikzset = (cmdName == "\\tikzset");
+        bool isOldCmd = !isDocCmd && !isCopyCmd && !isDeclRandom && !isDcfColor && !isColorlet && !isTikzset;
 
         int defStart = -1;
         int defEnd = -1;
@@ -353,6 +355,10 @@ QString LatexCompiler::extractCustomCommands(const QString &texCode, QString &ou
         } else if (isColorlet) {
             readBalancedBraces(remaining, pos);
             skipWs(remaining, pos);
+            readBalancedBraces(remaining, pos);
+            defEnd = pos;
+            defStart = cmdStart;
+        } else if (isTikzset) {
             readBalancedBraces(remaining, pos);
             defEnd = pos;
             defStart = cmdStart;

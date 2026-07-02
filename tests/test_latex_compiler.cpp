@@ -555,6 +555,61 @@ int main(int argc, char *argv[]) {
         else fprintf(stderr, "PASS: Test 34 - multi-line unbraced \\newcommand\n");
     }
 
+    // Test 35: \tikzset extraction (simple)
+    {
+        QString code = "\\tikzset{mystyle/.style={draw=red}}\n"
+                       "\\begin{tikzpicture}\\end{tikzpicture}";
+        QString outCode;
+        QString cmds = LatexCompiler::extractCustomCommands(code, outCode);
+        if (!cmds.contains("\\tikzset"))
+            { fprintf(stderr, "FAIL: Test 35 - tikzset not extracted\n"); customTestsFailed++; }
+        else if (outCode.contains("\\tikzset"))
+            { fprintf(stderr, "FAIL: Test 35 - tikzset still in outCode\n"); customTestsFailed++; }
+        else fprintf(stderr, "PASS: Test 35 - \\tikzset extraction\n");
+    }
+
+    // Test 36: \tikzset with nested braces (pic definition)
+    {
+        QString code = "\\tikzset{\n"
+                       "  mypic/.pic = {\n"
+                       "    \\draw (0,0) circle (1);\n"
+                       "  }\n"
+                       "}\n"
+                       "\\begin{tikzpicture}\\end{tikzpicture}";
+        QString outCode;
+        QString cmds = LatexCompiler::extractCustomCommands(code, outCode);
+        if (!cmds.contains("mypic/.pic"))
+            { fprintf(stderr, "FAIL: Test 36 - tikzset with nested braces not extracted\n"); customTestsFailed++; }
+        else fprintf(stderr, "PASS: Test 36 - \\tikzset with nested braces\n");
+    }
+
+    // Test 37: \tikzset inside tikzpicture should NOT be extracted
+    {
+        QString code = "\\begin{tikzpicture}\n"
+                       "\\tikzset{every node/.style={draw}}\n"
+                       "\\end{tikzpicture}";
+        QString outCode;
+        QString cmds = LatexCompiler::extractCustomCommands(code, outCode);
+        if (!cmds.isEmpty())
+            { fprintf(stderr, "FAIL: Test 37 - tikzset inside tikzpicture should not be extracted\n"); customTestsFailed++; }
+        else if (!outCode.contains("\\tikzset"))
+            { fprintf(stderr, "FAIL: Test 37 - tikzset should remain in outCode\n"); customTestsFailed++; }
+        else fprintf(stderr, "PASS: Test 37 - \\tikzset inside tikzpicture not extracted\n");
+    }
+
+    // Test 38: Multiple \tikzset blocks
+    {
+        QString code = "\\tikzset{a/.style={fill=red}}\n"
+                       "\\tikzset{b/.pic={\\draw(0,0)--(1,1);}}\n"
+                       "\\begin{tikzpicture}\\end{tikzpicture}";
+        QString outCode;
+        QString cmds = LatexCompiler::extractCustomCommands(code, outCode);
+        int count = cmds.count("\\tikzset");
+        if (count != 2)
+            { fprintf(stderr, "FAIL: Test 38 - should extract 2 tikzset blocks (got %d)\n", count); customTestsFailed++; }
+        else fprintf(stderr, "PASS: Test 38 - multiple \\tikzset blocks\n");
+    }
+
     fprintf(stderr, "Custom command tests: %d failed\n", customTestsFailed);
     failed += customTestsFailed;
 
