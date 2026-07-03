@@ -74,6 +74,7 @@ private:
     void onCurrentSnippetChanged();
     void jumpToErrorLine(const QString &logText);
     void parseParams();
+    void performParseParams();
     void clearParams();
     QString applyParams(const QString &code);
     void savePreviewData(const QString &pdfPath, const QString &snippetId);
@@ -167,6 +168,7 @@ private:
     QMutex m_batchMutex;
     QTimer *searchDebounceTimer = nullptr;
     QTimer *autoSaveTimer = nullptr;
+    QTimer *m_parseParamsTimer = nullptr;
     QLabel *m_compileStatusLabel = nullptr;
     QTimer *m_compileStatusTimer = nullptr;
 

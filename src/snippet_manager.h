@@ -65,6 +65,8 @@ public:
     bool batchUpdateCategory(const QStringList &ids, const QString &newCategory);
     int batchDeleteSnippets(const QStringList &ids);
 
+    void invalidateCaches();
+
 signals:
     void snippetCreated(const QString &id);
     void snippetDeleted(const QString &id);
@@ -83,7 +85,6 @@ private:
     Snippet jsonToSnippet(const QJsonObject &obj) const;
     void ensurePresetIdsCached() const;
     void ensureCountsCached() const;
-    void invalidateCaches();
     void invalidateCachesLight() const;
     Snippet loadMetaFromDir(const QString &dirPath) const;
     void loadCodeForSnippet(const QString &dirPath, Snippet &s) const;

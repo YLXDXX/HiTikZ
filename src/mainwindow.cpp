@@ -140,6 +140,12 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     });
 
     applyGlobalHotkey();
+
+    m_parseParamsTimer = new QTimer(this);
+    m_parseParamsTimer->setSingleShot(true);
+    m_parseParamsTimer->setInterval(300);
+    connect(m_parseParamsTimer, &QTimer::timeout, this, &MainWindow::performParseParams);
+
     startAutoSave();
     QTimer::singleShot(300, this, [this]() {
         recoverDrafts();
@@ -287,7 +293,7 @@ void MainWindow::setEditorForTab(int index)
     }
 
     m_loadingDepth--;
-    parseParams();
+    performParseParams();
 }
 
 void MainWindow::onTabChanged(int index)
@@ -1551,7 +1557,7 @@ void MainWindow::loadSnippetIntoEditor(const QString &id)
     loadPreviewForSnippet(id);
 
     m_loadingDepth--;
-    parseParams();
+    performParseParams();
 }
 
 void MainWindow::saveCurrentSnippet()
@@ -1589,16 +1595,12 @@ void MainWindow::onCurrentSnippetChanged()
     if (ed) {
         int tabIdx = tabWidget->currentIndex();
         if (tabIdx >= 0) {
-            QString sid = tabWidget->tabBar()->tabData(tabIdx).toString();
-            Snippet s = sid.isEmpty() ? Snippet() : snippetMgr->loadSnippet(sid);
-            if (s.code != ed->toPlainText()) {
-                QString title = nameEdit->text().isEmpty()
-                    ? (sid.isEmpty() ? QStringLiteral("未命名") : sid.left(8))
-                    : nameEdit->text();
-                if (!title.endsWith(QStringLiteral(" *")))
-                    title += QStringLiteral(" *");
-                tabWidget->setTabText(tabIdx, title);
-            }
+            QString title = nameEdit->text().isEmpty()
+                ? QStringLiteral("未命名")
+                : nameEdit->text();
+            if (!title.endsWith(QStringLiteral(" *")))
+                title += QStringLiteral(" *");
+            tabWidget->setTabText(tabIdx, title);
         }
     }
     parseParams();
@@ -1640,6 +1642,12 @@ void MainWindow::clearParams()
 }
 
 void MainWindow::parseParams()
+{
+    if (m_parseParamsTimer)
+        m_parseParamsTimer->start();
+}
+
+void MainWindow::performParseParams()
 {
     int tabIdx = tabWidget ? tabWidget->currentIndex() : -1;
     QString tabSid = (tabIdx >= 0) ? tabWidget->tabBar()->tabData(tabIdx).toString() : QString();
@@ -1774,6 +1782,11 @@ void MainWindow::loadPreviewForSnippet(const QString &id)
 
 void MainWindow::generateAllPreviews()
 {
+    if (m_batchGenerating) {
+        statusBar()->showMessage(QStringLiteral("批量生成正在进行中，请稍候..."), kStatusBarShortMs);
+        return;
+    }
+
     QList<Snippet> all = snippetMgr->getAllSnippets(true);
     all.append(snippetMgr->getAllPresets(true));
 
@@ -2278,6 +2291,8 @@ void MainWindow::factoryReset()
         dataLocation + "/presets/");
     SettingsDialog::applyToCompiler(compiler);
 
+    snippetMgr->invalidateCaches();
+
     currentSnippetId.clear();
     nameEdit->clear();
     descEdit->clear();
@@ -2541,10 +2556,13 @@ void MainWindow::recoverDrafts()
         } else {
             loadSnippetIntoEditor(draft.snippetId);
         }
+        QFile::remove(draft.filePath);
     }
 
-    for (const DraftInfo &draft : drafts)
-        QFile::remove(draft.filePath);
+    if (result == QDialog::Rejected + 1) {
+        for (const DraftInfo &draft : drafts)
+            QFile::remove(draft.filePath);
+    }
 
     if (!recoveredIndices.isEmpty()) {
         refreshCategoryTree();

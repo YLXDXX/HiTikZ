@@ -45,7 +45,7 @@
 - **TikZ 片段管理**：创建、编辑、保存、删除 TikZ 代码片段，附带名称 / 简介 / 分类 / 标签 / 宏包 / TikZ 库 / 模板元数据
 - **语法高亮**：TikZ/LaTeX 代码彩色高亮（命令蓝色、环境紫色、注释灰色、坐标橙色、数学模式 `$...$` / `\(...\)` / `\[...\]` 绿色等 12 类语法元素），支持 `\begin{comment}...\end{comment}` 多行注释块
 - **选中词高亮**：光标置于某单词或双击选中时，文档中所有相同单词自动高亮，快速定位变量/命令的使用位置
-- **智能代码补全**：9 种上下文感知补全（命令 `\`、环境 `\begin{`、选项 `[...]`、锚点 `.`、值 `=`、参数 `@@`、库 `\usetikzlibrary{` 等），含值提示（颜色、线宽、箭头等），覆盖 CircuitikZ 电路元件、tikz-3dplot、标准 LaTeX 数学符号等
+- **智能代码补全**：8 种上下文感知补全（命令 `\`、环境 `\begin{`、选项 `[...]`、锚点 `.`、值 `=`、参数 `@@`、库 `\usetikzlibrary{` 等），含值提示（颜色、线宽、箭头等），覆盖 CircuitikZ 电路元件、tikz-3dplot、标准 LaTeX 数学符号等
 - **自动缩进**：换行时继承上一行缩进，`{` 或 `\begin` 结尾的行自动增加一级缩进
 - **多标签编辑器**：支持同时打开多个 TikZ 片段，通过标签页快速切换，重复打开同一片段自动切换到已有标签页
 - **撤销/重做**：支持 Ctrl+Z / Ctrl+Shift+Z，工具栏以 ↩ ↪ 符号表示
@@ -78,7 +78,7 @@
 - **全局快捷键（KDE）**：KDE 桌面通过 KGlobalAccel 注册系统级快捷键
 - **字体大小调节**：设置面板中可分别调整代码编辑区字体大小（8-48 pt）和全局界面字体大小（8-48 pt），左栏分类树和缩略图名称跟随界面字体设置
 - **依赖检测**：启动时检测 `xelatex` 和当前配置的 SVG 转换工具（`pdftocairo` 或 `inkscape`），缺失时弹出安装指引
-- **94 个高质量预置片段**：涵盖数学（统计/几何/微积分）、物理（电磁学/力学/光学/热力学）、电路、化学等学科领域，均从 tikz.net 和 TeXample.net 精选并经过 XeLaTeX 编译验证
+- **120 个高质量预置片段**：涵盖数学（统计/几何/微积分）、物理（电磁学/力学/光学/热力学）、电路、化学等学科领域，均从 tikz.net 和 TeXample.net 精选并经过 XeLaTeX 编译验证
 - **C++17 + Qt6 原生实现**：高性能，启动快，原生 Wayland 支持
 
 ---
@@ -102,7 +102,7 @@
 ### 安装依赖（Arch / Manjaro）
 
 ```bash
-sudo pacman -S cmake gcc qt6-base qt6-webengine poppler texlive-core kf6-kglobalaccel
+sudo pacman -S cmake gcc qt6-base poppler texlive-core kf6-kglobalaccel
 ```
 
 ### 安装依赖（Debian / Ubuntu）
@@ -161,7 +161,7 @@ CMake 选项：
 |------|------|
 | 新建片段 | 弹出对话框输入名称和分类 |
 | 删除片段 | 删除当前片段或分类 |
-| 导入/导出 ▼ | 下拉菜单：导入存档 / 导入 .tex 文件 / 导出当前 / 导出全部 / 导出为 Tex 文档 / 导出为 PDF 文档 / 导出为 PNG 图片 / 导出为 SVG 图片 |
+| 导入/导出 ▼ | 下拉菜单：导入存档 / 导入 .tex 文件 / 从剪贴板导入 / 导出当前 / 导出全部 / 导出为 Tex 文档 / 导出为 PDF 文档 / 导出为 PNG 图片 / 导出为 SVG 图片 |
 | ↩ / ↪ | 撤销（Ctrl+Z）/ 重做（Ctrl+Shift+Z） |
 | 编译预览 | 保存并编译 TikZ 代码渲染 PDF（自动应用参数替换） |
 | 应用参数 | 不保存，仅用参数值替换后编译（用于临时预览参数效果） |
@@ -287,17 +287,17 @@ CMake 选项：
 
 ### 代码补全
 
-智能补全（`TikzCompleter`）根据光标上下文自动给出建议，覆盖 9 种场景：
+智能补全（`TikzCompleter`）根据光标上下文自动给出建议，覆盖 8 种场景：
 
 | 上下文 | 触发条件 | 补全内容 | 示例 |
 |--------|---------|---------|------|
 | 命令 | 输入 `\` 后接字母 | ~300 个 TikZ/LaTeX 命令 | `\draw`、`\node`、`\tdplotsetmaincoords`、`\pgfmathsetmacro` |
-| 环境 | `\begin{` 未闭合 | ~70 个 LaTeX/TikZ 环境 | `tikzpicture`、`scope`、`axis`、`groupplot`、`matrix` |
-| 选项 | `[...]` 内 | ~250 个 TikZ 选项 | `thick`、`left color`、`wiper pos`、`tdplot_main_coords` |
-| 锚点 | 单词后跟 `.` | ~80 个节点锚点 | `north`、`south east`、`wiper`、`cathode`、`anode` |
+| 环境 | `\begin{` 未闭合 | ~65 个 LaTeX/TikZ 环境 | `tikzpicture`、`scope`、`axis`、`groupplot`、`matrix` |
+| 选项 | `[...]` 内 | ~180 个 TikZ 选项 | `thick`、`left color`、`wiper pos`、`tdplot_main_coords` |
+| 锚点 | 单词后跟 `.` | ~55 个节点锚点 | `north`、`south east`、`wiper`、`cathode`、`anode` |
 | 值 | `=` 后 | 颜色 / 线型 / 箭头的值提示 | 输入 `color=` 后列出全部颜色名 |
 | 参数 | `@@` 未闭合 | 代码中声明的参数变量 | 输入 `@@` 后显示 `angle`、`width` 等 |
-| TikZ 库 | `\usetikzlibrary{` 内 | ~120 个 TikZ 库名 | `calc`、`arrows.meta`、`circuitikz`、`3d`、`shapes.gates.logic` |
+| TikZ 库 | `\usetikzlibrary{` 内 | ~85 个 TikZ 库名 | `calc`、`arrows.meta`、`circuitikz`、`3d`、`shapes.gates.logic` |
 | 通用词 | 输入任意已知词 | 命令、选项、锚点、颜色的并集 | 连续输入 2 个以上字母时触发 |
 
 **补全交互**：
@@ -525,12 +525,12 @@ calc,er,angles,patterns,decorations.pathmorphing
 
 | 学科 | 数量 | 主要分类 |
 |------|------|---------|
-| 数学 | 24 | 几何、函数、微积分、统计、分析、拓扑、艺术 |
-| 物理 | 89 | 力学、电磁学、光学、热力学、流体力学、相对论、量子、粒子物理 |
+| 数学 | 23 | 几何、函数、微积分、统计、分析、拓扑、艺术 |
+| 物理 | 90 | 力学、电磁学、光学、热力学、流体力学、相对论、量子、粒子物理 |
 | 电路 | 5 | 交流电路、RC电路、变压器 |
 | 化学 | 2 | 有机分子、元素周期表 |
 
-### 数学类（24 个）
+### 数学类（23 个）
 
 **数学/几何**（7 个）：垂线作图、简单曲线、光滑曲线的控制点、自定义光滑曲线端点、球体体积、角度与标注、角平分线
 
@@ -546,7 +546,7 @@ calc,er,angles,patterns,decorations.pathmorphing
 
 **数学/艺术**（2 个）：角平分线、彭罗斯三角 - 变体2
 
-### 物理类（89 个）
+### 物理类（90 个）
 
 **物理/力学**（33 个）：弹簧、滑轮系统、加速度、能量与功、抛体运动、弹簧 - 垂直弹簧静止伸长、弹簧 - 水平双弹簧、简谐振子 - 圆上相位、简谐振子 - 余弦阻尼、简谐振子 - 余弦过阻尼、滑轮系统 - 桌面滑轮弹簧、滑轮系统 - 桌面双滑轮、滑轮系统 - 天花板定滑轮、滑轮系统 - 天花板滑轮人力、摩擦力 - 水平地面举升、摩擦力 - 倾斜地面、物体稳定性 - 不稳定性（含中性平衡）、滑块稳定性 - 扭矩、扭矩 - 扭矩角度、转动惯量 - 圆环（二维）、转动惯量 - 圆环（三维）、转动惯量 - 圆环三维（平行轴定理）、转动惯量 - 空心圆柱、转动惯量 - 圆盘滑轮质量块、转动惯量（简化） - 细杆轴在一端、转动惯量（简化） - 圆盘、转动惯量（简化） - 空心圆盘、转动惯量（简化） - 圆环、转动惯量（简化） - 实心圆柱、转动惯量（简化） - 空心圆柱、转动惯量（简化） - 球体、振子近似 - 谐振子能量、摆与滑块 - 摆的解
 
@@ -598,6 +598,7 @@ calc,er,angles,patterns,decorations.pathmorphing
 - `editor/fontSize` — 代码字体大小
 - `ui/fontSize` — 界面字体大小
 - `behavior/autoCompileOnSave` — 保存后自动编译（默认开启）
+- `behavior/threadCount` — 批量预览并行线程数（默认 6）
 - `shortcuts/copyCode`, `shortcuts/copyPng`, `shortcuts/copySvg`
 - `shortcuts/compile`, `shortcuts/applyParams`, `shortcuts/save`, `shortcuts/closeTab`
 - `shortcuts/globalHotkey` — 全局快捷键
@@ -672,7 +673,7 @@ src/
 ├── latex_compiler.h / .cpp          # 编译引擎（xelatex + pdftocairo/inkscape + 宏包/库注入）
 ├── code_editor.h / .cpp             # 编辑器（行号、当前行+选中词高亮、自动缩进、补全/高亮器集成）
 ├── tikz_highlighter.h / .cpp        # TikZ/LaTeX 语法高亮（QSyntaxHighlighter 子类，12 条优先规则）
-├── tikz_completer.h / .cpp          # 智能代码补全（9 种上下文检测 + 多 QCompleter + 值提示）
+├── tikz_completer.h / .cpp          # 智能代码补全（8 种上下文检测 + 多 QCompleter + 值提示）
 ├── tikz_words.h                     # TikZ 关键词库（命令/环境/选项/锚点/颜色/箭头/线型/值提示）
 ├── flow_layout.h / flow_layout.cpp  # 流式布局组件（支持自动换行，用于标签过滤器）
 ├── pdf_preview_widget.h / .cpp      # PDF 预览组件（缩放/平移/适应模式，从 MainWindow 抽出）
@@ -684,7 +685,7 @@ resources/
 │   ├── default_math.tex            # tikz, amsmath, xcolor
 │   ├── default_physics.tex         # tikz, xcolor
 │   └── default_circuit.tex         # tikz, xcolor, circuitikz, preview
-└── presets/                         # 出厂预置片段（94 个）
+└── presets/                         # 出厂预置片段（120 个）
     └── <uuid>/
         ├── meta.json
         └── snippet.tex
@@ -714,7 +715,7 @@ MainWindow
 ├── QTabWidget           多标签页容器
 │   ├── CodeEditor       代码编辑器（每个标签页一个实例）
 │   │   ├── TikzHighlighter  语法彩色高亮（12 条规则）
-│   │   ├── TikzCompleter    智能补全（9 种上下文）
+│   │   ├── TikzCompleter    智能补全（8 种上下文）
 │   │   └── LineNumberArea   行号显示
 │   └── ...（更多标签页）
 ├── QPlainTextEdit       编译日志面板（精简过滤、行号映射、彩色格式化）
