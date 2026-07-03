@@ -113,8 +113,8 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     connect(genPreviewBtn, &QPushButton::clicked, this, [this]() {
         auto *mw = qobject_cast<MainWindow*>(parentWidget());
         if (mw) {
+            saveSettings();
             mw->generateAllPreviews();
-            accept();
         }
     });
 
