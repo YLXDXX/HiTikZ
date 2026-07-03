@@ -651,14 +651,25 @@ QString LatexCompiler::extractCustomCommands(const QString &texCode, QString &ou
             QString fullCmd = remaining.mid(cmdStart, defEnd - cmdStart);
             commands.append(fullCmd);
             int cleanStart = defEnd;
+            bool trimmedNewlineAfter = false;
             while (cleanStart < remaining.length() && (remaining.at(cleanStart) == ' ' || remaining.at(cleanStart) == '\t' || remaining.at(cleanStart) == '\n' || remaining.at(cleanStart) == '\r')) {
+                if (remaining.at(cleanStart) == '\n' || remaining.at(cleanStart) == '\r')
+                    trimmedNewlineAfter = true;
                 cleanStart++;
             }
             int cleanEnd = cmdStart;
+            bool trimmedNewlineBefore = false;
             while (cleanEnd > 0 && (remaining.at(cleanEnd - 1) == ' ' || remaining.at(cleanEnd - 1) == '\t' || remaining.at(cleanEnd - 1) == '\n' || remaining.at(cleanEnd - 1) == '\r')) {
+                if (remaining.at(cleanEnd - 1) == '\n' || remaining.at(cleanEnd - 1) == '\r')
+                    trimmedNewlineBefore = true;
                 cleanEnd--;
             }
-            remaining = remaining.left(cleanEnd) + remaining.mid(cleanStart);
+            // Preserve a newline separator when we removed one from either side,
+            // to prevent LaTeX comment lines from merging with the next command
+            QString separator;
+            if (trimmedNewlineBefore || trimmedNewlineAfter)
+                separator = QStringLiteral("\n");
+            remaining = remaining.left(cleanEnd) + separator + remaining.mid(cleanStart);
         } else {
             break;
         }
