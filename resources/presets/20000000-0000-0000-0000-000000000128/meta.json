@@ -1,0 +1,15 @@
+{
+  "id": "20000000-0000-0000-0000-000000000128",
+  "name": "伯努利原理 - VENTURI EFFECT",
+  "description": "伯努利原理的流体力学图解，展示流速与压强关系。 (VENTURI EFFECT)",
+  "category": "物理/流体力学",
+  "tags": [
+    "伯努利",
+    "流速",
+    "压强",
+    "流体"
+  ],
+  "templateId": "default_physics",
+  "packages": "physics,[outline]contour",
+  "tikzLibraries": "patterns,decorations.pathmorphing,decorations.markings,arrows.meta,calc"
+}

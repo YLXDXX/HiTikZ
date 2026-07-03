@@ -1,0 +1,14 @@
+{
+  "id": "20000000-0000-0000-0000-000000000141",
+  "name": "光学棱镜 - REFRACTION",
+  "description": "棱镜的光学特性，包括折射、色散与全反射。 (REFRACTION)",
+  "category": "物理/光学",
+  "tags": [
+    "棱镜",
+    "色散",
+    "折射率"
+  ],
+  "templateId": "default_physics",
+  "packages": "siunitx",
+  "tikzLibraries": "calc,intersections,fadings"
+}

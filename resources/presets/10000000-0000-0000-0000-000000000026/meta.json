@@ -1,0 +1,13 @@
+{
+  "id": "10000000-0000-0000-0000-000000000026",
+  "name": "函数平均值 - SINE",
+  "description": "函数平均值的几何解释与积分中值定理图示。 (SINE)",
+  "category": "数学/微积分",
+  "tags": [
+    "积分",
+    "中值定理",
+    "微积分"
+  ],
+  "templateId": "default_math",
+  "packages": "physics,[outline]contour"
+}

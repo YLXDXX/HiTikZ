@@ -1,0 +1,98 @@
+\contourlength{0.9pt}
+
+\colorlet{veccol}{green!50!black}
+\colorlet{myred}{red!70!black}
+\colorlet{mycontourred}{red!55!black!3} % for contour
+\colorlet{mycontourred2}{red!55!black!6} % for contour
+\colorlet{myblue}{blue!70!black}
+\colorlet{mydarkred}{red!40!black}
+\colorlet{mydarkblue}{blue!30!black}
+\colorlet{CMScol}{red!80!black}
+\colorlet{ATLAScol}{blue!80!black}
+\tikzset{>=latex} % for LaTeX arrow head
+\tikzstyle{axis}=[->,thick,line cap=round]
+\tikzstyle{detector}=[thick,draw=mydarkred,rotate around z=\ang]
+\tikzstyle{beam pipe}=[draw=blue!20!black!50,fill=blue!20!black!10,rotate around z=\ang]
+\tikzstyle{detector surface}=[red!60!black!10,opacity=0.5,rotate around z=\ang]
+\newcommand*{\vv}[1]{\vec{\mkern0mu#1}} % aligned vector arrow
+
+% CMS conventional coordinate system
+\tdplotsetmaincoords{75}{50} % to reset previous setting
+
+
+
+
+% CMS conventional coordinate system with LHC and other detectors
+\tdplotsetmaincoords{75}{50} % to reset previous setting
+
+
+\begin{tikzpicture}[scale=2.7,tdplot_main_coords,rotate around x=90]
+  
+  % VARIABLES
+  \def\rvec{1.2}
+  \def\thetavec{40}
+  \def\phivec{60}
+  \def\R{1.2}
+  \def\w{0.3}
+  \coordinate (O) at (0,0,0);
+  \tdplotsetcoord{O'}{0.04}{\thetavec}{\phivec} % shifted
+  \tdplotsetcoord{O''}{0.022}{90}{\phivec} % shifted
+  \tdplotsetcoord{P}{\rvec}{\thetavec}{\phivec}
+  
+  % CIRCLE - LHC (behind)
+  \tdplotdrawarc[thick,rotate around x=90,mydarkblue]{(\R,0,0)}{\R}{0}{360}{}{}
+  
+  % AXES
+  \fill[CMScol] (O) circle(0.8pt) node[left=4,below=2] {CMS};
+  \draw[axis] (0,0.028,0) -- (0,1,0) node[below right]{$y$};
+  \draw[axis] (0,0,0.028) -- (0,0,1) node[below right]{$z$};
+  \draw[axis] (0.030,0,0) -- (1,0,0) node[below left]{$x$};
+  
+  % VECTORS
+  %\fill[radius=0.4,red] (P) circle;
+  %\draw[dashed,myred] (O'') -- (Pxy);
+  %\draw[dashed,myred] (Px) -- (Pxy);
+  \draw[->,red,line cap=round] (O'') -- (Pxy) node[anchor=130] {$\vv{p}_\mathrm{T}$};
+  \draw[dashed,myred,line join=round] (Py) -- (Pxy) -- (P);
+  \draw[->,red,line cap=round] (O') -- (P) node[anchor=-30] {$\vv{p}$};
+  
+  % CIRCLE - LHC (front)
+  \tdplotdrawarc[thick,rotate around x=90,mydarkblue,line cap=round]{(\R,0,0)}{\R}{178.6}{90}{}{}
+  
+  % COMPASS - CMS-ATLAS axis has a ~12° declination (http://googlecompass.com)
+  \begin{scope}[shift={(1.1*\R,0,1.65*\R)},rotate around y=12]
+    \draw[<->,black!50] (-\w,0,0) -- (\w,0,0);
+    \draw[<->,black!50] (0,0,-\w) -- (0,0,\w);
+    \node[above=1,left,black!50,scale=0.6] at (-\w,0,0) {N};
+  \end{scope}
+  
+  %% COMPASS - CMS-ATLAS axis has a ~12° declination (http://googlecompass.com) (flat
+  %\begin{scope}[shift={(1.1*\R,0,1.65*\R)},rotate around y=12,
+  %              canvas is xz plane at y=0,transform shape]
+  %  \pgflowlevelsynccm
+  %  \draw[{Latex[length=3,width=2]}-{Latex[length=3,width=2]},black!50] (-\w,0) -- (\w,0);
+  %  \draw[{Latex[length=3,width=2]}-{Latex[length=3,width=2]},black!50] (0,-\w) -- (0,\w);
+  %  \node[below=1,black!50,scale=0.4,xscale=-1,rotate=90] at (-\w,0) {N};
+  %\end{scope}
+  
+  % NODES
+  \node[left,align=center] at (0,0,1.1) {Jura};
+  \node[right,mydarkblue] at (\R,0,0) {LHC};
+  \fill[ATLAScol]
+    (2*\R,0,0) circle(0.8pt)
+    node[right=4,below=2,scale=0.9] {ATLAS};
+  \fill[black!10!orange,rotate around x=90]
+    (\R,0,0)++(45:\R) circle(0.8pt) % 45 degrees from ATLAS
+    node[left=2,below=2,scale=0.8] {ALICE};
+  \fill[black!60!green,rotate around x=90]
+    (\R,0,0)++(-45:\R) circle(0.8pt) % 45 degrees from ATLAS
+    node[below=2,right=2,scale=0.8] {LHCb};
+  
+  % ARCS
+  \tdplotdrawarc[white,line width=0.9]{(O)}{0.2}{4}{\phivec-4}{}{}
+  \tdplotdrawarc[->]{(O)}{0.2}{0}{\phivec}
+    {anchor=-140,inner sep=1.5pt}{$\phi$} %\contour{white}{$\phi$}}
+  \tdplotdrawarc[->,rotate around z=\phivec-90,rotate around y=-90]{(O)}{0.4}{0}{\thetavec}
+    {anchor=mid east,inner sep=2pt}{$\theta$}
+  
+\end{tikzpicture}

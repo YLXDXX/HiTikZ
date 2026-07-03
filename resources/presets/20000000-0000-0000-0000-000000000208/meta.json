@@ -1,0 +1,14 @@
+{
+  "id": "20000000-0000-0000-0000-000000000208",
+  "name": "体电场 - BODY",
+  "description": "任意形状带电体的电场线分布。 (BODY)",
+  "category": "物理/电磁学",
+  "tags": [
+    "带电体",
+    "电场",
+    "高斯定理"
+  ],
+  "templateId": "default_physics",
+  "packages": "amsmath,physics,tikz,pgfplots",
+  "tikzLibraries": "angles,quotes,decorations.markings,positioning,calc,shapes,intersections"
+}

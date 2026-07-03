@@ -25,6 +25,8 @@
 }
 
 % RC with OPEN switch
+
+
 \begin{tikzpicture}
   \def\ang{120}
   \def\a{1.0}
@@ -35,53 +37,4 @@
   \node[minuscol,scale=0.8] at (-0.3,0.6) {$-Q_0$};
   \node[pluscol,scale=0.8] at (-0.3,1.4) {$+Q_0$};
   \node[scale=0.8] at (0.75,1) {$\Delta V_0$};
-\end{tikzpicture}
-
-
-% RC with CLOSED switch
-\begin{tikzpicture}
-  \def\ang{120}
-  \def\a{1.0}
-  \def\b{0.8}
-  \draw (0,0) to[thick C] (0,2) --++(3,0)
-              to[thick R] ++(0,-2) -- (0,0);
-  \fill[black] (1.25,2) circle (0.03);
-  \draw[line width=0.6] (1.25,2) --++ (0.48,0);
-  \node[minuscol,scale=0.8] at (-0.3,0.6) {$-Q$};
-  \node[pluscol,scale=0.8] at (-0.3,1.4) {$+Q$};
-  \node[scale=0.8] at (0.75,1) {$\Delta V$};
-  \draw[->,Icol] ({1.5+\a*cos(\ang)},{1+\b*sin(\ang)}) arc (\ang:-120:{\a} and {\b})
-                 node[midway,left=3,scale=0.9] {$I$};
-\end{tikzpicture}
-
-
-% RC+EMF with OPEN switch
-\begin{tikzpicture}
-  \def\ang{120}
-  \def\a{1.0}
-  \def\b{0.8}
-  \draw (0,0) to[EMF] (0,2) to[myswitch] ++(3,0)
-              to[thick R] ++(0,-2) to[thick C] (0,0);
-  \fill[black] (1.25,2) circle (0.03);
-  \node at (-0.35,0.7) {$-$};
-  \node at (-0.35,1.4) {$+$};
-\end{tikzpicture}
-
-
-% RC+EMF with CLOSED switch
-\begin{tikzpicture}
-  \def\ang{220}
-  \def\a{0.9}
-  \def\b{0.8}
-  \draw[->,Icol] ({1.5+\a*cos(\ang)},{1+\b*sin(\ang)}) arc (\ang:-40:{\a} and {\b})
-                 node[midway,below=3,scale=0.9] {$I$};
-  \draw (0,0) to[EMF] (0,2) --++(3,0)
-              to[thick R] ++(0,-2) to[thick C] (0,0);
-  \fill[black] (1.25,2) circle (0.03);
-  \draw[line width=0.6] (1.25,2) --++ (0.48,0);
-  \node at (-0.35,0.7) {$-$};
-  \node at (-0.35,1.4) {$+$};
-  \node[minuscol,scale=0.8] at (1.0,-0.25) {$-Q$};
-  \node[pluscol,scale=0.8] at (1.98,-0.25) {$+Q$};
-  \node[scale=0.8] at (1.5,0.6) {$\Delta V$};
 \end{tikzpicture}

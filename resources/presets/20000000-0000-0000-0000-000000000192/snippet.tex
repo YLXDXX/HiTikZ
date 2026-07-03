@@ -1,0 +1,97 @@
+\tikzset{>=latex} % for LaTeX arrow head
+\contourlength{1.8pt}
+
+\colorlet{Ecol}{orange!90!black}
+\colorlet{EcolFL}{orange!80!black}
+\colorlet{veccol}{green!45!black}
+\colorlet{EFcol}{red!60!black}
+\colorlet{pluscol}{red!60!black}
+\colorlet{minuscol}{blue!60!black}
+\colorlet{gausscol}{green!50!black!80}
+\tikzstyle{charged}=[top color=blue!20,bottom color=blue!40,shading angle=10]
+\tikzstyle{charge+}=[very thin,draw=black,top color=red!80,bottom color=red!80!black,shading angle=-5]
+\tikzstyle{charge-}=[very thin,draw=black,top color=blue!50,bottom color=blue!70!white!90!black,shading angle=10]
+\tikzstyle{darkcharged}=[very thin,top color=blue!60,bottom color=blue!80,shading angle=10]
+\tikzstyle{gauss surf}=[green!40!black,top color=green!2,bottom color=green!80!black!70,shading angle=5,fill opacity=0.6]
+\tikzstyle{gauss dark}=[green!40!black,fill=green!40!black!70,fill opacity=0.8]
+\tikzstyle{gauss line}=[green!40!black]
+\tikzstyle{gauss dashed line}=[green!60!black!80,dashed,line width=0.2]
+\tikzstyle{vector}=[->,thick,veccol]
+\tikzstyle{normalvec}=[->,thick,blue!80!black!80]
+\tikzstyle{EField}=[->,thick,Ecol]
+\tikzstyle{EField dashed}=[dashed,Ecol,line width=0.6]
+\tikzset{
+  EFieldLine/.style={thick,EcolFL,decoration={markings,
+                     mark=at position #1 with {\arrow{latex}}},
+                     postaction={decorate}},
+  EFieldLine/.default=0.5}
+\tikzstyle{metal}=[top color=black!5,bottom color=black!15,shading angle=30]
+\tikzstyle{measure}=[fill=green!70!black!8,midway,outer sep=0,inner sep=1]
+\def\L{2.2}
+\def\H{2.2}
+\def\W{0.30}
+\def\Nx{5}
+\def\Ny{5}
+
+% POINT CHARGE +1
+
+
+
+
+% CONDUCTOR with cavity
+
+
+\begin{tikzpicture}
+  \def\NQout{14}
+  \def\NQin{14}
+  \def\NQsideout{6}
+  \def\NQsidein{6}
+  \def\NE{8}
+  \def\Rin{1.2}
+  \def\Rout{2.0}
+  \def\E{1.4*\Rout}
+  \def\dthetain{40}
+  \def\dthetaout{55}
+  \def\angle{135}
+  
+  % BACK
+  \draw[top color=black!5,bottom color=black!14,shading angle=45]
+    (0,0) circle (\Rout);
+  \fill[white]
+      (0,0) circle (\Rin);
+  \draw[outer color=black!99,inner color=black!10,fill opacity=0.5] %ball color=white,fill opacity=1]
+      (0,0) circle (\Rin);
+  
+  % INSIDE CHARGE
+  \node[charge+,scale=0.8,circle,inner sep=0.27] (Q) at (0,0) {$+Q$};
+  \foreach \i [evaluate={\ang=10+\i*360/\NE;}] in {1,...,\NE}{
+    \draw[EFieldLine=0.5] (Q) -- (\ang:\Rin);
+    \draw[EFieldLine=0.5] (\ang:\Rout) -- (\ang:\E);
+  }
+  
+  % CHARGES INSIDE
+  \foreach \i [evaluate={\ang=3+\i*360/\NQin;}] in {1,...,\NQin}{
+    \node[blue!70!black,scale=0.9] at (\ang:1.08*\Rin) {$-$};
+  }
+  
+  % OUTSIDE FRONT
+  \draw[top color=black!10,bottom color=black!20,shading angle=45]
+    (90:\Rin) arc (180-\dthetain:180+\dthetain:{\Rin/sin(\dthetain)}) --
+    (-90:\Rout) arc (180+\dthetaout:180-\dthetaout:{\Rout/sin(\dthetaout)}) -- cycle;
+  \fill[white]
+    (90:\Rout) arc (90:270:\Rout) arc (180+\dthetaout:180-\dthetaout:{\Rout/sin(\dthetaout)});
+  \draw[ball color=white,fill opacity=0.5]
+    (90:\Rout) arc (90:270:\Rout) arc (180+\dthetaout:180-\dthetaout:{\Rout/sin(\dthetaout)});
+  
+  % CHARGES
+  \foreach \i [evaluate={\ang=0+\i*360/\NQout;}] in {1,...,\NQout}{
+    \node[red!70!black,scale=0.9] at (\ang:0.94*\Rout) {$+$};
+  }
+  \foreach \i [evaluate={\ang=(180-\dthetain)+(\i-0.7)*2.15*\dthetain/\NQsidein;}] in {1,...,\NQsidein}{
+    \node[blue!70!black,shift={({\Rin/tan(\dthetain)},0)},scale=0.9] at (\ang:{1.06*\Rin/sin(\dthetain)}) {$-$};
+  }
+  \foreach \i [evaluate={\ang=(180-\dthetaout)+(\i-0.7)*2.1*\dthetaout/\NQsideout;}] in {1,...,\NQsideout}{
+    \node[red!70!black,shift={({\Rout/tan(\dthetaout)},0)},scale=0.9] at (\ang:{0.94*\Rout/sin(\dthetaout)}) {$+$};
+  }
+  
+\end{tikzpicture}

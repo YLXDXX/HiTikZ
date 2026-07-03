@@ -1,0 +1,121 @@
+\tikzset{>=latex} % for LaTeX arrow head
+
+\colorlet{xcol}{blue!85!black}
+\colorlet{vcol}{green!60!black}
+\colorlet{myred}{red!65!black}
+\tikzstyle{vvec}=[->,vcol,thick,line cap=round]
+\tikzstyle{ground}=[preaction={fill,top color=black!10,bottom color=black!5,shading angle=20},
+                    fill,pattern=north east lines,draw=none,minimum width=0.3,minimum height=0.6]
+\tikzstyle{metal}=[fill,top color=black!40,bottom color=black!20,shading angle=10]
+\tikzstyle{mass}=[line width=0.6,red!30!black,fill=red!40!black!10,rounded corners=1,
+                  top color=red!40!black!20,bottom color=red!40!black!10,shading angle=20]
+\tikzstyle{pulcol}=[draw=blue!30!black,%fill=blue!40!black!10
+                    top color=blue!40!black!20,bottom color=blue!40!black!10,shading angle=20]
+\tikzstyle{rope}=[brown!70!black,very thick,line cap=round]
+\def\rope#1{ \draw[black,line width=1.5] #1; \draw[rope] #1; }
+\tikzstyle{mount}=[blue!20!black,fill,top color=blue!20!black!70,bottom color=blue!20!black!40,shading angle=10] %,line width=1.8,line cap=round
+\tikzstyle{spring}=[line width=0.8,black!80,snake=coil,segment amplitude=5,segment length=5,line cap=round]
+\pgfdeclarelayer{back} % to draw on background
+\pgfsetlayers{back,main} % set order
+
+\tikzstyle{force}=[->,myred,thick,line cap=round]
+\newcommand{\vbF}{\vb{F}}
+\newcommand{\vbT}{\vb{T}}
+\newboolean{showforces}
+\setboolean{showforces}{true}
+
+\newcommand\rightAngle[4]{
+  \pgfmathanglebetweenpoints{\pgfpointanchor{#2}{center}}{\pgfpointanchor{#3}{center}}
+  \coordinate (tmpRA) at ($(#2)+(\pgfmathresult+45:#4)$);
+  \draw[blue!40!black] ($(#2)!(tmpRA)!(#1)$) -- (tmpRA) -- ($(#2)!(tmpRA)!(#3)$);
+}
+
+\def\r{0.05} % pulley small radius
+\tikzset{
+  pics/pulley/.style={
+    code={
+      \draw[pulcol,line width=0.6] (0,0) circle (#1);
+      \draw[pulcol,thick] (0,0) circle (\r);
+  }},
+  pics/mount/.style args={#1:#2}{ % angle, length
+    code={
+      \draw[mount] (0,0)++(#1-90:0.9*\r) arc (#1-90:#1-270:0.9*\r) --++ (#1:#2) --++ (#1-90:1.8*\r) -- cycle;
+  }},
+  pics/weight/.style args={#1,#2,#3}{ % bottom width, top width, height
+    code={
+      \draw[mass] (0,0) -- (#2/2,0) -- (#1/2,-0.7*#3)
+        |- (-#1/2,-#3) -- (-#1/2,-0.7*#3) -- (-#2/2,0) -- cycle;
+      \path[mass] (0,0) -- (0,-#3) node[pos=0.52] {$m$};
+  }},
+  pics/pulley/.default=0.3,
+}
+
+% TABLE + pulley
+\def\h{0.6}  % mass height
+\def\w{0.8}  % mass width
+\def\R{0.3}  % pulley radius
+
+
+
+
+% CEILING PULLEY - person
+
+
+\begin{tikzpicture}
+  \def\W{2.8}  % ground width
+  \def\H{2.3}  % ground height
+  \def\D{0.3}  % ground depth
+  \def\h{0.50} % mass height
+  \def\w{0.75} % mass width
+  \def\L{0.7}  % rope length
+  \def\t{0.1}  % peg thickness
+  \def\R{0.30} % pulley radius
+  \def\F{0.8}  % force magnitude
+  \def\v{0.40} % velocity magnitude
+  \def\ang{-100}      % pull angle
+  \def\px{0.58*\W}    % pulley x position
+  \def\py{0.80*\H}    % pulley y position
+  \def\my{0.30*\H}    % mass y position
+  \def\rx{\px-1.0*\R} % rope-peg x position
+  \def\Hh{2.4}        % human height
+  \def\Hw{0.8}        % human width
+  \def\Hy{-0.4*\H}    % human y position
+  \def\Hx{0.21*\W}    % human x position
+  \coordinate (P)  at (\px,\py);    % pulley
+  \coordinate (M)  at (\px+\R,\my); % mass
+  \coordinate (T)  at ({\px+\R*sin(\ang)},{\py-\R*cos(\ang)}); % mass
+  \coordinate (RH) at ($(T)+(\ang:1.3)$); % right hand
+  
+  % PULLEY & MASS
+  \rope{ %draw[rope,line cap=round]
+    (RH) -- (T) arc(\ang+270:0:\R) --++ (0,\my-\py)}
+  \pic at (P) {pulley={\R}};
+  \pic at (P) {mount={90:\H-\py}};
+  %\pic at (M) {weight={\w,0.5*\w,\h}};
+  \draw[mass] (M)++(-\w/2,0) rectangle++ (\w,-\h) node[midway] {$m$};
+  \draw[ground] (0,\H) rectangle++ (\W,\D);
+  \draw (0,\H) --++ (\W,0);
+  
+  % PERSON
+  \draw[thick] (\Hx,\Hy+\Hh) circle (0.4) coordinate (H); % head
+  \draw[thick,line cap=round] % body
+    (H)++(-117:0.4) coordinate (N) to[out=-100,in=110]++ (0,-0.40*\Hh) coordinate (B);
+  \begin{pgfonlayer}{back} % draw on back
+    \draw[thick,line cap=round] % left arm
+      (N)++(-85:0.03) to[out=-70,in=230,looseness=1.2] ($(RH)!0.18!(T)+(0.03,0)$);
+  \end{pgfonlayer}
+  \draw[thick,line cap=round] % right arm
+    (N)++(-85:0.03) to[out=-105,in=220,looseness=1.25] ($(RH)!0.02!(T)+(0.03,0.02)$);
+  \draw[thick] (B) to[out=-65,in=72] (\Hx+0.04*\Hw,\Hy); % left leg
+  \draw[thick] (B) to[out=-55,in=95] (\Hx+0.39*\Hw,\Hy); % right leg
+  
+  % FORCES
+  \draw[vvec] (M)++(0.7*\w,-0.3*\h) --++ (0,\v) node[above=2,right=-2] {$v$};
+  \ifthenelse{\boolean{showforces}}{
+    \draw[vvec] (T)++(\ang-16:0.4) --++ (\ang:\v) node[anchor=65,inner sep=1] {$v$};
+    \draw[force] (RH)++(\ang+165:0.6*\F) --++ (\ang:\F) node[below=-2] {$\vbT$}; % hand
+    \draw[force] (M)++(0.2*\w,0.3*\h) --++ (0,\F) node[right=-2] {$\vbT$};
+    \draw[force] (M)++(-0.3*\w,-0.8*\h) --++ (0,-\F) node[below=-3] {$-mg\vu{y}$};
+  }{}
+  
+\end{tikzpicture}

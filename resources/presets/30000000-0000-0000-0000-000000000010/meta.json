@@ -1,0 +1,14 @@
+{
+  "id": "30000000-0000-0000-0000-000000000010",
+  "name": "RC电路 - RC with CLOSED switch",
+  "description": "RC电路的充放电特性与时间常数。 (RC with CLOSED switch)",
+  "category": "电路",
+  "tags": [
+    "RC电路",
+    "时间常数",
+    "充放电"
+  ],
+  "templateId": "default_math",
+  "packages": "physics,tikz,pgfplots,[siunitx]circuitikz,[outline]contour",
+  "tikzLibraries": "arrows,arrows.meta,decorations.markings"
+}

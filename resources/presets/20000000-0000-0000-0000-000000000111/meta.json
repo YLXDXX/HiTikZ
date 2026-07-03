@@ -1,0 +1,14 @@
+{
+  "id": "20000000-0000-0000-0000-000000000111",
+  "name": "滑轮系统 - CEILING PULLEY - three unequal masses - forces triangle",
+  "description": "滑轮系统的力学分析，含张力和加速度。 (CEILING PULLEY - three unequal masses - forces triangle)",
+  "category": "物理/力学",
+  "tags": [
+    "滑轮",
+    "张力",
+    "加速度"
+  ],
+  "templateId": "default_physics",
+  "packages": "physics,siunitx,ifthen",
+  "tikzLibraries": "calc,angles,quotes,patterns,snakes"
+}

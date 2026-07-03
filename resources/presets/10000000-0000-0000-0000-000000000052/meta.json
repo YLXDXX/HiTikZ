@@ -1,0 +1,14 @@
+{
+  "id": "10000000-0000-0000-0000-000000000052",
+  "name": "彭罗斯三角 - 变体2",
+  "description": "埃舍尔砖块镶嵌与彭罗斯不可能三角的错觉艺术。 (变体2)",
+  "category": "数学/艺术",
+  "tags": [
+    "埃舍尔",
+    "彭罗斯三角",
+    "视错觉",
+    "镶嵌"
+  ],
+  "templateId": "default_math",
+  "packages": "[active,tightpage]preview"
+}

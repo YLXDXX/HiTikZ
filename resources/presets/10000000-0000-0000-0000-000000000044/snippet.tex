@@ -1,0 +1,83 @@
+\tikzset{>=latex} % for LaTeX arrow head
+\contourlength{1.2pt}
+
+\pgfmathdeclarefunction{gauss}{3}{%
+  \pgfmathparse{1/(#3*sqrt(2*pi))*exp(-((#1-#2)^2)/(2*#3^2))}%
+}
+\pgfmathdeclarefunction{cdf}{3}{%
+  \pgfmathparse{1/(1+exp(-0.07056*((#1-#2)/#3)^3 - 1.5976*(#1-#2)/#3))}%
+}
+\pgfmathdeclarefunction{fq}{3}{%
+  \pgfmathparse{1/(sqrt(2*pi*#1))*exp(-(sqrt(#1)-#2/#3)^2/2)}%
+}
+\pgfmathdeclarefunction{fq0}{1}{%
+  \pgfmathparse{1/(sqrt(2*pi*#1))*exp(-#1/2))}%
+}
+
+\colorlet{mydarkblue}{blue!30!black}
+
+\usepgfplotslibrary{fillbetween}
+\pgfplotsset{compat=1.12} % TikZ coordinates <-> axes coordinates
+
+
+\def\N{50}
+
+% GAUSSIANs: basic properties
+
+
+
+
+
+% GAUSSIANs: low sensitivity 2
+
+
+\begin{tikzpicture}
+  \message{Low sensitivity 2^^J}
+  
+  \def\q{17.0};
+  \def\B{-1.0};
+  \def\S{18.0};
+  \def\Bs{10.0};
+  \def\Ss{8.0};
+  \def\xmax{\S+3.2*\Ss};
+  \def\ymin{{-0.15*gauss(\B,\B,\Bs)}};
+  
+  \begin{axis}[every axis plot post/.append style={
+               mark=none,domain={-0.05*(\xmax)}:{1.08*\xmax},samples=\N,smooth},
+               xmin={-0.1*(\xmax)}, xmax=\xmax,
+               ymin=\ymin, ymax={1.1*gauss(\B,\B,\Bs)},
+               axis lines=middle,
+               axis line style=thick,
+               %axis x line=bottom,  % no box around the plot, only x and y axis
+               %axis y line=left,    % ...line*=... suppresses the arrow tips
+               enlargelimits=upper, % extend the axes a bit to the right and top
+               ticks=none,
+               xlabel=$q_\mu$,
+               every axis x label/.style={at={(current axis.right of origin)},anchor=north west},
+               width=0.7*\textwidth, height=0.5*\textwidth,
+               %y=700pt
+              ]
+    
+    % plots
+    \addplot[blue, name path=B,thick] {gauss(x,\B,\Bs)};
+    \addplot[red,  name path=S,thick] {0.5*gauss(x,\S,\Ss)};
+    \addplot[black,dashed,thick]
+      coordinates {(\q, {gauss(\B,\B,\Bs)}) (\q, \ymin)};
+    \draw[->,thick]
+      (\q,{0.9*gauss(\B,\B,\Bs)}) -- ({\q+\Ss},{0.9*gauss(\B,\B,\Bs)})
+      node[below right=4pt,align=center] {CRITICAL\\REGION};
+    
+    % fill
+    \path[name path=xaxis]
+      (0,0) -- (\pgfkeysvalueof{/pgfplots/xmax},0); %\pgfkeysvalueof{/pgfplots/xmin}
+    \addplot[white!50!red]  fill between[of=xaxis and S, soft clip={domain=\q:\xmax}];
+    \addplot[white!50!blue] fill between[of=xaxis and B, soft clip={domain=\q:\xmax}];
+    
+    % labels
+    \node[above right=2pt,     black!20!blue]          at (    0,    {gauss(0,\B,\Bs)})       {$f(q_0|0)$};
+    \node[above right=2pt, black!20!red,align=center]  at ({\S+1.1*\Ss},{0.5*gauss(\S+1.1*\Ss,\S,\Ss)}) {$f(q_\mu|0)$};
+    %\node[above left, black!20!red ] at ({0.8*\q},{gauss(1.07*\q,\B,\Bs)}) {\strut$p_\text{s+b}$};
+    %\node[above right,black!20!blue] at ({1.1*\q},{gauss(1.07*\q,\B,\Bs)}) {\strut$p_\text{b}$};
+    
+  \end{axis}
+\end{tikzpicture}

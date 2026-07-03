@@ -1,0 +1,61 @@
+\tikzset{>=latex} % for LaTeX arrow head
+\colorlet{Ecol}{orange!90!black}
+\tikzstyle{charge0}=[top color=green!80!black!50,bottom color=green!80!black,shading angle=20]
+\tikzstyle{charge+}=[top color=red!50,bottom color=red!70!black,shading angle=20]
+\tikzstyle{charge-}=[top color=blue!50,bottom color=blue!80,shading angle=20]
+\tikzstyle{metal}=[top color=black!15,bottom color=black!25,middle color=black!5,shading angle=10]
+\tikzset{
+  EField/.style={thick,Ecol,decoration={markings,
+                 mark=at position #1 with {\arrow{latex}}},
+                 postaction={decorate}},
+  EField/.default=0.5}
+
+% CONDUCTION MODEL
+\def\R{0.21} % ion radius
+\def\a{0.90} % scale
+\def\Rx{0.2*\a*\Ny}
+\def\Ry{0.5*\a*\Ny}
+\def\Nx{6} % number of ions columns
+\def\Ny{3} % number of ions rows
+\def\L{\a*(\Nx-1)} % length
+\def\electron#1#2#3{
+  \node[charge-,draw=black,circle,fill,inner sep=0.8,scale=0.5,line width=0.3]
+    (e) at (#1*\a,#2*\a) {$\bm-$};
+  \draw[->,green!60!black] (e) --++ (#3*0.7*\a);
+}
+
+
+
+
+% CONDUCTION MODEL
+
+
+\begin{tikzpicture}
+  \def\NE{3}
+  \def\L{6}
+  \def\a{0.3*\L}
+  \def\b{0.7*\L}
+  \def\Rx{0.4}
+  \def\Ry{1.0}
+  
+  \fill[metal] (0,-\Ry) arc (270:90:{\Rx} and {\Ry}) --++ ({\L},0) arc (90:-90:{\Rx} and {\Ry});
+  \draw[black!80] (0,-\Ry) arc (270:90:{\Rx} and {\Ry});
+  \draw[black!80,dashed] (\L,-\Ry) arc (270:90:{\Rx} and {\Ry});
+  \draw[black!40,dashed] (\a,-\Ry) arc (270:90:{\Rx} and {\Ry});
+  \draw[black!40,dashed] (\b,-\Ry) arc (270:90:{\Rx} and {\Ry});
+  
+  % ELECTRIC FIELD
+  \foreach \j [evaluate={\y=-\Ry+(\j-0.5)*2*\Ry/\NE;}] in {1,...,\NE}{
+    \draw[EField] (-1.2*\Rx,\y) -- (\L+1.2*\Rx,\y);
+  }
+  
+  \draw[black!80] (0,-\Ry) arc (-90:90:{\Rx} and {\Ry}) --++ (\L,0) arc (90:-90:{\Rx} and {\Ry}) -- cycle;
+  \draw[black!40] (\a,-\Ry) arc (-90:90:{\Rx} and {\Ry});
+  \draw[black!40] (\b,-\Ry) arc (-90:90:{\Rx} and {\Ry});
+  \draw[<->] (\a,-1.2*\Ry) -- (\b,-1.2*\Ry) node[midway,fill=white,inner sep=1] {$L$};
+  \node[above] at (\a,\Ry) {$V_a$};
+  \node[above] at (\b,\Ry) {$V_b$};
+  \node[left=6] at (0,-\Ry) {$A$};
+  \node[below=5,right=13,Ecol] at (\L,\Ry) {$\vb{E}$};
+  
+\end{tikzpicture}

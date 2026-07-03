@@ -1,0 +1,63 @@
+\tikzset{>=latex} % for LaTeX arrow head
+\contourlength{1.6pt}
+\colorlet{Bcol}{violet!90}
+\colorlet{BFcol}{red!60!black}
+\colorlet{Scol}{green!60!black}
+\colorlet{veccol}{green!45!black}
+\colorlet{Icol}{blue!70!black}
+\colorlet{mucol}{red!90!black}
+\tikzstyle{BField}=[->,thick,Bcol]
+\tikzstyle{current}=[->,Icol] %thick,
+\tikzstyle{force}=[->,thick,BFcol]
+\tikzstyle{vector}=[->,thick,veccol]
+\tikzstyle{mu vector}=[->,thick,mucol]
+\tikzstyle{spin}=[->,very thick,Scol]
+\tikzstyle{velocity}=[->,very thick,vcol]
+\tikzstyle{charge+}=[very thin,draw=black,top color=red!50,bottom color=red!90!black,shading angle=20,circle,inner sep=0.5]
+\tikzstyle{charge-}=[very thin,draw=black,top color=blue!50,bottom color=blue!80,shading angle=20,circle,inner sep=0.5]
+\tikzstyle{metal}=[top color=black!15,bottom color=black!25,middle color=black!5,shading angle=10]
+\tikzset{
+  BFieldLine/.style={thick,Bcol,decoration={markings,mark=at position #1 with {\arrow{latex}}},
+                                 postaction={decorate}},
+  BFieldLine/.default=0.5,
+  pics/magnet/.style={ %args={#1}
+    code={
+      \def\h{0.9}
+      \coordinate (-N) at (0,\h);
+      \coordinate (-S) at (0,-\h);
+      \draw[pic actions,thick,top color=red!60,bottom color=red!90,shading angle=20]
+        (-0.8*\h/2,0) rectangle ++(0.8*\h,\h);
+      \draw[pic actions,thick,top color=blue!60,bottom color=blue!90,shading angle=20]
+        (-0.8*\h/2,0) rectangle ++(0.8*\h,-\h);
+      \node[pic actions] at (0, \h/2) {\textbf{N}};
+      \node[pic actions] at (0,-\h/2) {\textbf{S}};
+  }},
+}
+
+% B FIELD through current loop
+
+
+
+
+% MAGNETIC MOMENT ATOM
+
+
+\begin{tikzpicture}
+  \def\rn{0.3}
+  \def\re{0.15}
+  \def\Rx{1.5}
+  \def\Ry{0.5}
+  %\draw[dashed] (-100:1.5*\rn) -- (80:1.5*\rn);
+  \draw[dashed] (-\Rx,0) arc (180:0:{\Rx} and {\Ry});
+  \draw[mu vector] (0,-1.8*\rn) -- (0,2.9*\rn) node[right] {$\vb*{\mu}$};
+  \draw[charge+] (0,0) circle (\rn) node[scale=1.4] {+};
+  \draw[dashed] (\Rx,0) arc (0:-180:{\Rx} and {\Ry});
+  \draw[charge-]
+    (-40:{\Rx} and {\Ry}) circle (\re) node[scale=0.8] {$-$}
+    node[below right=4] {e};
+  \draw[->]
+    (-55:{1.15*\Rx} and {1.2*\Ry}) arc (-55:-72:{1.15*\Rx} and {1.2*\Ry});
+  \draw[current]
+    (-140:{1.15*\Rx} and {1.2*\Ry}) arc (-140:-100:{1.15*\Rx} and {1.2*\Ry})
+    node[midway,below] {$I$};
+\end{tikzpicture}

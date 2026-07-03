@@ -1,0 +1,14 @@
+{
+  "id": "20000000-0000-0000-0000-000000000205",
+  "name": "电场线1 - POINT CHARGE +1 - potential",
+  "description": "电场线分布图，展示点电荷与电荷系统的电场。 (POINT CHARGE +1 - potential)",
+  "category": "物理/电磁学",
+  "tags": [
+    "电场线",
+    "电偶极子",
+    "电场强度"
+  ],
+  "templateId": "default_physics",
+  "packages": "physics,bm,tikz,pgfplots,[outline]contour",
+  "tikzLibraries": "decorations.markings,intersections,calc,angles,quotes"
+}

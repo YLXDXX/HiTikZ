@@ -33,65 +33,11 @@
 }
 
 % ATTRACTING MAGNETS SN - SN
+
+
 \begin{tikzpicture}
   \pic[rotate=-90] (L) at (-\a,0) {magnet};
   \pic[rotate=-90] (R) at (\a,0) {magnet};
   \draw[force] (L-N) --++ (+\F,0) node[above left=2] {$\mathbf{F}$};
   \draw[force] (R-S) --++ (-\F,0) node[above right=2] {$\mathbf{F}$};
 \end{tikzpicture}
-
-
-% REPELLING MAGNETS SN - NS
-\begin{tikzpicture}
-  \pic[rotate=-90] (L) at (-\a/2,0) {magnet};
-  \pic[rotate=90] (R) at (\a/2,0) {magnet};
-  \draw[force] (L-S) --++ (-\F,0) node[left] {$\mathbf{F}$};
-  \draw[force] (R-S) --++ (+\F,0) node[right] {$\mathbf{F}$};
-\end{tikzpicture}
-
-
-% REPELLING MAGNETS NS - SN
-\begin{tikzpicture}
-  \pic[rotate=90] (L) at (-\a/2,0) {magnet};
-  \pic[rotate=-90] (R) at (\a/2,0) {magnet};
-  \draw[force] (L-N) --++ (-\F,0) node[left] {$\mathbf{F}$};
-  \draw[force] (R-N) --++ (+\F,0) node[right] {$\mathbf{F}$};
-\end{tikzpicture}
-
-
-% ATTRACTING NAIL - MAGNET NS
-\begin{tikzpicture}
-  \pic (L) at (-\a,0) {nail};
-  \pic[rotate=-90] (R) at (\a,0) {magnet};
-  \draw[force] (L-N) --++ (+\F,0) node[above left=2] {$\mathbf{F}$};
-  \draw[force] (R-S) --++ (-\F,0) node[above right=2] {$\mathbf{F}$};
-\end{tikzpicture}
-
-
-% ATTRACTING NAIL - MAGNET SN
-\begin{tikzpicture}
-  \pic (L) at (-\a,0) {nail};
-  \pic[rotate=90] (R) at (\a,0) {magnet};
-  \draw[force] (L-N) --++ (+\F,0) node[above left=2] {$\mathbf{F}$};
-  \draw[force] (R-N) --++ (-\F,0) node[above right=2] {$\mathbf{F}$};
-\end{tikzpicture}
-
-
-%% ELECTRIC FIELD
-%\begin{tikzpicture}
-%  \def\theta{8}
-%  \def\r{3.5}
-%  \def\rh{0.3*\r}
-%  \coordinate (O) at (0,0);
-%  \coordinate (R) at (\theta:\r);
-%  
-%  \draw[->,dashed] (O) -- (R) node[midway,above=-2] {$r$};
-%  \draw[vector] (O) ++ (\theta:\R) -- (\theta:\rh) node[midway,below=-2] {$\vu{r}$};
-%  
-%  %\draw[->,thick] (0,0) -- (0,1.5*\a) node[left] {$y$ [m]};
-%  
-%  % CHARGES
-%  \draw[charge] (O) circle (\R) node {$q_1$};
-%  \draw[charge] (R) circle (\R) node {$q_0$};
-%  
-%\end{tikzpicture}

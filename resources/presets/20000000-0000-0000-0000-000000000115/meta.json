@@ -1,0 +1,14 @@
+{
+  "id": "20000000-0000-0000-0000-000000000115",
+  "name": "引力动力学 - GRAVITATIONAL FORCE FIELD on Earth's surface",
+  "description": "引力作用下物体运动的动力学分析。 (GRAVITATIONAL FORCE FIELD on Earth's surface)",
+  "category": "物理/力学",
+  "tags": [
+    "引力",
+    "万有引力",
+    "轨道"
+  ],
+  "templateId": "default_physics",
+  "packages": "physics",
+  "tikzLibraries": "calc,patterns,arrows.meta,decorations.markings"
+}

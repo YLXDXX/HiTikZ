@@ -1,0 +1,15 @@
+{
+  "id": "20000000-0000-0000-0000-000000000139",
+  "name": "光学偏振 - POLARIZATION: 90, 45, 0",
+  "description": "光的线偏振、圆偏振与椭圆偏振示意图。 (POLARIZATION: 90, 45, 0)",
+  "category": "物理/光学",
+  "tags": [
+    "偏振",
+    "线偏振",
+    "圆偏振",
+    "椭圆偏振"
+  ],
+  "templateId": "default_physics",
+  "packages": "amsmath,physics,etoolbox",
+  "tikzLibraries": "calc,arrows,arrows.meta,angles,quotes"
+}

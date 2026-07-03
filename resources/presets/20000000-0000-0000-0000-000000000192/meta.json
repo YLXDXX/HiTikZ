@@ -1,0 +1,14 @@
+{
+  "id": "20000000-0000-0000-0000-000000000192",
+  "name": "球体电场 - CONDUCTOR with cavity",
+  "description": "均匀带电球体的电场分布（高斯定理）。 (CONDUCTOR with cavity)",
+  "category": "物理/电磁学",
+  "tags": [
+    "高斯定理",
+    "球对称",
+    "均匀带电球"
+  ],
+  "templateId": "default_physics",
+  "packages": "amsmath,bm,physics,tikz,pgfplots,[outline]contour",
+  "tikzLibraries": "angles,quotes,decorations.markings,shapes,intersections"
+}

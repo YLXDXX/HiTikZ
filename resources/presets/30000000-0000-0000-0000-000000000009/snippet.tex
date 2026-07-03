@@ -1,0 +1,31 @@
+\tikzset{>=latex} % for LaTeX arrow head
+\colorlet{Icol}{blue!50!black}
+\colorlet{Ccol}{orange!90!black}
+\colorlet{pluscol}{red!60!black}
+\colorlet{minuscol}{blue!60!black}
+\tikzstyle{thick C}=[C,thick,color=Ccol,Ccol,l=$C$]
+\tikzstyle{mybattery}=[battery1,l=$\Delta V$,invert]
+
+% CAPACITOR without battery
+
+
+
+
+% CAPACITORS in parallel
+
+
+\begin{tikzpicture}
+  \node[fill=white,inner sep=5,scale=1.2] (ET) at (7.4,2) {$.\,.\,.$};
+  \node[fill=white,inner sep=5,scale=1.2] (EB) at (7.4,0) {$.\,.\,.$};
+  \node at (0,1) {$\Delta V$};
+  %\draw (0,0) to[battery1] (0,2) -- (2,2) to[C,color=Ccol,thick,l=$C_1$] (2,0) -- (0,0);
+  \draw (0,2) to[short,*-] (2,2) to[thick C,l=$C_1$] (2,0) to[short,-*] (0,0);
+  \draw (2,2) -- (4,2) to[thick C,l=$C_2$] (4,0) -- (2,0);
+  \draw (4,2) -- (6,2) to[thick C,l=$C_3$] (6,0) -- (4,0);
+  \draw (6,2) -- (ET.180);
+  \draw (6,0) -- (EB.180);
+  %\draw (6,2) -- (8,2) to[C,color=Ccol,thick,l=$C_4$] (8,0) -- (6,0);
+  \node at (0,1) {$\Delta V$};
+  \node[below left] at (0,2) {$+$};
+  \node[above left] at (0,0) {$-$};
+\end{tikzpicture}

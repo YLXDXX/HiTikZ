@@ -1,14 +1,13 @@
 {
   "id": "30000000-0000-0000-0000-000000000005",
-  "name": "考毕兹振荡器",
-  "description": "考毕兹（Colpitts）振荡器电路图。",
+  "name": "电容电路 - CAPACITOR with battery",
+  "description": "电容器的串并联电路分析。 (CAPACITOR with battery)",
   "category": "电路",
   "tags": [
-    "振荡器",
-    "考毕兹",
-    "LC振荡",
-    "射频"
+    "电容器",
+    "串并联",
+    "等效电容"
   ],
   "templateId": "default_math",
-  "packages": "[siunitx]circuitikz"
+  "packages": "physics,tikz,pgfplots,[siunitx]circuitikz"
 }

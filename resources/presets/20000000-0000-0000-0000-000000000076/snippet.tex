@@ -1,0 +1,42 @@
+\contourlength{0.4pt}
+
+\colorlet{xcol}{blue!70!black}
+\colorlet{darkblue}{blue!40!black}
+\colorlet{myred}{red!65!black}
+\tikzstyle{mydashed}=[xcol,dashed,line width=0.25,dash pattern=on 2.2pt off 2.2pt]
+\tikzstyle{axis}=[->,thick] %line width=0.6
+\tikzstyle{ell}=[{Latex[length=3.3,width=2.2]}-{Latex[length=3.3,width=2.2]},line width=0.3]
+\tikzstyle{dx}=[-{Latex[length=3.3,width=2.2]},darkblue,line width=0.3]
+\tikzstyle{ground}=[preaction={fill,top color=black!10,bottom color=black!5,shading angle=20},
+                    fill,pattern=north east lines,draw=none,minimum width=0.3,minimum height=0.6]
+\tikzstyle{mass}=[line width=0.6,red!30!black,fill=red!40!black!10,rounded corners=1,
+                  top color=red!40!black!20,bottom color=red!40!black!10,shading angle=20]
+\tikzstyle{spring}=[line width=0.8,blue!7!black!80,snake=coil,segment amplitude=5,segment length=5,line cap=round]
+\tikzset{>=latex} % for LaTeX arrow head
+\tikzstyle{force}=[->,myred,very thick,line cap=round]
+\def\tick#1#2{\draw[thick] (#1)++(#2:0.1) --++ (#2-180:0.2)}
+
+% HORIZONTAL spring
+
+
+
+
+% VERTICAL spring - extension at rest
+
+
+\begin{tikzpicture}
+  \def\H{0.25} % ceiling height
+  \def\W{1.0}  % ceiling width
+  \def\h{0.7}  % mass height
+  \def\w{0.6}  % mass width
+  \def\y{2.1}  % mass width
+  \def\F{0.8}  % force magnitude
+  \draw[spring,segment length=7] (0,0) -- (0,-\y);
+  \draw[ground] (-\W/2,0) rectangle++ (\W,\H);
+  \draw (-\W/2,0) --++ (\W,0);
+  \draw[mass] (-\w/2,-\y) rectangle++ (\w,-\h) node[midway] {$m$};
+  \draw[force] (0.4*\w,-\y-0.3*\h) --++ (0,\F) node[below right=0] {$\vb{F}$}; %=-k\Delta\ell\vu{y}
+  \draw[force] (0.3*\w,-\y-0.7*\h) --++ (0,-\F) node[above right=0] {$m\vb{g}$}; %=mg\vu{y}
+  \draw[ell] (-0.4*\W,0) --++ (0,-0.75*\y) node[midway,fill=white,inner sep=0] {$\ell_0$};
+  \draw[ell] (-0.4*\W,-0.75*\y) --++ (0,-0.25*\y) node[midway,left=0] {$\Delta\ell$};
+\end{tikzpicture}

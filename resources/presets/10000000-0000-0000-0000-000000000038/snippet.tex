@@ -1,0 +1,66 @@
+\tikzset{>=latex} % for LaTeX arrow head
+\contourlength{1.2pt}
+
+\pgfmathdeclarefunction{gauss}{3}{%
+  \pgfmathparse{1/(#3*sqrt(2*pi))*exp(-((#1-#2)^2)/(2*#3^2))}%
+}
+\pgfmathdeclarefunction{cdf}{3}{%
+  \pgfmathparse{1/(1+exp(-0.07056*((#1-#2)/#3)^3 - 1.5976*(#1-#2)/#3))}%
+}
+\pgfmathdeclarefunction{fq}{3}{%
+  \pgfmathparse{1/(sqrt(2*pi*#1))*exp(-(sqrt(#1)-#2/#3)^2/2)}%
+}
+\pgfmathdeclarefunction{fq0}{1}{%
+  \pgfmathparse{1/(sqrt(2*pi*#1))*exp(-#1/2))}%
+}
+
+\colorlet{mydarkblue}{blue!30!black}
+
+\usepgfplotslibrary{fillbetween}
+\pgfplotsset{compat=1.12} % TikZ coordinates <-> axes coordinates
+
+
+\def\N{50}
+
+% GAUSSIANs: basic properties
+
+
+
+
+
+% GAUSSIANs: broadening from nuisance parameter
+
+
+\begin{tikzpicture}
+  \message{Nuisance parameter^^J}
+  
+  \def\B{3};
+  \def\S{8};
+  \def\Bs{1.0};
+  \def\Bbs{1.2};
+  \def\Ss{1.3};
+  \def\Sbs{1.5};
+  \def\xmax{\S+3.2*\Ss};
+  \def\ymin{{-0.15*gauss(\B,\B,\Bbs)}};
+  
+  \begin{axis}[every axis plot post/.append style={
+               mark=none,domain={-0.05*(\xmax)}:{1.08*\xmax},samples=\N,smooth},
+               xmin={-0.1*(\xmax)}, xmax=\xmax,
+               ymin=\ymin, ymax={1.1*gauss(\B,\B,\Bs)},
+               axis lines=middle,
+               axis line style=thick,
+               enlargelimits=upper,
+               ticks=none,
+               xlabel=$t$,
+               every axis x label/.style={at={(current axis.right of origin)},anchor=north west},
+               y=250pt
+              ]
+    
+    % PLOTS
+    \addplot[name path=B,thick,black!10!blue] {gauss(x,\B,\Bs)};
+    \addplot[name path=B,dashed,thick,black!5!blue] {\Bbs/\Bs*gauss(x,\B,\Bbs)};
+    \addplot[name path=S,thick,black!10!red ] {gauss(x,\S,\Ss)};
+    \addplot[name path=S,dashed,thick,black!5!red ] {\Sbs/\Ss*gauss(x,\S,\Sbs)};
+    
+  \end{axis}
+\end{tikzpicture}

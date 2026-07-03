@@ -1,0 +1,64 @@
+\tikzset{>=latex} % for LaTeX arrow head
+
+\colorlet{Ecol}{orange!90!black}
+\colorlet{EcolFL}{orange!80!black}
+\colorlet{veccol}{green!45!black}
+\colorlet{EFcol}{red!60!black}
+\tikzstyle{charged}=[top color=blue!20,bottom color=blue!40,shading angle=10]
+\tikzstyle{darkcharged}=[very thin,top color=blue!60,bottom color=blue!80,shading angle=10]
+\tikzstyle{charge+}=[very thin,top color=red!80,bottom color=red!80!black,shading angle=-5]
+\tikzstyle{charge-}=[very thin,top color=blue!50,bottom color=blue!70!white!90!black,shading angle=10]
+\tikzstyle{gauss surf}=[green!80!black,top color=green!2,bottom color=green!80!black!70,shading angle=5,fill opacity=0.6]
+\tikzstyle{gauss lid}=[gauss surf,middle color=green!80!black!20,shading angle=40,fill opacity=0.6]
+\tikzstyle{gauss line}=[green!80!black]
+\tikzstyle{gauss dashed line}=[green!60!black!80,dashed,line width=0.2]
+\tikzstyle{metal}=[top color=black!5,bottom color=black!15,shading angle=30]
+\tikzstyle{vector}=[->,thick,veccol]
+\tikzstyle{normalvec}=[->,thick,blue!80!black!80]
+\tikzstyle{EField}=[->,thick,Ecol]
+\tikzstyle{EField dashed}=[dashed,Ecol,line width=0.6]
+\tikzset{
+  EFieldLine/.style={thick,EcolFL,decoration={markings,
+                     mark=at position #1 with {\arrow{latex}}},
+                     postaction={decorate}},
+  EFieldLine/.default=0.5}
+\tikzstyle{measure}=[fill=white,midway,outer sep=2]
+
+% PLANE field with electric field
+
+
+
+
+
+% PLANE field with electric field
+\def\H{3.5}
+\def\W{1.4}
+\def\NE{6}
+\def\NQ{7}
+\def\E{1.8}
+\def\R{0.1}
+
+
+\begin{tikzpicture}
+  
+  % SLAB
+  \draw[metal] (-\W/2,-\H/2) rectangle ++(\W,\H);
+  
+  % ELECTRIC FIELD back
+  \foreach \i [evaluate={\y=-\H/2+(\i-0.5)*\H/\NE;}] in {1,...,\NE}{
+    %\draw[EFieldLine=0.62] (-\E,\y) -- (-\W/2,\y);
+    %\draw[EFieldLine=0.56] (-\W/2,\y) -- (\W/2,\y);
+    %\draw[EFieldLine=0.62] (\W/2,\y) -- (\E,\y);
+    \draw[EFieldLine=0.54] (-\E,\y) -- (\E,\y);
+  }
+  \node[Ecol,above right] at (\E,0.43*\H) {$\vb{E}_\text{ext}$};
+  
+  % CHARGES
+  \foreach \i [evaluate={\y=-0.92*\H/2+(\i-1)*0.92*\H/(\NQ-1);}] in {1,...,\NQ}{
+    \draw[charge-] (-0.4*\W,\y) circle (\R) node[scale=0.6] {$-$};
+    \draw[charge+] ( 0.4*\W,\y) circle (\R) node[scale=0.6] {$+$};
+    \draw[EFieldLine=0.54,line width=0.5] (0.35*\W,\y) -- (-0.35*\W,\y);
+  }
+  \node[Ecol,above] at (0,\H/2) {$\vb{E}_\text{ind}=-\vb{E}_\text{ext}$};
+ 
+\end{tikzpicture}

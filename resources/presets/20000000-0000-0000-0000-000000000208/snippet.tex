@@ -1,0 +1,96 @@
+\pgfplotsset{compat=1.13}
+\tikzset{>=latex} % for LaTeX arrow head
+\colorlet{Ecol}{orange!90!black}
+\colorlet{EcolFL}{orange!80!black}
+\colorlet{veccol}{green!45!black}
+\colorlet{EFcol}{red!60!black}
+\colorlet{pluscol}{red!60!black}
+\colorlet{minuscol}{blue!60!black}
+\tikzstyle{charged}=[top color=blue!20,bottom color=blue!40,middle color=blue!30,shading angle=10]
+\tikzstyle{darkcharged}=[very thin,top color=blue!60,bottom color=blue!80,shading angle=10]
+\tikzstyle{gauss surf}=[blue!90!black,top color=blue!2,bottom color=blue!80!black!70,shading angle=5,fill opacity=0.1]
+\tikzstyle{gauss line}=[blue!90!black]
+\tikzstyle{vector}=[->,thick,veccol]
+\tikzstyle{EField}=[->,thick,Ecol]
+\tikzset{
+  EFieldLine/.style={thick,EcolFL,decoration={markings,
+                     mark=at position #1 with {\arrow{latex}}},
+                     postaction={decorate}},
+  EFieldLine/.default=0.5}
+\tikzstyle{measure}=[fill=white,midway,outer sep=2]
+\tikzstyle{metal}=[top color=black!10,bottom color=black!20,middle color=black!5,shading angle=35]
+\def\L{2.2}
+\def\H{2.2}
+\def\offset{2.0}
+\def\W{0.30}
+\def\Nx{5}
+\def\Ny{5}
+
+% BODY charge distribution
+
+
+
+
+% BODY
+
+
+\begin{tikzpicture}
+  \def\C{3.4}
+  \def\Ra{0.6}
+  \def\Rb{2.0}
+  \def\q{0.1}
+  \def\E{1.2}
+  \def\anga{80}
+  \def\angb{110}
+  \def\Na{3}
+  \def\Nb{2}
+  \def\Nc{4}
+  \coordinate (C1)  at (0,0);
+  \coordinate (C2)  at (\C,0);
+  \coordinate (T) at ({\C+\Rb*cos(\angb)},{\Rb*sin(\angb)});
+  
+  % BODY
+  \draw[metal,shading angle=20,red!70!black,name path=body]
+    (-\anga:\Ra) arc(-\anga:-360+\anga:\Ra) to[out=\anga-90,in=\angb+90]
+    (T) arc( \angb:-\angb:\Rb) to[out=-\angb-90,in=90-\anga] cycle;
+  \draw[dashed,line width=0.2]
+    (C1) circle (\Ra);
+  \draw[dashed,line width=0.2]
+    (C2) circle (\Rb);
+  \draw[->] (C1) --++ (35:\Ra) node[midway,right=0.1,below] {$r_a$};
+  \draw[->] (C2) --++ (25:\Rb) node[midway,left=0.2,above] {$r_b$};
+  
+%  % CHARGE SIGNS
+%  \foreach \i [evaluate={\x=\xmin+(\i-1)*(\xmax-\xmin)/\Nx; \y=0.18+0.12*(\x-3.4)^2;}] in {1,...,\Nx}{
+%    \node at (\x,\y) {$+$};
+%  }
+  
+  % ELECTRIC FIELD
+  \foreach \i [evaluate={\ang=(\i-0.5)*80/\Na;}] in {1,...,\Na}{
+    \draw[EFieldLine={0.6}]
+      (C1)++( 180-\ang:\Ra) --++ ( 180-\ang:\E);
+    \draw[EFieldLine={0.6}]
+      (C1)++(-180+\ang:\Ra) --++ (-180+\ang:\E);
+    \node[pluscol,scale=0.6] at ( 180-\ang:\Ra-\q) {$+$};
+    \node[pluscol,scale=0.6] at (-180+\ang:\Ra-\q) {$+$};
+  }
+  \foreach \i [evaluate={\ang=(\i-0.5)*75/\Nb;}] in {1,...,\Nb}{
+    \draw[EFieldLine={0.6}] (C2)++( \ang:\Rb) --++ ( \ang:\E);
+    \draw[EFieldLine={0.6}] (C2)++(-\ang:\Rb) --++ (-\ang:\E);
+    \node[pluscol,scale=0.6] at ($(C2)+( \ang:\Rb-\q)$) {$+$};
+    \node[pluscol,scale=0.6] at ($(C2)+(-\ang:\Rb-\q)$) {$+$};
+  }
+  \foreach \i [evaluate={\x=0.08*\Ra+(\i-1)*(\C-0.08*\Ra)/(\Nc-1);}] in {1,...,\Nc}{ % intersections
+    \path[name path global/.expanded=ETline\i] (\x,0) --++ (90:1.1*\Rb);
+    \path[name path global/.expanded=EBline\i] (\x,0) --++ (-90:1.1*\Rb);
+  }
+  \foreach \i/\ang/\in in {1/82/-90,2/120/-80,3/120/-80,4/90/-90}{
+    \draw[EFieldLine={0.6},name intersections={of=body and ETline\i,name=ET\i}]
+      (ET\i-1) to[out=\ang,in=\in]++ ({90+0.6*(\ang-90)}:\E);
+    \draw[EFieldLine={0.6},name intersections={of=body and EBline\i,name=EB\i}]
+      (EB\i-1) to[out=-\ang,in=-\in]++ ({-90-0.6*(\ang-90)}:\E);
+    \node[pluscol,scale=0.6] at ($(ET\i-1)+( \ang+180:\q)$) {$+$};
+    \node[pluscol,scale=0.6] at ($(EB\i-1)+(-\ang-180:\q)$) {$+$};
+  }
+  
+\end{tikzpicture}

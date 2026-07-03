@@ -1,0 +1,14 @@
+{
+  "id": "20000000-0000-0000-0000-000000000159",
+  "name": "电流磁力 - B FIELD with half circle 3D",
+  "description": "两平行载流导线间的磁力（安培定律）。 (B FIELD with half circle 3D)",
+  "category": "物理/电磁学",
+  "tags": [
+    "安培力",
+    "平行导线",
+    "电流"
+  ],
+  "templateId": "default_physics",
+  "packages": "amsmath,bm,physics",
+  "tikzLibraries": "angles,quotes,calc,decorations.markings"
+}

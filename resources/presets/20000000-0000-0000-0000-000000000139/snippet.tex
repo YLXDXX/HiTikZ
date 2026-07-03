@@ -1,0 +1,132 @@
+\tikzset{>=latex} % for LaTeX arrow head
+
+\newcommand\degree{^\circ}
+\colorlet{crystal}{blue!75}
+\colorlet{vcol}{green!50!black}
+\colorlet{Ecol}{orange!90!black}
+\colorlet{EWcol}{orange!80!black}
+\colorlet{EVcol}{orange!80!black!60}
+\def\zangle{-20}
+\def\xangle{20}
+\tikzstyle{platecol}=[blue!80!black!40,opacity=0.8]
+\tikzstyle{platetopcol}=[blue!90!black!50,opacity=0.8]
+\tikzstyle{platesidEcol}=[blue!70!black!50,opacity=0.8]
+\tikzstyle{mydashed}=[dash pattern=on 1.2 off 0.7,line width=0.3]
+\tikzstyle{Evec}=[EVcol,-{Stealth[length=1.8,width=1.2]},line width=0.2]
+
+\newcommand\rightAngle[4]{
+  \pgfmathanglebetweenpoints{\pgfpointanchor{#2}{center}}{\pgfpointanchor{#3}{center}}
+  \coordinate (tmpRA) at ($(#2)+(\pgfmathresult+45:#4)$);
+  \draw[white,line width=0.6] ($(#2)!(tmpRA)!(#1)$) -- (tmpRA) -- ($(#2)!(tmpRA)!(#3)$);
+  \draw[blue!40!black] ($(#2)!(tmpRA)!(#1)$) -- (tmpRA) -- ($(#2)!(tmpRA)!(#3)$);
+}
+
+\def\W{3.5}  % width polarizer
+\def\w{0.05} % width slit
+\def\l{2.9}  % length slit
+\def\t{0.05}
+\def\N{7}    % number of slits
+\tikzset{
+  plate/.pic={
+    \ifnumless{45}{#1}{
+      \def\topang{#1}
+    }{
+      \def\topang{#1+90}
+    }
+    \fill[platetopcol]
+      (\topang:\W/2)++(\topang-90:\W/2) --++ (0,0,-\t) --++ (\topang+90:\W) --++ (0,0,\t) -- cycle;
+    \fill[platesidEcol]
+      (\topang+90:\W/2)++(\topang:\W/2) --++ (0,0,-\t) --++ (\topang+180:\W) --++ (0,0,\t) -- cycle;
+    \fill[platecol]
+      (#1:\W/2)++(#1-90:\W/2) --++ (#1-180:\W) --++ (#1+90:\W) --++ (#1:\W) -- cycle
+      \foreach \i [evaluate={\x=-\W/2+\i*\W/(\N+1);}] in {1,...,\N}{
+        (#1:\l/2)++(#1+90:\x+\w/2) --++ (#1-180:\l) --++ (#1-90:\w) --++ (#1:\l) -- cycle
+      };
+  }
+}
+
+% POLARIZATION: 90, theta
+
+
+
+
+
+% POLARIZATION: 90, 45, 0
+
+
+\begin{tikzpicture}[x=(15:0.5), y=(90:0.6), z=(-20:2.2)]
+  
+  \def\A{1.4}
+  \def\L{3.2}
+  \def\nwave{3}
+  \def\k{(360*\nwave/\L)} % 2pi*n / L = 360*n / L
+  %\def\dx{90/\k}
+  \def\nvec{30} % per wavelength
+  
+  % SECTION 1
+  \draw[thick] (0,0,0) -- (0,0,0.4*\L);
+  \foreach \ang in {45,90,...,360}{
+    \draw[<->,very thick,Ecol] (0,0,0.4*\L)++(\ang:\A) --++ (\ang+180:2*\A);
+  }
+  %\node[Ecol,above] at (45:\A) {$\vb{E}$};
+  \draw[thick] (0,0,0.4*\L) -- (0,0,\L);
+  \draw[->,very thick,vcol] (0,0,0.4*\L)++(60:1.1*\A) --++ (0,0,0.2*\L) node[right] {$\vb{v}$};
+  \node[scale=0.9,yslant=tan(-10)] at (0,-1.4*\A,0.4*\L) {$I_0$}; %,align=center
+  
+  % SECTION 2
+  \begin{scope}[shift={(0,0,\L)}]
+    \pic at (0,0) {plate={90}};
+    \draw[thick] (0,0,0) -- (0,0,\L/2);
+    \draw[<->,very thick,Ecol] (0,0,\L/2)++(90:\A) --++ (-90:2*\A); %-\dx
+    \draw[EWcol,samples=100,smooth,variable=\z,domain=0:\L]
+      plot(0,{\A*cos(\k*\z)},\z);
+    \foreach \i [evaluate={\z=\i*\L/\nvec; \c=int(\i!=\nvec/2);}] in {0,...,\nvec}{
+      \ifnum\c=1
+        \draw[Evec] (0,0,\z) --++ (90:{\A*cos(\k*\z)});
+      \fi
+    }
+    \draw[thick] (0,0,\L/2) -- (0,0,\L);
+    \node[scale=0.9,yslant=tan(-10)] at (0,-1.4*\A,0.4*\L) {$\dfrac{I_0}{2}$}; %, $90\degree$
+  \end{scope}
+  
+  % SECTION 3
+  \begin{scope}[shift={(0,0,2*\L)}]
+    \pic at (0,0) {plate={45}};
+    \draw[thick] (0,0,0) -- (0,0,\L/2);
+    \draw[<->,very thick,Ecol] (0,0,\L/2)++(45:{\A*cos(45)}) --++ (225:{2*\A*cos(45)}); %-\dx
+    \draw[thick] (0,0,\L/2) -- (0,0,\L);
+    \draw[Ecol!50!black!90,mydashed]
+      (90:\A) -- (45:{\A*cos(45)});
+    \draw[EWcol,samples=100,smooth,variable=\z,domain=0:\L]
+      plot({\A*cos(\k*\z)*cos(45)^2},{\A*cos(\k*\z)*cos(45)^2},\z);
+    \foreach \i [evaluate={\z=\i*\L/\nvec; \c=int(\i!=\nvec/2);}] in {0,...,\nvec}{
+      \ifnum\c=1
+        \draw[Evec] (0,0,\z) --++ (45:{\A*cos(\k*\z)*cos(45)});
+      \fi
+    }
+    \node[scale=0.9,yslant=tan(-10)] at (0,-1.4*\A,0.4*\L) {$\dfrac{I_0}{2}\cos^2(45\degree)$}; %, $45\degree$
+  \end{scope}
+  
+  % SECTION 4
+  \begin{scope}[shift={(0,0,3*\L)}]
+    \pic at (0,0) {plate={0}};
+    \draw[thick] (0,0,0) -- (0,0,\L/2);
+    \draw[Evec] (0,0,14*\L/\nvec) --++ (0:{\A*cos(\k*14*\L/\nvec)*cos(45)^2}); % put behind big arrow
+    \draw[<->,very thick,Ecol] (0,0,\L/2)++(0:{\A*cos(45)^2}) --++ (180:{2*\A*cos(45)^2}); %-\dx
+    \draw[->,thick] (0,0,\L/2) -- (0,0,1.05*\L);
+    \draw[Ecol!50!black!90,mydashed]
+      (45:{\A*cos(45)}) -- (0:{\A*cos(45)^2});
+    \draw[EWcol,samples=100,smooth,variable=\z,domain=0:0.93*\L]
+      plot({\A*cos(\k*\z)*cos(45)^2},0,\z);
+    \foreach \i [evaluate={
+        \z=\i*\L/\nvec;
+        \c=int(\i!=\nvec/2 && \i!=\nvec/2-1 && \i<\nvec-2);
+      }] in {0,...,\nvec}{
+      \ifnum\c=1
+        \draw[Evec] (0,0,\z) --++ (0:{\A*cos(\k*\z)*cos(45)^2});
+      \fi
+    }
+    \node[scale=0.9,yslant=tan(-10)] at (0,-1.4*\A,0.45*\L) {$\dfrac{I_0}{2}\cos^4(45\degree)$}; %, $0\degree$
+  \end{scope}
+  
+\end{tikzpicture}

@@ -1,0 +1,40 @@
+\tikzset{>=latex} % for LaTeX arrow head
+
+\colorlet{myred}{red!65!black}
+\colorlet{mygreen}{green!60!black}
+\colorlet{mydarkred}{red!50!black}
+\colorlet{mydarkblue}{blue!40!black}
+\tikzstyle{measure}=[{Latex[length=4,width=3]}-{Latex[length=4,width=3]},line width=0.4,mydarkblue]
+\tikzstyle{ground}=[preaction={fill,top color=black!10,bottom color=black!5,shading angle=20},
+                    fill,pattern=north east lines,draw=none,minimum width=0.3,minimum height=0.6]
+\tikzstyle{mass}=[line width=0.6,red!30!black,fill=red!40!black!10,rounded corners=1,
+                  top color=red!40!black!20,bottom color=red!40!black!10,shading angle=20]
+\tikzstyle{rope}=[brown!70!black,line width=1.2,line cap=round] %very thick
+\tikzstyle{force}=[->,myred,thick,line cap=round]
+\tikzstyle{unit}=[->,mygreen,thick,line cap=round]
+\tikzset{fieldlines/.style={mydarkred,decoration={markings,mark=at position #1 with {\arrow{latex}}},
+                            postaction={decorate},line width=0.7},
+         fieldlines/.default=0.55}
+\newcommand{\vbF}{\vb{F}}
+
+% GRAVITATIONAL ATTRACTION
+
+
+
+
+% GRAVITATIONAL FORCE FIELD on Earth's surface
+
+
+\begin{tikzpicture}
+  \def\W{2.4} % ground width
+  \def\D{0.2} % ground depth
+  \def\H{1.5} % height
+  \def\N{6}   % number of field lines
+  \draw[->] (1.02*\W,0.13*\H) --++ (0,0.35*\H) node[right=0.5,above=-1] {$z$};
+  \node[mydarkred,right=-2] at (\W,0.9*\H) {$\vb{g} = -g\vu{z}$};
+  \foreach \i [evaluate={\x=(\i-0.5)*\W/\N;}] in {1,...,\N}{
+    \draw[fieldlines] (\x,\H) -- (\x,0); % field lines
+  }
+  \draw[ground] (0,0) rectangle++ (\W,-\D);
+  \draw (0,0) -- (\W,0);
+\end{tikzpicture}

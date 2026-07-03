@@ -1,0 +1,63 @@
+\tikzset{>=latex} % for LaTeX arrow head
+\contourlength{1.6pt}
+\colorlet{Ecol}{orange!90!black}
+\colorlet{EcolFL}{orange!80!black}
+\colorlet{veccol}{green!45!black}
+\colorlet{EFcol}{red!60!black}
+\tikzstyle{EcolEP}=[blue!80!white]
+\tikzstyle{charged}=[top color=blue!30,bottom color=blue!50,shading angle=10]
+\tikzstyle{darkcharged}=[very thin,top color=blue!60,bottom color=blue!80,shading angle=10]
+\tikzstyle{charge+}=[very thin,top color=red!50,bottom color=red!90!black,shading angle=20]
+\tikzstyle{charge-}=[very thin,top color=blue!50,bottom color=blue!80,shading angle=20]
+\tikzstyle{gauss surf}=[blue!90!black,top color=blue!2,bottom color=blue!80!black!70,shading angle=5,fill opacity=0.1]
+\tikzstyle{gauss line}=[blue!90!black]
+\tikzstyle{vector}=[->,very thick,veccol]
+\tikzset{EFieldLine/.style={thick,EcolFL,decoration={markings,mark=at position #1 with {\arrow{latex}}},
+                                 postaction={decorate}},
+         EFieldLine/.default=0.5}
+\tikzstyle{measure}=[fill=white,midway,outer sep=2]
+\def\L{8}
+\def\W{0.25}
+\def\N{14}
+
+% E FIELD horizontal, positive charge
+
+
+
+
+% E FIELD vertical
+
+
+\begin{tikzpicture}
+  \def\R{0.2}
+  \def\M{5}
+  \def\xmax{5.0}
+  \def\ymax{3.5}
+  \coordinate (Q) at (-0.20*\xmax,0.80*\ymax);
+  \coordinate (M) at (+0.25*\xmax,0.77*\ymax);
+  \coordinate (F) at (+1.20*\xmax,0.15*\ymax);
+  
+  % ELECTRIC FIELD
+  \draw[->,thick] (0,0) -- (\xmax,0) node[below right=-2] {$x$};
+  \foreach \i [evaluate={\x=\i*\xmax/(\M+1);}] in {1,...,\M}{
+    \draw[EFieldLine] (\x,\ymax) -- (\x,0.04*\ymax);
+  }
+  \node[Ecol,right] at (0.88*\xmax,0.9*\ymax) {$\vb{E}$};
+  
+  % PATH
+  \draw[dashed] (Q) -- (0,0.80*\ymax) parabola (F);
+  
+  % VECTORS
+  \draw[vector]  (Q) ++ (\R,0) --++ (0.1*\xmax,0) node[above] {$\vb{v}_0$};
+  \draw[vector]  (M) --++ (\R+0.15*\xmax,-0.045*\ymax) node[above] {$\vb{v}$};
+  \draw[vector,EFcol] (M) --++ (0,-0.2*\ymax) node[below] {$\vb{F}$};
+  \draw[vector]  (F) --++ (\R+0.15*\xmax,0) node[above] {$\vb{v}_x = \vb{v}_0$};
+  \draw[vector]  (F) --++ (0,-0.19*\ymax) node[below] {$\vb{v}_y$};
+  \draw[vector]  (F) --++ (\R+0.15*\xmax,-0.19*\ymax) node[right] {$\vb{v}_\text{f}$};
+  
+  % CHARGE
+  \draw[charge+] (Q) circle (\R) node {$+$};
+  \draw[charge+] (M) circle (\R) node {$+$};
+  \draw[charge+] (F) circle (\R) node {$+$};
+  
+\end{tikzpicture}

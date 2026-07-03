@@ -80,6 +80,8 @@
 }
 
 % CHARGE IMAGE - SPHErE
+
+
 \begin{tikzpicture}
   \def\R{1.5}
   \def\L{4.0}
@@ -112,45 +114,5 @@
     node[pos=0.47,fill=white,inner sep=1] {$d$};
   \draw[<->] (Q')++(-0.07,0.12*\R) -- (0,0.12*\R)
     node[midway,fill=white,inner sep=1] {$a$};
-  
-\end{tikzpicture}
-
-
-% CHARGE IMAGE - fieldlines
-\begin{tikzpicture}
-  \def\xmax{3}
-  \def\ymax{2.0}
-  \def\a{1.25}
-  \def\q{-0.5}
-  \def\Q{+1}
-  \def\R{1.35} % sphere radius
-  \coordinate (O) at (-1.3*\a,0);
-
-  %\def\range{-0.4,-1.0,-1.6}
-  \def\range{-0.1,-0.4,-0.7,-1.0,-1.3,-1.6,-1.9}
-  \begin{scope}
-    \clip (-\xmax,-\ymax) rectangle (\xmax,\ymax) (O) circle(\R);
-    \EFieldLines
-  \end{scope}
-  \begin{scope} %[opacity=0.4]
-    \clip (O) circle(\R);
-    \EFieldLinesDashed
-  \end{scope}
-  \draw[charge-] (-\a,0) circle (0.15) node[black,scale=0.7] {$-$};
-  \draw[charge+] (+\a,0) circle (0.20) node[black,scale=0.7] {$+$};
-  \fill[white,opacity=0.6] (O) circle(\R);
-  
-  % SPHERE
-  \draw[black!40,line width=1.8] (O) circle(\R);
-  \draw[black!50,line cap=round]
-    (O)++(-135:\R) to[out=-150,in=90]++ (-115:0.20*\R) coordinate (G);
-  \foreach \i [evaluate={\y=(1-\i)*0.08; \w=0.5*(0.5-\i*0.12);}] in {1,2,3}{
-    \draw[black!50]
-      (G)++(-\w,\y) --++ (2*\w,0);
-  }
-  \foreach \ang in {8,30,60,105,150}{
-    \node[blue!80!black!80,scale=0.6] at ({\R*cos(\ang)-1.3*\a},{ \R*sin(\ang)}) {$\bm-$};
-    \node[blue!80!black!80,scale=0.6] at ({\R*cos(\ang)-1.3*\a},{-\R*sin(\ang)}) {$\bm-$};
-  }
   
 \end{tikzpicture}

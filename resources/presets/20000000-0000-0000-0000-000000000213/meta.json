@@ -1,0 +1,14 @@
+{
+  "id": "20000000-0000-0000-0000-000000000213",
+  "name": "滑块稳定性 - BLOCK - unstable",
+  "description": "斜面上滑块的稳定性分析。 (BLOCK - unstable)",
+  "category": "物理/力学",
+  "tags": [
+    "稳定性",
+    "斜面",
+    "摩擦"
+  ],
+  "templateId": "default_physics",
+  "packages": "physics,siunitx,[outline]contour",
+  "tikzLibraries": "calc,angles,quotes,arrows.meta,patterns"
+}

@@ -1,0 +1,85 @@
+\tikzset{>=latex} % for LaTeX arrow head
+\contourlength{1.2pt}
+
+\pgfmathdeclarefunction{gauss}{3}{%
+  \pgfmathparse{1/(#3*sqrt(2*pi))*exp(-((#1-#2)^2)/(2*#3^2))}%
+}
+\pgfmathdeclarefunction{cdf}{3}{%
+  \pgfmathparse{1/(1+exp(-0.07056*((#1-#2)/#3)^3 - 1.5976*(#1-#2)/#3))}%
+}
+\pgfmathdeclarefunction{fq}{3}{%
+  \pgfmathparse{1/(sqrt(2*pi*#1))*exp(-(sqrt(#1)-#2/#3)^2/2)}%
+}
+\pgfmathdeclarefunction{fq0}{1}{%
+  \pgfmathparse{1/(sqrt(2*pi*#1))*exp(-#1/2))}%
+}
+
+\colorlet{mydarkblue}{blue!30!black}
+
+\usepgfplotslibrary{fillbetween}
+\pgfplotsset{compat=1.12} % TikZ coordinates <-> axes coordinates
+
+
+\def\N{50}
+
+% GAUSSIANs: basic properties
+
+
+
+
+
+% GAUSSIANs: error bands
+
+
+\begin{tikzpicture}
+  \message{Error bands^^J}
+  
+  \def\B{10};
+  \def\Bs{3.0};
+  \def\xmax{\B+3.2*\Bs};
+  \def\ymin{{-0.15*gauss(\B,\B,\Bs)}};
+  
+  \begin{axis}[every axis plot post/.append style={
+               mark=none,domain={-0.05*(\xmax)}:{1.08*\xmax},samples=\N,smooth},
+               xmin={-0.1*(\xmax)}, xmax=\xmax,
+               ymin=\ymin, ymax={1.1*gauss(\B,\B,\Bs)},
+               axis lines=middle,
+               axis line style=thick,
+               enlargelimits=upper, % extend the axes a bit to the right and top
+               ticks=none,
+               xlabel=$-2\ln Q$, %q
+               every axis x label/.style={at={(current axis.right of origin)},anchor=north},
+               width=0.7*\textwidth, height=0.5*\textwidth,
+               y=700pt
+              ]
+    
+    % PLOTS
+    \addplot[blue, name path=B,thick] {gauss(x,\B,\Bs)};
+    \addplot[black,dashed,thick]
+      coordinates {({\B-2*\Bs}, {0.60*gauss(\B,\B,\Bs)}) ({\B-2*\Bs}, \ymin)};
+    \addplot[black,dashed,thick]
+      coordinates {({\B-1*\Bs}, {0.90*gauss(\B,\B,\Bs)}) ({\B-1*\Bs}, \ymin)};
+    \addplot[black,dashed,line width=0.7pt]
+      coordinates {(\B, {1.10*gauss(\B,\B,\Bs)}) (\B,\ymin)};
+    \addplot[black,dashed,thick]
+      coordinates {({\B+1*\Bs}, {0.90*gauss(\B,\B,\Bs)}) ({\B+1*\Bs}, \ymin)};
+    \addplot[black,dashed,thick]
+      coordinates {({\B+2*\Bs}, {0.60*gauss(\B,\B,\Bs)}) ({\B+2*\Bs}, \ymin)};
+    
+    \node[above=-2pt] at ({\B-1.5*\Bs},\ymin) {\small$-2\sigma$};
+    \node[above=-2pt] at ({\B-0.5*\Bs},\ymin) {\small$-1\sigma$};
+    \node[above=-2pt] at ({\B+0.5*\Bs},\ymin) {\small$+1\sigma$};
+    \node[above=-2pt] at ({\B+1.5*\Bs},\ymin) {\small$+2\sigma$};
+    
+    % FILL
+    \path[name path=xaxis]
+      (0,0) -- (\pgfkeysvalueof{/pgfplots/xmax},0); %\pgfkeysvalueof{/pgfplots/xmin}
+    \addplot[black!0!yellow] fill between[of=xaxis and B, soft clip={domain={\B-2*\Bs}:{\B+2*\Bs}}];
+    \addplot[black!10!green] fill between[of=xaxis and B, soft clip={domain={\B-1*\Bs}:{\B+1*\Bs}}];
+    
+    % LABELS
+    %\node[above=0pt, black!20!blue] at (\B,{1.05*gauss(\B,\B,\Bs)}) {$f(x|\text{b})$};
+    %\node[] at ($(\ymin,0)!0.5!(\ymin,0)$) {$+2\sigma$};
+    
+  \end{axis}
+\end{tikzpicture}

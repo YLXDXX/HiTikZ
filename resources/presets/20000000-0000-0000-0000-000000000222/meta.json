@@ -1,0 +1,14 @@
+{
+  "id": "20000000-0000-0000-0000-000000000222",
+  "name": "转动惯量 - MOMENT OF INERTIA - RING 2D",
+  "description": "常见几何体的转动惯量计算与对比。 (MOMENT OF INERTIA - RING 2D)",
+  "category": "物理/力学",
+  "tags": [
+    "转动惯量",
+    "刚体",
+    "旋转"
+  ],
+  "templateId": "default_physics",
+  "packages": "physics,[outline]contour",
+  "tikzLibraries": "calc,angles,quotes,arrows.meta,patterns"
+}

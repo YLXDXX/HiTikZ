@@ -1,0 +1,14 @@
+{
+  "id": "20000000-0000-0000-0000-000000000112",
+  "name": "引力动力学 - DROPPING A MASS",
+  "description": "引力作用下物体运动的动力学分析。 (DROPPING A MASS)",
+  "category": "物理/力学",
+  "tags": [
+    "引力",
+    "万有引力",
+    "轨道"
+  ],
+  "templateId": "default_physics",
+  "packages": "physics",
+  "tikzLibraries": "calc,patterns,arrows.meta,decorations.markings"
+}

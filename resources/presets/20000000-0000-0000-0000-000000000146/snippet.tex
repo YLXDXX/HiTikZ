@@ -1,0 +1,99 @@
+\tikzset{>=latex} % for LaTeX arrow head
+\colorlet{Ecol}{orange!90!black}
+\colorlet{EcolFL}{orange!90!black}
+\colorlet{veccol}{green!45!black}
+\colorlet{Bcol}{violet!90}
+\colorlet{Bcol1}{violet!80!blue!90}
+\colorlet{Bcol2}{violet!80!red!90}
+\colorlet{BFcol}{red!60!black}
+\colorlet{veccol}{green!45!black}
+\colorlet{Icol}{blue!70!black}
+\tikzstyle{BField}=[->,thick,Bcol]
+\tikzstyle{current}=[->,Icol,thick]
+\tikzstyle{force}=[->,thick,BFcol]
+\tikzstyle{vector}=[->,thick,veccol]
+\colorlet{pluscol}{red!60!black}
+\colorlet{minuscol}{blue!60!black}
+\tikzstyle{charge+}=[very thin,draw=black,top color=red!50,bottom color=red!90!black,shading angle=20,circle,inner sep=0.3]
+\tikzstyle{charge-}=[very thin,draw=black,top color=blue!50,bottom color=blue!80,shading angle=20,circle,inner sep=0.3]
+\tikzstyle{metal}=[top color=black!15,bottom color=black!25,middle color=black!20,shading angle=10]
+\tikzstyle{light metal}=[top color=black!10,bottom color=black!15,middle color=black!6,shading angle=10]
+\tikzset{
+  EFieldLine/.style={thick,EcolFL,decoration={markings,mark=at position #1 with {\arrow{latex}}},
+                     postaction={decorate}},
+  EFieldLine/.default=0.5,
+  BFieldLine/.style={thick,Bcol,decoration={markings,mark=at position #1 with {\arrow{latex}}},
+                                 postaction={decorate}},
+  BFieldLine/.default=0.5,
+  pics/Bin/.style={
+    code={
+      \def\R{0.12}
+      \draw[pic actions,line width=0.6,#1,fill=white] % ,thick
+        (0,0) circle (\R) (-135:.75*\R) -- (45:.75*\R) (-45:.75*\R) -- (135:.75*\R);
+  }},
+  pics/Bout/.style={
+    code={
+      \def\R{0.12}
+      \draw[pic actions,line width=0.6,#1,fill=white] (0,0) circle (\R);
+      \fill[pic actions,#1] (0,0) circle (0.3*\R);
+  }},
+  pics/Bin/.default=Bcol,
+  pics/Bout/.default=Bcol,
+  pics/magnet/.style={ %args={#1}
+    code={
+      \def\h{0.9}
+      \coordinate (-N) at (0,\h);
+      \coordinate (-S) at (0,-\h);
+      \draw[pic actions,thick,top color=red!60,bottom color=red!90,shading angle=20]
+        (-0.8*\h/2,0) rectangle ++(0.8*\h,\h);
+      \draw[pic actions,thick,top color=blue!60,bottom color=blue!90,shading angle=20]
+        (-0.8*\h/2,0) rectangle ++(0.8*\h,-\h);
+      \node[pic actions] at (0, \h/2) {\textbf{N}};
+      \node[pic actions] at (0,-\h/2) {\textbf{S}};
+  }},
+}
+\tikzstyle{measure}=[<->,fill=white,midway,outer sep=0]
+\contourlength{1.5pt}
+
+% FLUX-CHANGING LOOP
+
+
+
+
+% MAGNET FIELD through current loop - NS in
+\def\Rx{0.7}
+\def\Ry{1.14}
+\def\h{0.5}
+\def\H{3}
+\def\W{4}
+\def\NB{2}
+
+
+\begin{tikzpicture}
+  
+  % MAGNETIC FIELD bar magnet
+  \draw (0,\Ry) arc (90:270:{\Rx} and {\Ry});
+  \foreach \i [evaluate={\x=(0.3-0.1*\i)*\W; \y=(0.35*\H)*\i^2/\NB; \in=180+12*\i^2; \out=1*\i^2; \f=0.4+0.02*\i;}] in {1,...,\NB}{
+    \draw[BFieldLine=\f,Bcol1] (-1*\H, 0.45*\y/\H) to[out= \out,in= \in,looseness=0.8] (\x, \y);
+    \draw[BFieldLine=\f,Bcol1] (-1*\H,-0.45*\y/\H) to[out=-\out,in=-\in,looseness=0.8] (\x,-\y);
+  }
+  \pic[rotate=-90] (M) at (-0.95*\W,0) {magnet};
+  \node[Bcol1] at (0.15*\W,0.58*\H) {$\vb{B}$};
+  \draw[vector] (-0.74*\W,0) --++ (0.2*\W,0) node[right,scale=0.8] {$\vb{v}$};
+  
+  % INDUCED MAGNETIC FIELD
+  \foreach \i [evaluate={\x=(2.0-0.5*\i)*\Rx; \y=\Ry*(\i-0.5)/(\NB-0.25); \in=-10*\i^2; \out=180-\in; \f=0.57;}] in {1,...,\NB}{
+    \draw[BFieldLine=\f,Bcol2] (\x, \y) to[out= \out,in= \in,looseness=0.8] (-\x, \y);
+    \draw[BFieldLine=\f,Bcol2] (\x,-\y) to[out=-\out,in=-\in,looseness=0.8] (-\x,-\y);
+  }
+  \node[Bcol2] at (1.6*\Rx,-1.0*\Ry) {$\vb{B}_\text{ind}$};
+  
+  % CIRCUIT
+  \draw[white,very thick]
+        (0,\Ry) arc (90:-90:{\Rx} and {\Ry});
+  \draw (0,\Ry) arc (90:-90:{\Rx} and {\Ry});
+  \draw[current]
+    (-110:{1.1*\Rx} and {1.1*\Ry}) arc (-110:-55:{1.1*\Rx} and {1.1*\Ry})
+    node[midway,below right=-2] {$I_\text{ind}$};
+  
+\end{tikzpicture}

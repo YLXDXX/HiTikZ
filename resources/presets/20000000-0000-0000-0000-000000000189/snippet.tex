@@ -1,0 +1,84 @@
+\tikzset{>=latex} % for LaTeX arrow head
+\contourlength{1.8pt}
+
+\colorlet{Ecol}{orange!90!black}
+\colorlet{EcolFL}{orange!80!black}
+\colorlet{veccol}{green!45!black}
+\colorlet{EFcol}{red!60!black}
+\colorlet{pluscol}{red!60!black}
+\colorlet{minuscol}{blue!60!black}
+\colorlet{gausscol}{green!50!black!80}
+\tikzstyle{charged}=[top color=blue!20,bottom color=blue!40,shading angle=10]
+\tikzstyle{charge+}=[very thin,draw=black,top color=red!80,bottom color=red!80!black,shading angle=-5]
+\tikzstyle{charge-}=[very thin,draw=black,top color=blue!50,bottom color=blue!70!white!90!black,shading angle=10]
+\tikzstyle{darkcharged}=[very thin,top color=blue!60,bottom color=blue!80,shading angle=10]
+\tikzstyle{gauss surf}=[green!40!black,top color=green!2,bottom color=green!80!black!70,shading angle=5,fill opacity=0.6]
+\tikzstyle{gauss dark}=[green!40!black,fill=green!40!black!70,fill opacity=0.8]
+\tikzstyle{gauss line}=[green!40!black]
+\tikzstyle{gauss dashed line}=[green!60!black!80,dashed,line width=0.2]
+\tikzstyle{vector}=[->,thick,veccol]
+\tikzstyle{normalvec}=[->,thick,blue!80!black!80]
+\tikzstyle{EField}=[->,thick,Ecol]
+\tikzstyle{EField dashed}=[dashed,Ecol,line width=0.6]
+\tikzset{
+  EFieldLine/.style={thick,EcolFL,decoration={markings,
+                     mark=at position #1 with {\arrow{latex}}},
+                     postaction={decorate}},
+  EFieldLine/.default=0.5}
+\tikzstyle{metal}=[top color=black!5,bottom color=black!15,shading angle=30]
+\tikzstyle{measure}=[fill=green!70!black!8,midway,outer sep=0,inner sep=1]
+\def\L{2.2}
+\def\H{2.2}
+\def\W{0.30}
+\def\Nx{5}
+\def\Ny{5}
+
+% POINT CHARGE +1
+
+
+
+
+% CONDUCTOR gaussian surface on outside
+
+
+\begin{tikzpicture}
+  \def\NQ{13}
+  \def\NE{7}
+  \def\R{1.5}
+  \def\r{2.6}
+  \def\dtheta{50}
+  \def\angle{135}
+  \coordinate (P) at (\angle:0.83*\r);
+  
+  % SPHERE
+  \draw[gauss line,ball color=green!70!black,fill opacity=0.3]
+    (0,0) circle (\r);
+  \fill[white]
+    (0,0) circle (\R);
+  \draw[ball color=black!10,fill opacity=0.5]
+    (0,0) circle (\R);
+  \draw[<->,black,very thin]
+    (0,0) -- (-8:\R) node[midway,right=4,above=-1,black] {$R$};
+  \draw[vector]
+    (0,0) -- (P) node[midway,right=8,above=-3] {$\vb{r}$};
+  
+  % CHARGES
+  \foreach \i [evaluate={\ang=10+\i*360/\NQ;}] in {1,...,\NQ}{
+    \node[red!70!black,scale=0.9] at (\ang:0.9*\R) {$+$};
+  }
+  
+  % FIELD LINES
+  \foreach \i [evaluate={\ang=10+\i*360/\NE;}] in {1,...,\NE}{
+    \draw[EFieldLine=0.4] (\ang:\R) -- (\ang:1.2*\r);
+  }
+  
+  % GAUSS FRONT
+  \draw[gauss line,ball color=green!70!black,fill opacity=0.2]
+    (0,\r) arc (90:270:\r) arc (180+\dtheta:180-\dtheta:{\r/sin(\dtheta)});
+  
+  % AREA ELEMENT
+  \draw[gauss dark,rotate=40] (P) ++ (\angle:0.015*\r) ellipse (0.2 and 0.1);
+  \draw[->,normalvec] (P) ++ (\angle-70:0.03*\r) --++ (\angle:0.25*\r) node[right=1,above] {$\vu{n}$};
+  \draw[->,EField] (P) ++ (\angle+70:0.03*\r) --++ (\angle:0.5*\r) node[left=1,above] {$\vb{E}$};
+  
+\end{tikzpicture}

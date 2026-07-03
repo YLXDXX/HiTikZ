@@ -1,0 +1,102 @@
+\tikzset{>=latex} % for LaTeX arrow head
+
+\colorlet{myblue}{blue!80!black}
+\colorlet{mydarkblue}{blue!35!black}
+\colorlet{myred}{black!50!red}
+\colorlet{glasscol}{blue!10}
+\colorlet{Ecol}{orange!90!black}
+\tikzstyle{myarr}=[-{Latex[length=3,width=2]}]
+\tikzstyle{Evec}=[Ecol,{Latex[length=2.8,width=2.5]}-{Latex[length=2.8,width=2.5]},line width=0.6]
+\tikzstyle{glass}=[top color=glasscol!88!black,bottom color=glasscol,shading angle=0]
+\tikzset{
+  light beam/.style={thick,myblue,decoration={markings,
+                     mark=at position #1 with {\arrow{latex}}},
+                     postaction={decorate}},
+  light beam/.default=0.5}
+
+\newcommand\rightAngle[4]{
+  \pgfmathanglebetweenpoints{\pgfpointanchor{#2}{center}}{\pgfpointanchor{#3}{center}}
+  \coordinate (tmpRA) at ($(#2)+(\pgfmathresult+45:#4)$);
+  \draw[white,line width=0.6] ($(#2)!(tmpRA)!(#1)$) -- (tmpRA) -- ($(#2)!(tmpRA)!(#3)$);
+  \draw[blue!40!black] ($(#2)!(tmpRA)!(#1)$) -- (tmpRA) -- ($(#2)!(tmpRA)!(#3)$);
+}
+
+\def\p{0.03}
+\def\r{0.25}
+\tikzset{
+  wavefront/.pic={
+    \tikzset{/wavefront/.cd,#1}
+    \fill (0,0) circle (\p);
+    \draw (\wang:\r) arc(\wang:-\wang:\r);
+  }
+  /wavefront/.search also={/tikz},
+  /wavefront/.cd,
+  ang/.store in=\wang, ang={60},
+}
+
+% REFLECTION & REFRACTION
+
+
+
+
+% BREWSTER/POLARIZATION ANGLE
+
+
+\begin{tikzpicture}
+  \def\A{0.2}
+  \def\L{3.8}
+  \def\l{2.1}
+  \def\t{0.5}
+  \def\h{2.1}
+  \def\f{0.4}
+  \def\na{1.0} % air
+  \def\ng{1.5} % glass
+  \def\anga{56} % atan(1.5)*180/pi
+  \def\angg{asin(\na/\ng*sin(\anga))}
+  \def\N{5}
+  \coordinate (O) at (0,0);
+  \coordinate (I) at (90+\anga:\l);
+  \coordinate (M) at (90-\anga:\l);
+  \coordinate (F) at ({-90+\angg}:\l);
+  \coordinate (L) at (-\f*\L,0);
+  \coordinate (R) at ({(1-\f)*\L},0);
+  \coordinate (T) at (0,\h);
+  \coordinate (B) at (0,-1.0*\h);
+  \def\dot#1{
+    \fill[Ecol] (#1) circle (0.05);
+    \fill[Ecol!60!black] (#1) circle (0.007);
+    %\draw[Ecol!70!black,line width=0.05] (90+\anga:\t) circle (0.03);
+  }
+  
+  % MEDIUM
+  \fill[glass] (L) rectangle++ (\L,-\t);
+  \fill[glasscol] (-\f*\L,-0.99*\t) rectangle ({1-\f)*\L},-\h);
+  %\fill[glass] (L) rectangle (\L/2,-\h);
+  \node[above left=1] at (R) {$n_1$};
+  \node[below left=1] at (R) {$n_2>n_1$};
+  
+  % LINES
+  \draw[dashed] (T) -- (B);
+  \draw[light beam={0.48}] (I) -- (O);
+  \draw[light beam={0.65},line width=0.4] (O) -- (M);
+  \draw[light beam={0.46},line width=0.6] (O) -- (F);
+  
+  % ANGLES
+  \draw pic["$\theta_1$",draw=black,angle radius=16,angle eccentricity=1.45] {angle = T--O--I}; %\contour{white}{
+  \draw pic["$\theta_\mathrm{r}$",draw=black,angle radius=18,angle eccentricity=1.35] {angle = M--O--T};
+  \draw pic["$\theta_2$",draw=black,angle radius=19,angle eccentricity=1.35] {angle = B--O--F};
+  \rightAngle{M}{O}{F}{0.3}
+  
+  % VECTORS
+  \foreach \i [evaluate={\t=\i*\l/(\N+1);}] in {1,...,\N}{
+    \draw[Evec] (90+\anga:\t)++(\anga+180:\A) --++ (\anga:2*\A); % incident
+    \dot{90+\anga:\t} % incident
+    %\draw[Evec] (90-\anga:\t)++(180-\anga:\A) --++ (-\anga:2*\A); % reflected
+    %\dot{{-90+\angg}:\t} % refracted
+    \draw[Evec] ({-90+\angg}:\t)++({-180+\angg}:\A) --++ ({\angg}:2*\A); % reflected
+    \dot{{90-\anga}:\t} % refracted
+  }
+  \dot{{-90+\angg}:{\l*2/(\N+1)}} % refracted
+  \dot{{-90+\angg}:{\l*4/(\N+1)}} % refracted
+  
+\end{tikzpicture}

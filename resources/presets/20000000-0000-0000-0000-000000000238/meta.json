@@ -1,0 +1,14 @@
+{
+  "id": "20000000-0000-0000-0000-000000000238",
+  "name": "振子近似 - HARMONIC OSCILLATOR ENERGY",
+  "description": "简谐振子的小角度近似推导。 (HARMONIC OSCILLATOR ENERGY)",
+  "category": "物理/力学",
+  "tags": [
+    "简谐振动",
+    "小角度",
+    "近似"
+  ],
+  "templateId": "default_physics",
+  "packages": "amsmath,physics,siunitx,tikz,pgfplots,[outline]contour",
+  "tikzLibraries": "angles,quotes,arrows.meta,decorations.markings"
+}

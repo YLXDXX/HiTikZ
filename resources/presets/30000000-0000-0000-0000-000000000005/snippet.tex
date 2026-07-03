@@ -1,23 +1,26 @@
-\begin{circuitikz}
-	\draw
-	% Drawing a npn transistor
-	(0,0) node[npn](npn1){} 
-	% Making connections from transistor using relative coordinates
-	(npn1.E) node[right=7mm, above=5mm]{2N2222} % Labelling the transistor
-	(npn1.B) -- ++(-1,0) to [R,l_=10<\kilo\ohm>,*-*] ++(0,-3)  
-	(npn1.B) -- ++(-3,0) to [C,l_=100<\nano\farad>] ++(0,-3) node(gnd1){}
-	(npn1.E) to [R,l_=10<\kilo\ohm>,*-*] (0,-3)
-	(npn1.E) -- ++(2,0) to [C,l=10<\pico\farad>,*-*] (2,-3)
-	(npn1.B) -- ++(-1,0) to [R,l_=10<\kilo\ohm>,*-] ++(0,3) node(con1){}
-	(npn1.C) to [L,l_=150<\micro\henry>,*-] (0,3) 
-	(npn1.C) -- ++(2,0) to [C,l=10<\pico\farad>,*-*] ++(0,-1.5)
-	% Drawing shorts and ground connection
-	(-1,3)to[short,*-o] (-1,4) node[right]{$V_{DD}=6 VDC$} % Power supply
-	% Output sinusoidal waveform at approximately 50 MHz
-	(npn1.C) -- ++(4,0) to [short,-o]
-	  ++(0,0) node[right]{$V_o (\approx \SI{50}{\MHz})$}
-	(0,-3) node[ground]{}% Define this node as ground
-	(gnd1) ++(0,0) to[short,-o] ++(7.85,0)
-        (con1)to[short] ++(1.85,0)
-	;
-\end{circuitikz}
+\tikzset{>=latex} % for LaTeX arrow head
+\colorlet{Icol}{blue!50!black}
+\colorlet{Ccol}{orange!90!black}
+\colorlet{pluscol}{red!60!black}
+\colorlet{minuscol}{blue!60!black}
+\tikzstyle{thick C}=[C,thick,color=Ccol,Ccol,l=$C$]
+\tikzstyle{mybattery}=[battery1,l=$\Delta V$,invert]
+
+% CAPACITOR without battery
+
+
+
+
+% CAPACITOR with battery
+
+
+\begin{tikzpicture}
+  \draw (0,0) to[mybattery] (0,2) -- (3,2)
+              to[thick C] (3,0) -- (0,0);
+  \node at (-0.35,0.7) {$-$};
+  \node at (-0.35,1.4) {$+$};
+  \node at (3.3,0.65) {$-$};
+  \node at (3.3,1.45) {$+$};
+  \draw[->,Icol] (1.0,1.85) --++ (1,0)
+                 node[midway,left=1,below,scale=0.9] {$I$};
+\end{tikzpicture}

@@ -1,0 +1,14 @@
+{
+  "id": "10000000-0000-0000-0000-000000000047",
+  "name": "复数平面 - COMPLEX numbers",
+  "description": "复数平面（Argand图）的几何表示。 (COMPLEX numbers)",
+  "category": "数学/分析",
+  "tags": [
+    "复数",
+    "复平面",
+    "Argand图"
+  ],
+  "templateId": "default_math",
+  "packages": "physics,[outline]contour",
+  "tikzLibraries": "intersections,decorations.markings,angles,quotes,bending,3d"
+}

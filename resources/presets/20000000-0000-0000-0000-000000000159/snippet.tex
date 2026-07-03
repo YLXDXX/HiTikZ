@@ -1,0 +1,80 @@
+\tikzset{>=latex} % for LaTeX arrow head
+\colorlet{Bcol}{violet!90}
+\colorlet{BFcol}{red!60!black}
+\colorlet{veccol}{green!45!black}
+\colorlet{Icol}{blue!70!black}
+\tikzstyle{BField}=[->,thick,Bcol]
+\tikzstyle{current}=[->,Icol] %thick,
+\tikzstyle{force}=[->,thick,BFcol]
+\tikzstyle{vector}=[->,thick,veccol]
+\tikzstyle{velocity}=[->,very thick,vcol]
+\tikzstyle{charge+}=[very thin,draw=black,top color=red!50,bottom color=red!90!black,shading angle=20,circle,inner sep=0.5]
+\tikzstyle{charge-}=[very thin,draw=black,top color=blue!50,bottom color=blue!80,shading angle=20,circle,inner sep=0.5]
+\tikzstyle{metal}=[top color=black!15,bottom color=black!25,middle color=black!5,shading angle=10]
+\tikzset{
+  BFieldLine/.style={thick,Bcol,decoration={markings,mark=at position #1 with {\arrow{latex}}},
+                                 postaction={decorate}},
+  BFieldLine/.default=0.5,
+  pics/Bin/.style={
+    code={
+      \def\R{0.12}
+      \draw[pic actions,line width=0.6,#1] % ,thick
+        (0,0) circle (\R) (-135:.75*\R) -- (45:.75*\R) (-45:.75*\R) -- (135:.75*\R);
+  }},
+  pics/Bout/.style={
+    code={
+      \def\R{0.12}
+      \draw[pic actions,line width=0.6,#1,fill=white] (0,0) circle (\R);
+      \fill[pic actions,#1] (0,0) circle (0.3*\R);
+  }},
+  pics/Bin/.default=Bcol,
+  pics/Bout/.default=Bcol,
+}
+
+% CURRENT IN B FIELD
+
+
+
+
+% B FIELD with half circle 3D
+
+
+\begin{tikzpicture}[y={(0,1)},z={(0.9,-0.25)},x={(0.8,0.38)}]
+  \def\R{1.1}
+  \def\a{0.75*\R}
+  \def\L{2.2}
+  \def\NBx{3}
+  \def\NBy{2}
+  \coordinate (O) at (-0.7*\R,0,1.8*\L);
+  
+  % AXES
+  \draw[->,thick] (O) --++ (0.5*\R,0,0) node[scale=0.9,above right=-3] {$x$};
+  %\draw[->,thick] (O) --++ (0,0.5*\R,0) node[scale=0.9,above=-2] {$y$};
+  \draw[<->,thick] (O)++(0,0.5*\R,0) node[scale=0.9,above=-2] {$y$} --
+                   (O) --++ (0,0,0.5*\R) node[scale=0.9,right=-2] {$z$};
+  %\draw[dashed,very thin] (0,0) coordinate (O) -- (40:\R) coordinate (F);
+  
+  % CIRCUIT
+  \draw
+    (\R,0,\L) -- (\R,0,0) arc (0:180:\R) -- (-\R,0,\L);
+  \node[below=0,scale=0.7] at (\R,0,0.3*\L) {$1$};
+  \node[above=1,scale=0.7] at (110:\R) {$2$};
+  \node[above=0,scale=0.7] at (-\R,0,0.3*\L) {$3$};
+  
+  % B FIELD
+  \foreach \i [evaluate={\y=-0.2*\R+(\i-1)*(1.4*\R)/(\NBy-1);}] in {1,...,\NBy}{
+    \foreach \j [evaluate={\x=-1.3*\R+(\j-1)*(2.8*\R)/(\NBx-1);}] in {1,...,\NBx}{
+      \draw[white,line width=1.5] (\x,\y,-0.6*\L) -- (\x,\y,1.16*\L);
+      \draw[BFieldLine=0.6] (\x,\y,-0.55*\L) -- (\x,\y,1.16*\L);
+    }
+  }
+  \draw[white,line width=1] (\R,0,0) arc (0:90:\R) (-\R,0,0) arc (180:140:\R);
+  \draw                     (\R,0,0) arc (0:90:\R) (-\R,0,0) arc (180:140:\R);
+  \node[Bcol] at (1.4*\R,\R,1.2*\L) {$\vb{B}$};
+  
+  % CURRENT
+  \draw[current] (42:0.94*\R) arc (42:110:0.88*\R) node[right=4,below right=-4] {$I$};
+  \draw[current] ( 0.85*\R,0,0.95*\L) --++ (0,0,-0.45*\L) node[midway,left=1,below=-1] {$I$};
+  \draw[current] (-0.85*\R,0,0.45*\L) --++ (0,0,0.45*\L) node[midway,left=1,above=-1] {$I$};
+  
+\end{tikzpicture}

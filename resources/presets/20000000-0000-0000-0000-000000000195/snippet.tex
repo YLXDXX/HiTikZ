@@ -1,0 +1,86 @@
+\tikzset{>=latex} % for LaTeX arrow head
+\contourlength{1.4pt}
+
+\colorlet{Ecol}{orange!90!black}
+\colorlet{EcolFL}{orange!90!black}
+\colorlet{veccol}{green!45!black}
+\colorlet{EFcol}{red!60!black}
+\tikzstyle{charged}=[top color=blue!20,bottom color=blue!40,shading angle=10]
+\tikzstyle{darkcharged}=[very thin,top color=blue!60,bottom color=blue!80,shading angle=10]
+\tikzstyle{charge+}=[very thin,top color=red!80,bottom color=red!80!black,shading angle=-5]
+\tikzstyle{charge-}=[very thin,top color=blue!50,bottom color=blue!70!white!90!black,shading angle=10]
+\tikzstyle{darkcharged}=[very thin,top color=blue!60,bottom color=blue!80,shading angle=10]
+\tikzstyle{gauss surf}=[green!70!black,top color=green!2,bottom color=green!80!black!70,shading angle=5,fill opacity=0.6]
+\tikzstyle{gauss lid}=[gauss surf,middle color=green!80!black!20,shading angle=40,fill opacity=0.7]
+\tikzstyle{gauss dark}=[green!60!black,fill=green!60!black!70,fill opacity=0.8]
+\tikzstyle{gauss line}=[green!80!black]
+\tikzstyle{gauss dashed line}=[green!60!black!80,dashed,line width=0.2]
+\tikzstyle{vector}=[->,thick,veccol]
+\tikzstyle{normalvec}=[->,thick,blue!80!black!80]
+\tikzstyle{EField}=[->,thick,Ecol]
+\tikzstyle{EField dashed}=[dashed,Ecol,line width=0.6]
+\tikzset{
+  EFieldLine/.style={thick,EcolFL,decoration={markings,
+                     mark=at position #1 with {\arrow{latex}}},
+                     postaction={decorate}},
+  EFieldLine/.default=0.5}
+\tikzstyle{measure}=[fill=white,midway,outer sep=2]
+\def\L{2.2}
+\def\H{2.2}
+\def\offset{2.0}
+\def\W{0.30}
+\def\Nx{5}
+\def\Ny{5}
+
+% PLANE charge distribution
+
+
+
+
+% PLANE field with electric field
+
+
+\begin{tikzpicture}[x={(1.0cm,0)},y={(0.55cm,0.5cm)},z={(0,1.0cm)}]
+  \def\H{2.5}
+  \def\W{4.8}
+  \def\Ny{5}
+  \def\Nz{4}
+  \def\NEy{4}
+  \def\NEz{3}
+  \def\oEy{0.08*\W}
+  \def\oEz{0.04*\H}
+  \def\E{2}
+  \coordinate (O) at (0.0,-0.5,-0.5);
+  
+  % AXES
+  \draw[->,thick] (0.5,0,0) --++ (0.5*\H,0,0) node[right] {$x$};
+  %\draw[->,thick] (O) --++ (0.5*\H,0,0) node[right] {$x$};
+  %\draw[->,thick] (O) --++ (0,0.7*\H,0) node[right] {$y$};
+  %\draw[->,thick] (O) --++ (0,0,0.5*\H) node[above] {$z$};
+  
+  % ELECTRIC FIELD back
+  \foreach \i [evaluate={\y=\oEy+(\i-0.5)*(\W-2*\oEy)/\NEy;}] in {1,...,\NEy}{
+    \foreach \j [evaluate={\z=\oEz+(\j-0.5)*(\H-2*\oEz)/\NEz;}] in {1,...,\NEz}{
+      \draw[EFieldLine,very thick] (0,\y,\z) --++ (-\E,0,0);
+    }
+  }
+  
+  % PLANE
+  \draw[charged]
+    (0,0,0) --++ (0,\W,0) --++ (0,0,\H) --++ (0,-\W,0) -- cycle;
+  \foreach \i [evaluate={\y=(\i-0.5)*\W/\Ny;}] in {1,...,\Ny}{
+    \foreach \j [evaluate={\z=(\j-0.5)*\H/\Nz;}] in {1,...,\Nz}{
+      \node[scale=0.8,rotate=0] at (0,\y,\z) {$+$};
+    }
+  }
+  
+  % ELECTRIC FIELD front
+  \foreach \i [evaluate={\y=\oEy+(\i-0.5)*(\W-2*\oEy)/\NEy;}] in {1,...,\NEy}{
+    \foreach \j [evaluate={\z=\oEz+(\j-0.5)*(\H-2*\oEz)/\NEz;}] in {1,...,\NEz}{
+      \draw[EFieldLine,very thick] (0,\y,\z) --++ (\E,0,0);
+    }
+  }
+  \node[Ecol] at (1.3,0.88*\W,0.88*\H) {$\vb{E}$};
+  
+  
+\end{tikzpicture}

@@ -1,0 +1,59 @@
+\tikzset{>=latex} % for LaTeX arrow head
+\contourlength{0.8pt}
+
+\colorlet{xcol}{blue!70!black}
+\colorlet{myred}{red!65!black}
+\tikzstyle{rvec}=[->,xcol,very thick,line cap=round]
+\tikzstyle{mass line}=[line width=0.5,draw=red!30!black]
+\tikzstyle{myarr}=[-{Latex[length=3,width=2]},blue!40!black]
+\tikzstyle{myarr2}=[{Latex[length=3,width=2]}-{Latex[length=3,width=2]},blue!40!black]
+\tikzstyle{mass}=[mass line, %rounded corners=1,
+                  top color=red!40!black!30,bottom color=red!40!black!10,shading angle=30]
+\tikzstyle{middle mass}=[mass line,top color=red!40!black!50,bottom color=red!40!black!50,
+                         middle color=red!40!black!10,shading angle=30]
+
+\def\r{0.05} % pulley small radius
+\tikzset{
+  pics/rotarr/.style={
+    code={
+      \draw[white,line width=0.8] ({#1*cos(210)},0) arc(-210:35:{#1} and {0.35*#1});
+      \draw[-{>[flex'=1]}] ({#1*cos(210)},0) coordinate (W1) arc(-210:35:{#1} and {0.35*#1})
+        node[midway] (W2) {} --++ (150:0.1) coordinate (W3);
+  }},
+  pics/rotarr/.default=0.3,
+}
+
+\LARGE
+
+% MOMENT OF INERTIA - masses on rods
+\def\ang{-20} % angle of whole picture
+
+
+
+
+% MOMENT OF INERTIA - HOLLOW CYLINDER
+
+
+\begin{tikzpicture}[rotate=\ang]
+  \def\sx{0.68}
+  \def\sy{0.45}
+  \coordinate (O) at (0,\H);
+  \draw[line cap=round] (0,0) -- (0,-2.6*\Ry);
+  \draw[mass,shading angle=\ang-20]
+    (O) ellipse({\Rx} and \Ry);
+  \draw[middle mass,shading angle=90+\ang]
+    (-\Rx,0) --++ (0,\H) arc(-180:0:{\Rx} and {\Ry}) --++ (0,-\H) arc(0:-180:{\Rx} and {\Ry});
+  \draw[mass,even odd rule]
+    (O) ellipse({\Rx} and \Ry) ellipse({\sx*\Rx} and {\sy*\Ry});
+  \draw[line cap=round] (0,\H-\sy*\Ry+0.01) -- (0,\H+3.0*\Ry);
+  \draw[mass line] % hide round cap
+    (0,\H)++(-91:{\sx*\Rx} and {\sy*\Ry}) arc(-91:-89:{\sx*\Rx} and {\sy*\Ry});
+  \pic[xscale=1,rotate=\ang] at (0,\H+2.6*\Ry) {rotarr};
+  \node[right=0] at (W3) {$\omega$};
+  \draw[myarr] (O) --++ (-112:{\Rx} and {\Ry})
+    node[below=5,left=-7,scale=0.9,opacity=0.6] {\contour{white}{$R_1$}}
+    node[below=5,left=-7,scale=0.9] {$R_1$};
+  \draw[myarr] (O) --++ (0:{\sx*\Rx} and {\sy*\Ry})
+    node[above=2,right=-5,scale=0.9,opacity=0.6] {\contour{white}{$R_2$}}
+    node[above=2,right=-5,scale=0.9] {$R_2$};
+\end{tikzpicture}

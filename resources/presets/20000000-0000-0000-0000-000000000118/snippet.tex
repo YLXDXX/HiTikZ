@@ -1,0 +1,56 @@
+\tikzset{>=latex} % for LaTeX arrow head
+\contourlength{1.2pt}
+
+\colorlet{myred}{red!65!black}
+\tikzstyle{ground}=[preaction={fill,top color=black!10,bottom color=black!5,shading angle=20},
+                    fill,pattern=north east lines,draw=none,minimum width=0.3,minimum height=0.6]
+\tikzstyle{mass}=[line width=0.6,red!30!black,fill=red!40!black!10,rounded corners=1,
+                  top color=red!40!black!20,bottom color=red!40!black!10,shading angle=20]
+\tikzstyle{rope}=[brown!70!black,line width=1.2,line cap=round] %very thick
+
+\tikzstyle{force}=[->,myred,thick,line cap=round]
+\tikzstyle{Fproj}=[force,myred!40]
+\newcommand{\vbF}{\vb{F}}
+\newboolean{showforces}
+\setboolean{showforces}{true}
+
+% HORIZONTAL ground
+\def\h{0.7} % mass height
+\def\w{0.9} % mass width
+
+
+
+
+% INCLINED ground
+
+
+\begin{tikzpicture}
+  \def\W{3.5}  % ground width
+  \def\D{0.2}  % ground depth
+  \def\ang{30} % ground angle
+  \def\mx{2.5} % mass x position
+  \def\F{1.25} % force magnitude
+  \draw[thick,top color=blue!20!black!30,bottom color=white,shading angle=\ang+10]
+    (0,0) coordinate (O) -- (\ang:\W) coordinate (T) -- ({\W*cos(\ang)},0) coordinate (L) -- cycle;
+  \draw[very thick,white,line cap=round] (0.5*\W,0) --++ (0.15*\W,0) (L)++(0,0.08*\W) --++ (0,0.06*\W);
+  \draw[mass,rotate=\ang] (\mx-\w/2,0) rectangle++ (\w,\h) node[midway,rotate=\ang] {$m$};
+  \draw pic["$\theta$",draw=black,angle radius=22,angle eccentricity=1.3] {angle=L--O--T};
+  
+  % FORCES
+  \ifthenelse{\boolean{showforces}}{
+    \coordinate (F0) at ($(\ang:\mx-0.1*\w)+(\ang+90:0.2*\h)$);
+    \coordinate (F)  at ($(F0)+(-90:\F)$);
+    \coordinate (Fx) at ($(F0)+(\ang-180:{\F*sin(\ang)})$);
+    \coordinate (Fy) at ($(F0)+(\ang-90:{\F*cos(\ang)})$);
+    \draw[<->,rotate=\ang] (0.25*\W,0.38*\W) node[below=0,left=0] {$x$}
+      -|++ (0.7*\h,0.7*\h) node[above left=-3] {$y$};
+    \draw[force] (\ang:\mx-0.3*\w)++(\ang+90:0.4*\h) --++ (\ang+90:{\F*cos(\ang)}) node[above] {$\vbF_\mathrm{N}$};
+    \draw[force] (\ang:\mx+0.4*\w)++(\ang+90:0.2*\h) --++ (\ang:{\F*sin(\ang)}) node[above=-2] {$\vbF_\mathrm{f}$};
+    \draw[dashed,myred!80!black!60] (Fx) -- (F) -- (Fy);
+    \draw[Fproj] (F0) -- (Fx) node[left=-2]  {$mg\sin\theta$}; %\vu{x}
+    \draw[Fproj] (F0) -- (Fy) node[right=-2] {$-mg\cos\theta$}; %\vu{y}
+    \draw[force] (F0) -- (F)  node[below=-2] {$m\vb{g}$};
+    \draw pic["$\theta$",draw=black,angle radius=12,angle eccentricity=1.5] {angle=F--F0--Fy};
+  }{}
+  
+\end{tikzpicture}

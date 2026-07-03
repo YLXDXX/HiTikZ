@@ -1,0 +1,13 @@
+{
+  "id": "30000000-0000-0000-0000-000000000008",
+  "name": "电容电路 - CAPACITORS in series",
+  "description": "电容器的串并联电路分析。 (CAPACITORS in series)",
+  "category": "电路",
+  "tags": [
+    "电容器",
+    "串并联",
+    "等效电容"
+  ],
+  "templateId": "default_math",
+  "packages": "physics,tikz,pgfplots,[siunitx]circuitikz"
+}

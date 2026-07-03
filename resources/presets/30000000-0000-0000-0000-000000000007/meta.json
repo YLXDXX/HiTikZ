@@ -1,0 +1,13 @@
+{
+  "id": "30000000-0000-0000-0000-000000000007",
+  "name": "电容电路 - POLARIZED CAPACITOR with battery",
+  "description": "电容器的串并联电路分析。 (POLARIZED CAPACITOR with battery)",
+  "category": "电路",
+  "tags": [
+    "电容器",
+    "串并联",
+    "等效电容"
+  ],
+  "templateId": "default_math",
+  "packages": "physics,tikz,pgfplots,[siunitx]circuitikz"
+}

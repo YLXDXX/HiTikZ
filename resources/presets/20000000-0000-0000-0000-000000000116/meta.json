@@ -1,0 +1,14 @@
+{
+  "id": "20000000-0000-0000-0000-000000000116",
+  "name": "摩擦力 - HORIZONTAL ground - lift",
+  "description": "摩擦力分析，包括静摩擦与滑动摩擦。 (HORIZONTAL ground - lift)",
+  "category": "物理/力学",
+  "tags": [
+    "摩擦力",
+    "静摩擦",
+    "动摩擦"
+  ],
+  "templateId": "default_physics",
+  "packages": "physics,ifthen,[outline]contour",
+  "tikzLibraries": "calc,angles,quotes,patterns"
+}

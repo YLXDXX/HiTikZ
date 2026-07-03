@@ -1,0 +1,14 @@
+{
+  "id": "20000000-0000-0000-0000-000000000218",
+  "name": "扭矩 - CENTER OF MASS 1D",
+  "description": "扭矩（力矩）的物理概念与杠杆原理。 (CENTER OF MASS 1D)",
+  "category": "物理/力学",
+  "tags": [
+    "扭矩",
+    "力矩",
+    "杠杆"
+  ],
+  "templateId": "default_physics",
+  "packages": "physics,[outline]contour",
+  "tikzLibraries": "calc,angles,quotes"
+}

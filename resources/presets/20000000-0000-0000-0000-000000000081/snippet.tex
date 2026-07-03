@@ -1,0 +1,59 @@
+\contourlength{0.4pt}
+
+\colorlet{xcol}{blue!70!black}
+\colorlet{darkblue}{blue!40!black}
+\colorlet{myred}{red!65!black}
+\tikzstyle{mydashed}=[xcol,dashed,line width=0.25,dash pattern=on 2.2pt off 2.2pt]
+\tikzstyle{axis}=[->,thick] %line width=0.6
+\tikzstyle{ell}=[{Latex[length=3.3,width=2.2]}-{Latex[length=3.3,width=2.2]},line width=0.3]
+\tikzstyle{dx}=[-{Latex[length=3.3,width=2.2]},darkblue,line width=0.3]
+\tikzstyle{ground}=[preaction={fill,top color=black!10,bottom color=black!5,shading angle=20},
+                    fill,pattern=north east lines,draw=none,minimum width=0.3,minimum height=0.6]
+\tikzstyle{mass}=[line width=0.6,red!30!black,fill=red!40!black!10,rounded corners=1,
+                  top color=red!40!black!20,bottom color=red!40!black!10,shading angle=20]
+\tikzstyle{spring}=[line width=0.8,blue!7!black!80,snake=coil,segment amplitude=5,segment length=5,line cap=round]
+\tikzset{>=latex} % for LaTeX arrow head
+\tikzstyle{force}=[->,myred,very thick,line cap=round]
+\def\tick#1#2{\draw[thick] (#1)++(#2:0.1) --++ (#2-180:0.2)}
+
+% HORIZONTAL spring
+
+
+
+
+% HORIZONTAL double spring - lengths
+
+
+\begin{tikzpicture}
+  \def\H{1.2}      % wall height
+  \def\T{0.3}      % wall thickness
+  \def\W{4.2}      % ground length
+  \def\D{0.25}     % ground depth
+  \def\h{0.6}      % mass height
+  \def\w{0.8}      % mass width
+  \def\x{2.2}      % mass x position
+  \pgfmathsetmacro\dx{\x+(\w-\W)/2} % extension
+  \pgfmathsetmacro\lz{\x-\dx} % rest length (ell_0)
+  \def\ly{0.87*\H} % ell_0 y position
+  \def\y{1.19*\H}  % x axis y position
+  
+  % AXIS
+  \draw[mydashed] (\x,0) --++ (0,1.14*\y) (\x+\w,0) --++ (0,1.14*\y);
+  \draw[axis] (0.15*\W,\y) --++ (0.7*\W,0) node[right=-2] {$x$};
+  \tick{\lz+\w/2,\y}{-90} node[scale=0.8,above=-1] {$0$};
+  \draw[ell] (0,\ly) --++ (\lz,0) node[midway,fill=white,inner sep=0] {$\ell_0$};
+  \draw[ell] (\W,\ly) --++ (\lz+\w-\W,0) node[pos=0.45,fill=white,inner sep=0] {$\ell_0$};
+  \draw[dx] (\lz,1.06*\ly) --++ (\dx,0) node[pos=0.45,above=-2] {$x$};
+  \draw[dx] (\lz+\w,1.06*\ly) --++ (\dx,0) node[pos=0.45,above=-2] {$x$};
+  
+  % SPRINGS & MASS
+  \draw[spring,segment length=7.0] (0,\h/2) --++ (\x,0) node[pos=0.42,above=3] {$k_1$};
+  \draw[spring,segment length=2.9] (\W,\h/2) --++ (\x+\w-\W,0) node[pos=0.5,above=3] {$k_2$};
+  \draw[ground] (0,0) |-++ (-\T,\H) |-++ (2*\T+\W,-\H-\D) |-++
+                (-\T,\H+\D) --++ (0,-\H) -- cycle;
+  \draw (0,\H) -- (0,0) -- (\W,0) --++ (0,\H);
+  \draw[mass] (\x,0) rectangle++ (\w,\h) node[midway] {$m$};
+  \draw[force] (\x+0.07*\w,0.9*\h) --++ (-0.15*\W,0) node[left=0,above=-1] {\contour{white}{$-k_1x$}};
+  \draw[force] (\x+0.93*\w,0.9*\h) --++ (-0.15*\W,0) node[pos=0.47,above=-1] {\contour{white}{$-k_2x$}};
+  
+\end{tikzpicture}

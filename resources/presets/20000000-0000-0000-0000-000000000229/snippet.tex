@@ -1,0 +1,45 @@
+\tikzset{>=latex} % for LaTeX arrow head
+\contourlength{0.8pt}
+
+\colorlet{xcol}{blue!70!black}
+\colorlet{myred}{red!65!black}
+\tikzstyle{rvec}=[->,xcol,very thick,line cap=round]
+\tikzstyle{mass line}=[line width=0.5,draw=red!30!black]
+\tikzstyle{myarr}=[-{Latex[length=3,width=2]},blue!40!black]
+\tikzstyle{myarr2}=[{Latex[length=3,width=2]}-{Latex[length=3,width=2]},blue!40!black]
+\tikzstyle{mass}=[mass line, %rounded corners=1,
+                  top color=red!40!black!30,bottom color=red!40!black!10,shading angle=30]
+\tikzstyle{middle mass}=[mass line,top color=red!40!black!50,bottom color=red!40!black!50,
+                         middle color=red!40!black!10,shading angle=30]
+
+\def\r{0.05} % pulley small radius
+\tikzset{
+  pics/rotarr/.style={
+    code={
+      \draw[white,line width=0.8] ({#1*cos(210)},0) arc(-210:35:{#1} and {0.35*#1});
+      \draw[-{>[flex'=1]}] ({#1*cos(210)},0) coordinate (W1) arc(-210:35:{#1} and {0.35*#1})
+        node[midway] (W2) {} --++ (150:0.1) coordinate (W3);
+  }},
+  pics/rotarr/.default=0.3,
+}
+
+\LARGE
+
+% MOMENT OF INERTIA - masses on rods
+\def\ang{-20} % angle of whole picture
+
+
+
+
+% MOMENT OF INERTIA - ROD (axis through end)
+
+
+\begin{tikzpicture}[rotate=\ang]
+  \rod
+  \draw[line cap=round] (\L/2,-0.8*\h) --++ (0,2*\h);
+  \pic[xscale=1,rotate=\ang] at (\L/2,0.7*\h) {rotarr};
+  \node[right=0] at (W3) {$\omega$};
+  \draw[white,line width=0.7] (BL)++(0,-1.8*\Ry) --++ (\L,0);
+  \draw[myarr2] (BL)++(0,-1.8*\Ry) --++ (\L,0)
+    node[midway,below=-1,scale=0.9] {$L$};
+\end{tikzpicture}

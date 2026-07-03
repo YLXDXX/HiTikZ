@@ -1,0 +1,49 @@
+\contourlength{0.4pt}
+
+\colorlet{xcol}{blue!70!black}
+\colorlet{darkblue}{blue!40!black}
+\colorlet{myred}{red!65!black}
+\tikzstyle{mydashed}=[xcol,dashed,line width=0.25,dash pattern=on 2.2pt off 2.2pt]
+\tikzstyle{axis}=[->,thick] %line width=0.6
+\tikzstyle{ell}=[{Latex[length=3.3,width=2.2]}-{Latex[length=3.3,width=2.2]},line width=0.3]
+\tikzstyle{dx}=[-{Latex[length=3.3,width=2.2]},darkblue,line width=0.3]
+\tikzstyle{ground}=[preaction={fill,top color=black!10,bottom color=black!5,shading angle=20},
+                    fill,pattern=north east lines,draw=none,minimum width=0.3,minimum height=0.6]
+\tikzstyle{mass}=[line width=0.6,red!30!black,fill=red!40!black!10,rounded corners=1,
+                  top color=red!40!black!20,bottom color=red!40!black!10,shading angle=20]
+\tikzstyle{spring}=[line width=0.8,blue!7!black!80,snake=coil,segment amplitude=5,segment length=5,line cap=round]
+\tikzset{>=latex} % for LaTeX arrow head
+\tikzstyle{force}=[->,myred,very thick,line cap=round]
+\def\tick#1#2{\draw[thick] (#1)++(#2:0.1) --++ (#2-180:0.2)}
+
+% HORIZONTAL spring
+
+
+
+
+% HORIZONTAL spring - axis, rest position
+
+
+\begin{tikzpicture}
+  \def\H{1.1}  % wall height
+  \def\T{0.3}  % wall thickness
+  \def\W{3.7}  % ground length
+  \def\D{0.25} % ground depth
+  \def\h{0.7}  % mass height
+  \def\w{0.8}  % mass width
+  \def\x{2.0}  % mass x position
+  \def\y{1.22*\H} % x axis y position
+  
+  % AXIS
+  \draw[mydashed] (\x,0.9*\h) --++ (0,\y-0.9*\h);
+  \draw[axis] (\x-0.4*\W,\y) -- (\x+0.4*\W,\y) node[right] {$x$};
+  \tick{\x,\y}{-90} node[scale=0.8,above=-1] {$0$};
+  \draw[ell] (0,1.3*\h) --++ (\x,0) node[midway,fill=white,inner sep=0] {$\ell_0$};
+  
+  % SPRING & MASS
+  \draw[spring] (0,\h/2) --++ (\x,0);
+  \draw[ground] (0,0) |-++ (-\T,\H) |-++ (\T+\W,-\H-\D) -- (\W,0) -- cycle;
+  \draw (0,\H) -- (0,0) -- (\W,0);
+  \draw[mass] (\x,0) rectangle++ (\w,\h) node[midway] {$m$};
+  
+\end{tikzpicture}

@@ -1,0 +1,14 @@
+{
+  "id": "20000000-0000-0000-0000-000000000231",
+  "name": "转动惯量（简化） - MOMENT OF INERTIA - HOLLOW DISK",
+  "description": "转动惯量的简化计算图示。 (MOMENT OF INERTIA - HOLLOW DISK)",
+  "category": "物理/力学",
+  "tags": [
+    "转动惯量",
+    "简化",
+    "旋转"
+  ],
+  "templateId": "default_physics",
+  "packages": "physics,[outline]contour",
+  "tikzLibraries": "calc,angles,quotes,arrows.meta,patterns,bending"
+}

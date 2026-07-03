@@ -1,0 +1,13 @@
+{
+  "id": "20000000-0000-0000-0000-000000000087",
+  "name": "电磁波 - Electromagnetic wave - colored",
+  "description": "电磁波的电场E与磁场B垂直传播示意图。 (Electromagnetic wave - colored)",
+  "category": "物理/电磁学",
+  "tags": [
+    "电磁波",
+    "麦克斯韦",
+    "传播"
+  ],
+  "templateId": "default_physics",
+  "packages": "amsmath,physics"
+}

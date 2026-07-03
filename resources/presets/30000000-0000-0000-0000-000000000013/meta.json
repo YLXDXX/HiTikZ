@@ -1,0 +1,14 @@
+{
+  "id": "30000000-0000-0000-0000-000000000013",
+  "name": "交流电路波形 - AC circuit C",
+  "description": "交流电路中电压、电流的相位关系波形图。 (AC circuit C)",
+  "category": "电路",
+  "tags": [
+    "交流电路",
+    "相位",
+    "波形"
+  ],
+  "templateId": "default_math",
+  "packages": "physics,siunitx,tikz,pgfplots,[outline]contour",
+  "tikzLibraries": "angles,quotes,arrows.meta,decorations.markings"
+}

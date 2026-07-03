@@ -1,0 +1,65 @@
+\tikzset{>=latex} % for LaTeX arrow head
+\contourlength{1.6pt}
+\colorlet{Bcol}{violet!90}
+\colorlet{BFcol}{red!60!black}
+\colorlet{veccol}{green!45!black}
+\colorlet{Icol}{blue!70!black}
+\tikzstyle{BField}=[->,very thick,Bcol]
+\tikzstyle{current}=[->,Icol] %thick,
+\tikzstyle{force}=[->,very thick,BFcol]
+\tikzstyle{velocity}=[->,very thick,vcol]
+\tikzstyle{charge+}=[very thin,draw=black,top color=red!50,bottom color=red!90!black,shading angle=20,circle,inner sep=0.5]
+\tikzstyle{charge-}=[very thin,draw=black,top color=blue!50,bottom color=blue!80,shading angle=20,circle,inner sep=0.5]
+\tikzstyle{vector}=[->,thick,veccol]
+\tikzset{
+  BFieldLine/.style={thick,Bcol,decoration={markings,mark=at position #1 with {\arrow{latex}}},
+                     postaction={decorate}},
+  BFieldLine/.default=0.5,
+  pics/Bin/.style={
+    code={
+      \def\R{0.12}
+      \draw[pic actions,Bcol,line width=0.6] % ,thick
+        (0,0) circle (\R) (-135:.7*\R) -- (45:.7*\R) (-45:.7*\R) -- (135:.7*\R);
+  }},
+}
+
+% B FIELD horizontal, zero velocity
+
+
+
+
+% B FIELD horizontal, velocity along
+
+
+\begin{tikzpicture}[x={(1,0)},y={(0,1)},z={(0.8,0.3)}]
+  \def\R{0.2}
+  \def\v{0.13*\xmax}
+  \def\A{0.24*\ymax}
+  \def\k{300}
+  \def\NB{4}
+  \def\xmax{6.0}
+  \def\ymax{3.3}
+  \coordinate (O) at (-0.13*\xmax,0.05*\ymax);
+  \coordinate (Q) at (0.17*\xmax,0.72*\ymax);
+  
+  \draw[->,thick] (O) --++ (30:0.15*\ymax)node[above right=-2,scale=0.8] {$y$};
+  \draw[<->,thick] (O)++(0.15*\ymax,0) node[right,scale=0.8] {$x$} -- (O) --++ (0,0.15*\ymax) node[above,scale=0.8] {$z$};
+  
+  % MAGNETIC FIELD
+  \foreach \i [evaluate={\y=(\i-0.5)*\ymax/\NB;}] in {1,...,\NB}{
+    \draw[BFieldLine] (0,\y) -- (\xmax,\y);
+  }
+  \node[Bcol,left] at (-0.01*\xmax,0.88*\ymax) {$\vb{B}$};
+  
+  %\draw[->] (O) --++ (0,0,1);
+  %\draw[->] (O) --++ (0,1,0);
+  %\draw[->] (O) --++ (1,0,0);
+  
+  % CHARGE
+  \draw[dashed,samples=120,smooth,variable=\x,domain=0:\xmax]
+    plot(\x,{\ymax/2+\A*cos(\k*\x)},{\A*sin(\k*\x)});
+  \draw[force] (Q) ++ (-70:\R) --++ (-70:0.7*\v) node[right=0,fill=white,inner sep=1] {$\vb{F}$};
+  \draw[vector] (Q) ++ (17:\R) --++ (17:\v) node[right=0] {$\vb{v}_0$}; %,fill=white,inner sep=1
+  \draw[charge+] (Q) circle (\R) node {$+$};
+  
+\end{tikzpicture}

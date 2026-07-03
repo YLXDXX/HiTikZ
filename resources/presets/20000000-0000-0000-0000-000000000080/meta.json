@@ -1,0 +1,14 @@
+{
+  "id": "20000000-0000-0000-0000-000000000080",
+  "name": "弹簧 - HORIZONTAL double spring",
+  "description": "弹簧振子的胡克定律与简谐运动。 (HORIZONTAL double spring)",
+  "category": "物理/力学",
+  "tags": [
+    "弹簧",
+    "胡克定律",
+    "弹性"
+  ],
+  "templateId": "default_physics",
+  "packages": "physics,[outline]contour",
+  "tikzLibraries": "patterns,snakes,arrows.meta"
+}

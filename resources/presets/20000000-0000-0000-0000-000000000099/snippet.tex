@@ -1,0 +1,81 @@
+\tikzset{>=latex} % for LaTeX arrow head
+
+\colorlet{xcol}{blue!85!black}
+\colorlet{vcol}{green!60!black}
+\colorlet{myred}{red!65!black}
+\tikzstyle{vvec}=[->,vcol,thick,line cap=round]
+\tikzstyle{ground}=[preaction={fill,top color=black!10,bottom color=black!5,shading angle=20},
+                    fill,pattern=north east lines,draw=none,minimum width=0.3,minimum height=0.6]
+\tikzstyle{metal}=[fill,top color=black!40,bottom color=black!20,shading angle=10]
+\tikzstyle{mass}=[line width=0.6,red!30!black,fill=red!40!black!10,rounded corners=1,
+                  top color=red!40!black!20,bottom color=red!40!black!10,shading angle=20]
+\tikzstyle{pulcol}=[draw=blue!30!black,%fill=blue!40!black!10
+                    top color=blue!40!black!20,bottom color=blue!40!black!10,shading angle=20]
+\tikzstyle{rope}=[brown!70!black,very thick,line cap=round]
+\def\rope#1{ \draw[black,line width=1.5] #1; \draw[rope] #1; }
+\tikzstyle{mount}=[blue!20!black,fill,top color=blue!20!black!70,bottom color=blue!20!black!40,shading angle=10] %,line width=1.8,line cap=round
+\tikzstyle{spring}=[line width=0.8,black!80,snake=coil,segment amplitude=5,segment length=5,line cap=round]
+\pgfdeclarelayer{back} % to draw on background
+\pgfsetlayers{back,main} % set order
+
+\tikzstyle{force}=[->,myred,thick,line cap=round]
+\newcommand{\vbF}{\vb{F}}
+\newcommand{\vbT}{\vb{T}}
+\newboolean{showforces}
+\setboolean{showforces}{true}
+
+\newcommand\rightAngle[4]{
+  \pgfmathanglebetweenpoints{\pgfpointanchor{#2}{center}}{\pgfpointanchor{#3}{center}}
+  \coordinate (tmpRA) at ($(#2)+(\pgfmathresult+45:#4)$);
+  \draw[blue!40!black] ($(#2)!(tmpRA)!(#1)$) -- (tmpRA) -- ($(#2)!(tmpRA)!(#3)$);
+}
+
+\def\r{0.05} % pulley small radius
+\tikzset{
+  pics/pulley/.style={
+    code={
+      \draw[pulcol,line width=0.6] (0,0) circle (#1);
+      \draw[pulcol,thick] (0,0) circle (\r);
+  }},
+  pics/mount/.style args={#1:#2}{ % angle, length
+    code={
+      \draw[mount] (0,0)++(#1-90:0.9*\r) arc (#1-90:#1-270:0.9*\r) --++ (#1:#2) --++ (#1-90:1.8*\r) -- cycle;
+  }},
+  pics/weight/.style args={#1,#2,#3}{ % bottom width, top width, height
+    code={
+      \draw[mass] (0,0) -- (#2/2,0) -- (#1/2,-0.7*#3)
+        |- (-#1/2,-#3) -- (-#1/2,-0.7*#3) -- (-#2/2,0) -- cycle;
+      \path[mass] (0,0) -- (0,-#3) node[pos=0.52] {$m$};
+  }},
+  pics/pulley/.default=0.3,
+}
+
+% TABLE + pulley
+\def\h{0.6}  % mass height
+\def\w{0.8}  % mass width
+\def\R{0.3}  % pulley radius
+
+
+
+
+% TABLE double
+
+
+\begin{tikzpicture}
+  \def\W{2.4}  % ground width
+  \def\D{0.3}  % ground depth
+  \def\L{0.7}  % rope length
+  \def\pr{0.6*\W+\R} % pulley x position
+  \def\pl{-0.6*\W-\R} % pulley x position
+  \draw[ground] (-\W/2,0) rectangle++ (\W,-\D);
+  \draw (-\W/2,-\D) --++ (0,+\D) --++ (\W,0) --++ (0,-\D);
+  \rope{
+    (0,\h/2) -- (\pr,\h/2) arc (90:0:\R) --++ (0,-\L) coordinate (TR)
+    (0,\h/2) -- (\pl,\h/2) arc (90:180:\R) --++ (0,-\L) coordinate (TL)}
+  \pic at (\pl,\h/2-\R) {pulley};
+  \pic at (\pr,\h/2-\R) {pulley};
+  \draw[mass]
+    (-\w/2,0) rectangle++ (\w,\h) node[midway] {$m$}
+    (TL)++(-\w/2,0) rectangle++ (\w,-\h) node[midway] {$m$}
+    (TR)++(-\w/2,0) rectangle++ (\w,-\h) node[midway] {$m$};
+\end{tikzpicture}

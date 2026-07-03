@@ -1,0 +1,73 @@
+\contourlength{1.4pt}
+
+\newcommand{\calI}{\mathscr{I}} %\mathcal
+\tikzset{>=latex} % for LaTeX arrow head
+\colorlet{myred}{red!80!black}
+\colorlet{myblue}{blue!80!black}
+\colorlet{mygreen}{green!80!black}
+\colorlet{mydarkred}{red!50!black}
+\colorlet{mydarkblue}{blue!50!black}
+\colorlet{mylightblue}{mydarkblue!6}
+\colorlet{mypurple}{blue!40!red!80!black}
+\colorlet{mydarkpurple}{blue!40!red!50!black}
+\colorlet{mylightpurple}{mydarkpurple!80!red!6}
+\colorlet{myorange}{orange!40!yellow!95!black}
+\tikzstyle{cone}=[mydarkblue,line width=0.2,top color=blue!60!black!30,
+                  bottom color=blue!60!black!50!red!30,shading angle=60,fill opacity=0.9]
+\tikzstyle{cone back}=[mydarkblue,line width=0.1,dash pattern=on 1pt off 1pt]
+\tikzstyle{world line}=[myblue!60,line width=0.4]
+\tikzstyle{world line t}=[mypurple!60,line width=0.4]
+\tikzstyle{particle}=[mygreen,line width=0.5]
+\tikzstyle{photon}=[-{Latex[length=4,width=3]},myorange,line width=0.4,decorate,
+                    decoration={snake,amplitude=0.9,segment length=4,post length=3.8}]
+\tikzstyle{singularity}=[myred,line width=0.6,decorate,
+                         decoration={zigzag,amplitude=2,segment length=6.17}]
+\tikzset{declare function={%
+  penrose(\x,\c)  = {\fpeval{2/pi*atan( (sqrt((1+tan(\x)^2)^2+4*\c*\c*tan(\x)^2)-1-tan(\x)^2) /(2*\c*tan(\x)^2) )}};%
+  penroseu(\x,\t) = {\fpeval{atan(\x+\t)/pi+atan(\x-\t)/pi}};%
+  penrosev(\x,\t) = {\fpeval{atan(\x+\t)/pi-atan(\x-\t)/pi}};%
+  kruskal(\x,\c)  = {\fpeval{asin( \c*sin(2*\x) )*2/pi}};% Penrose coordinates for Kruskal
+}}
+\def\tick#1#2{\draw[thick] (#1) ++ (#2:0.04) --++ (#2-180:0.08)}
+\def\Nsamples{20} % number samples in plot
+
+\def\R{0.08} % size lightcone
+\def\e{0.08} % vertical scale
+\def\ang{45} % angle light cone
+\def\angb{acos(sqrt(\e)*sin(\ang))} % angle ellipse center to point of tangency
+\def\a{\R*sin(\ang)*sqrt(1-\e*sin(\ang)^2)/(1-\e*sin(\ang)^2)} % vertical radius
+\def\b{\R*sqrt(\e)*sin(\ang)*cos(\ang)/(1-\e*sin(\ang)^2)} % horizontal radius
+\def\coneback#1{ % light cone part to be drawn behind world lines
+  \draw[cone back] % dashed line back
+    (#1)++(-45:\R) arc({90-\angb}:{90+\angb}:{\a} and {\b});
+  \draw[cone,shading angle=-60] % top edge & inside
+    (#1)++(0,{\R*cos(\ang)/(1-\e*sin(\ang)^2)}) ellipse({\a} and {\b});
+}
+\def\conefront#1{ % light cone part to be drawn over world lines
+  \draw[cone] % light cone outside
+    (#1) --++ (45:\R) arc({\angb-90}:{-90-\angb}:{\a} and {\b})
+     --++ (-45:2*\R) arc({90-\angb}:{-270+\angb}:{\a} and {\b}) -- cycle;
+}
+
+% PENROSE DIAGRAM of Minkowski space - 45 rotation
+
+
+
+
+% PENROSE COORDINATES for Minkowski spacetime
+
+
+\begin{tikzpicture}[scale=1]
+  \def\tu{\tan^2u} % shorthand
+  \def\tv{\tan^2v} % shorthand
+  \node[align=left] at (0,0)
+    {Penrose coordinates for Minkowski spacetime\\[2mm]$
+    \left\{\begin{aligned}
+      r + t = \tan(u+v) \\
+      r - t = \tan(u-v) \\
+    \end{aligned}\right.$\\[2mm]$
+    \Rightarrow\begin{cases}
+      \tan v = \dfrac{\sqrt{(1+\tu)^2+4r^2\tu}-(1+\tu)}{2r\tu} & \text{for constant $r$} \\[5mm]
+      \tan u = \dfrac{\sqrt{(1+\tv)^2+4t^2\tv}-(1+\tv)}{2t\tv} & \text{for constant $t$}
+    \end{cases}$};
+\end{tikzpicture}

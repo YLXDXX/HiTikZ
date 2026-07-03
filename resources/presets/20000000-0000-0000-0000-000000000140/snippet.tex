@@ -1,0 +1,81 @@
+\tikzset{>=latex} % for LaTeX arrow head
+
+\newcommand\degree{^\circ}
+\colorlet{crystal}{blue!75}
+\colorlet{vcol}{green!50!black}
+\colorlet{Ecol}{orange!90!black}
+\colorlet{EWcol}{orange!80!black}
+\colorlet{EVcol}{orange!80!black!60}
+\def\zangle{-20}
+\def\xangle{20}
+\tikzstyle{platecol}=[blue!80!black!40,opacity=0.8]
+\tikzstyle{platetopcol}=[blue!90!black!50,opacity=0.8]
+\tikzstyle{platesidEcol}=[blue!70!black!50,opacity=0.8]
+\tikzstyle{mydashed}=[dash pattern=on 1.2 off 0.7,line width=0.3]
+\tikzstyle{Evec}=[EVcol,-{Stealth[length=1.8,width=1.2]},line width=0.2]
+
+\newcommand\rightAngle[4]{
+  \pgfmathanglebetweenpoints{\pgfpointanchor{#2}{center}}{\pgfpointanchor{#3}{center}}
+  \coordinate (tmpRA) at ($(#2)+(\pgfmathresult+45:#4)$);
+  \draw[white,line width=0.6] ($(#2)!(tmpRA)!(#1)$) -- (tmpRA) -- ($(#2)!(tmpRA)!(#3)$);
+  \draw[blue!40!black] ($(#2)!(tmpRA)!(#1)$) -- (tmpRA) -- ($(#2)!(tmpRA)!(#3)$);
+}
+
+\def\W{3.5}  % width polarizer
+\def\w{0.05} % width slit
+\def\l{2.9}  % length slit
+\def\t{0.05}
+\def\N{7}    % number of slits
+\tikzset{
+  plate/.pic={
+    \ifnumless{45}{#1}{
+      \def\topang{#1}
+    }{
+      \def\topang{#1+90}
+    }
+    \fill[platetopcol]
+      (\topang:\W/2)++(\topang-90:\W/2) --++ (0,0,-\t) --++ (\topang+90:\W) --++ (0,0,\t) -- cycle;
+    \fill[platesidEcol]
+      (\topang+90:\W/2)++(\topang:\W/2) --++ (0,0,-\t) --++ (\topang+180:\W) --++ (0,0,\t) -- cycle;
+    \fill[platecol]
+      (#1:\W/2)++(#1-90:\W/2) --++ (#1-180:\W) --++ (#1+90:\W) --++ (#1:\W) -- cycle
+      \foreach \i [evaluate={\x=-\W/2+\i*\W/(\N+1);}] in {1,...,\N}{
+        (#1:\l/2)++(#1+90:\x+\w/2) --++ (#1-180:\l) --++ (#1-90:\w) --++ (#1:\l) -- cycle
+      };
+  }
+}
+
+% POLARIZATION: 90, theta
+
+
+
+
+
+% POLARIZER projection
+
+
+\begin{tikzpicture}
+  \def\W{2.5}  % width polarizer
+  \def\w{0.05} % width slit
+  \def\l{2.3}  % length slit
+  \def\N{7}    % number of slits
+  \def\A{1.5}  % amplitude/size E vector
+  \def\ang{45} % angle polarizer
+  \coordinate (O) at (0,0);
+  \coordinate (E0) at (90:\A);
+  \coordinate (E) at (45:{\A*cos(45)});
+  
+  \fill[blue!80!black!15,shift={(45:0.11*\W)}]
+    (\ang:\W/2)++(\ang-90:\W/2) --++ (\ang-180:\W) --++ (\ang+90:\W) --++ (\ang:\W) -- cycle
+    \foreach \i [evaluate={\x=-\W/2+\i*\W/(\N+1);}] in {1,...,\N}{
+      (\ang:\l/2)++(\ang+90:\x+\w/2) --++ (\ang-180:\l) --++ (\ang-90:\w) --++ (\ang:\l) -- cycle
+    };
+  
+  \draw[Ecol!50!black!90,dashed] (-135:0.75*\A) -- (45:1.2*\A) coordinate (T);
+  \draw[Ecol!50!black!90,dashed] (90:\A) -- (45:{\A*cos(45)});
+  \rightAngle{O}{E}{E0}{0.38}
+  \draw[->,Ecol,very thick] (0,0) -- (E0) node[midway,left] {$E_0$};
+  \draw[->,Ecol,very thick] (0,0) -- (E) node[midway,below right=-2] {$E_0 \cos\theta$}; %45\degree
+  \draw pic[<-,"$\theta$"{anchor=-85},draw=black,angle radius=16,angle eccentricity=1] {angle = E--O--E0};
+  
+\end{tikzpicture}

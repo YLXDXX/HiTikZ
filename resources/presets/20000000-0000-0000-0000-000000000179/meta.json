@@ -1,0 +1,14 @@
+{
+  "id": "20000000-0000-0000-0000-000000000179",
+  "name": "电场 - E FIELD horizontal, work",
+  "description": "电场的基本概念、场强与电场线。 (E FIELD horizontal, work)",
+  "category": "物理/电磁学",
+  "tags": [
+    "电场",
+    "库仑定律",
+    "电场强度"
+  ],
+  "templateId": "default_physics",
+  "packages": "amsmath,mathabx,bm,physics,tikz,pgfplots,[outline]contour",
+  "tikzLibraries": "angles,quotes,calc,decorations.markings"
+}

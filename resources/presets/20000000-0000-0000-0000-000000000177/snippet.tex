@@ -1,0 +1,57 @@
+\tikzset{>=latex} % for LaTeX arrow head
+\contourlength{1.6pt}
+\colorlet{Ecol}{orange!90!black}
+\colorlet{EcolFL}{orange!80!black}
+\colorlet{veccol}{green!45!black}
+\colorlet{EFcol}{red!60!black}
+\tikzstyle{EcolEP}=[blue!80!white]
+\tikzstyle{charged}=[top color=blue!30,bottom color=blue!50,shading angle=10]
+\tikzstyle{darkcharged}=[very thin,top color=blue!60,bottom color=blue!80,shading angle=10]
+\tikzstyle{charge+}=[very thin,top color=red!50,bottom color=red!90!black,shading angle=20]
+\tikzstyle{charge-}=[very thin,top color=blue!50,bottom color=blue!80,shading angle=20]
+\tikzstyle{gauss surf}=[blue!90!black,top color=blue!2,bottom color=blue!80!black!70,shading angle=5,fill opacity=0.1]
+\tikzstyle{gauss line}=[blue!90!black]
+\tikzstyle{vector}=[->,very thick,veccol]
+\tikzset{EFieldLine/.style={thick,EcolFL,decoration={markings,mark=at position #1 with {\arrow{latex}}},
+                                 postaction={decorate}},
+         EFieldLine/.default=0.5}
+\tikzstyle{measure}=[fill=white,midway,outer sep=2]
+\def\L{8}
+\def\W{0.25}
+\def\N{14}
+
+% E FIELD horizontal, positive charge
+
+
+
+
+% G FIELD vertical - potential
+
+
+\begin{tikzpicture}
+  
+  \coordinate (P) at (0.50*\xmax,0.81*\ymax);
+  \coordinate (A) at (0.23*\xmax,0.81*\ymax);
+  \coordinate (B) at (0.23*\xmax,0.26*\ymax);
+  
+  % ELECTRIC FIELD
+  \foreach \i [evaluate={\x=(\i-0.8)*\xmax/(\NE-0.6);}] in {1,...,\NE}{
+    \draw[EFieldLine] (\x,\ymax) -- (\x,0);
+  }
+  \node[Ecol] at (1.02*\xmax,0.65*\ymax) {$\vb{g}$};
+  
+  % EARTH
+  \draw[brown!40!black!90,thick] (0,0) -- (\xmax,0);
+  \fill[top color=green!50!black!80,bottom color=white,shading angle=0] (0,0) rectangle ++(\xmax,-0.20*\ymax);
+  \node[brown!40!black] at (0.5*\xmax,-0.11*\ymax) {Earth, $M_\Earth$};
+  
+  % CHARGE
+  \draw[vector,EFcol] (P) --++ (0,-0.3*\ymax) node[below] {$\vb{F} = m\vb{g}$}; %{\contour{white}{$\vb{F} = q\vb{E}$}};
+  \draw[charge+] (P) circle (\R) node[scale=0.9] {$m$};
+  
+  % AXIS
+  \draw[thin] (A) --++ (\a,0) --++ (-2*\a,0) node[left] {$a$};
+  \draw[thin] (B) --++ (\a,0) --++ (-2*\a,0) node[left] {$b$};
+  \draw[->] (A) -- (B) node[midway] {\contour{white}{$h$}};
+  
+\end{tikzpicture}

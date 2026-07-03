@@ -1,0 +1,69 @@
+\tikzset{>=latex} % for LaTeX arrow head
+\contourlength{1.6pt}
+\colorlet{Ecol}{orange!90!black}
+\colorlet{EcolFL}{orange!80!black}
+\colorlet{veccol}{green!45!black}
+\colorlet{EFcol}{red!60!black}
+\tikzstyle{EcolEP}=[blue!80!white]
+\tikzstyle{charged}=[top color=blue!30,bottom color=blue!50,shading angle=10]
+\tikzstyle{darkcharged}=[very thin,top color=blue!60,bottom color=blue!80,shading angle=10]
+\tikzstyle{charge+}=[very thin,top color=red!50,bottom color=red!90!black,shading angle=20]
+\tikzstyle{charge-}=[very thin,top color=blue!50,bottom color=blue!80,shading angle=20]
+\tikzstyle{gauss surf}=[blue!90!black,top color=blue!2,bottom color=blue!80!black!70,shading angle=5,fill opacity=0.1]
+\tikzstyle{gauss line}=[blue!90!black]
+\tikzstyle{vector}=[->,very thick,veccol]
+\tikzset{EFieldLine/.style={thick,EcolFL,decoration={markings,mark=at position #1 with {\arrow{latex}}},
+                                 postaction={decorate}},
+         EFieldLine/.default=0.5}
+\tikzstyle{measure}=[fill=white,midway,outer sep=2]
+\def\L{8}
+\def\W{0.25}
+\def\N{14}
+
+% E FIELD horizontal, positive charge
+
+
+
+
+% PATH INTEGRATION
+
+
+\begin{tikzpicture}
+  \def\N{5}
+  \def\R{2.2}
+  \def\E{6.8}
+  \def\r{0.85}
+  \node[circle,fill=black,inner sep=1,outer sep=0] (O) at (0,0) {};
+  \node[circle,fill=black,inner sep=1,outer sep=0] (A) at (80:1.6*\R) {};
+  \coordinate (B) at (10:1.86*\R) {};
+  \node[circle,fill=black,inner sep=1,outer sep=0] (C) at (-8:1.6*\R) {};
+  \coordinate (P) at (35:1.7*\R);
+  \coordinate (L) at ($(P)+(-37:0.30*\R)$);
+  \coordinate (E) at ($(P)+(12:0.5*\R)$);
+  
+  % FIELD LINES
+  \begin{scope}[shift={(0.90*\R,0.6*\R)}]
+    \foreach \i [evaluate={
+        \y=0.8*(\i-0.7-\N/2);
+        \ang=6*(\i-\N/2);    \r=2.8*\R-0.14*(\i-\N/2)^2;
+        \out=0.8*(\i-\N/2);  \in=180+10*(\i-\N/2);
+      }] in {1,...,\N}{
+      \draw[EFieldLine={0.4}] (-1.4*\R,\y) to[out=\out,in=\in]++ (\ang:\r);
+    }
+  \end{scope}
+  
+  % PATH
+  %\draw[->] (O) -- (A) node[midway,fill=white,inner sep=1] {$r_a$} node[above left=-2] {$a$};
+  %\draw[->] (O) -- (C) node[midway,fill=white,inner sep=1] {$r_b$} node[left=2,below right=-1] {$b$};
+  \node[below=2,above left=0] at (A) {$a$};
+  \node[left=1,below left=-2] at (C) {$b$};
+  \draw[thin,dashed] (A) to[out=-5,in=145] (P) to[out=-35,in=80] (B) to[out=-100,in=40] (C);
+  \node[charged,draw=black,circle,inner sep=1,black,scale=0.8] (Q) at (P) {$q$};
+  \draw[vector] (O) -- (Q) node[midway,right=9,below=-6] {$\vb{r}$};
+  \draw pic[->,"$\theta$",draw=black,angle radius=13,angle eccentricity=1.4] {angle = L--Q--E};
+  \draw[vector] (Q.-35) -- (L) node[left=2,below left=-2,scale=0.9] {$\dd{\bm{\ell}}$};
+  \draw[vector,Ecol] (Q) -- (E) node[right=-2] {$\vb{E}$};
+  \node[above=2,below left=-1] at (O) {$O$};
+  %\draw (0,0) -- (B);
+  
+\end{tikzpicture}

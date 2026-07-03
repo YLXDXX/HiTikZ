@@ -1,0 +1,37 @@
+\tikzset{>=latex} % for LaTeX arrow head
+\contourlength{1.6pt}
+\colorlet{Ecol}{orange!90!black}
+\colorlet{EcolFL}{orange!80!black}
+\colorlet{veccol}{green!45!black}
+\colorlet{EFcol}{red!60!black}
+\tikzstyle{EcolEP}=[blue!80!white]
+\tikzstyle{charged}=[top color=blue!30,bottom color=blue!50,shading angle=10]
+\tikzstyle{darkcharged}=[very thin,top color=blue!60,bottom color=blue!80,shading angle=10]
+\tikzstyle{charge+}=[very thin,top color=red!50,bottom color=red!90!black,shading angle=20]
+\tikzstyle{charge-}=[very thin,top color=blue!50,bottom color=blue!80,shading angle=20]
+\tikzstyle{gauss surf}=[blue!90!black,top color=blue!2,bottom color=blue!80!black!70,shading angle=5,fill opacity=0.1]
+\tikzstyle{gauss line}=[blue!90!black]
+\tikzstyle{vector}=[->,very thick,veccol]
+\tikzset{EFieldLine/.style={thick,EcolFL,decoration={markings,mark=at position #1 with {\arrow{latex}}},
+                                 postaction={decorate}},
+         EFieldLine/.default=0.5}
+\tikzstyle{measure}=[fill=white,midway,outer sep=2]
+\def\L{8}
+\def\W{0.25}
+\def\N{14}
+
+% E FIELD horizontal, positive charge
+
+
+\begin{tikzpicture} % q<0, E.dl<0
+  \coordinate (P) at ( 0.80*\xmax,0.65*\ymax);
+  \coordinate (A) at ( 0.80*\xmax,0.4*\ymax);
+  \coordinate (B) at ( 0.20*\xmax,0.4*\ymax);
+  \draw[EFieldLine] (0,0) --++ (\xmax,0);
+  \draw[EFieldLine] (0,\ymax) --++ (\xmax,0) node[Ecol,above=1,right=2] {$\vb{E}$};
+  \draw[vector,EFcol] (P) --++ (-0.24*\xmax,0) node[left] {$\vb{F}$};
+  \draw[charge-] (P) circle (\R) node {$-$};
+  \draw[thin] (A) --++ (0,\a) --++ (0,-2*\a) node[below] {$a$};
+  \draw[thin] (B) --++ (0,\a) --++ (0,-2*\a) node[below=-2] {$b$};
+  \draw[vector] (A) -- (B) node[midway,below=-1] {$\bm{\Delta\ell}$};
+\end{tikzpicture}

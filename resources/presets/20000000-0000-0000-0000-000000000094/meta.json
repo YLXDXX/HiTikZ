@@ -1,0 +1,14 @@
+{
+  "id": "20000000-0000-0000-0000-000000000094",
+  "name": "简谐振子 - ENERGY vs. x",
+  "description": "简谐振子的运动方程与能量分析。 (ENERGY vs. x)",
+  "category": "物理/力学",
+  "tags": [
+    "简谐振子",
+    "回复力",
+    "周期"
+  ],
+  "templateId": "default_physics",
+  "packages": "amsmath,physics,siunitx,tikz,pgfplots,[outline]contour",
+  "tikzLibraries": "angles,quotes,arrows.meta,decorations.markings,bending"
+}
