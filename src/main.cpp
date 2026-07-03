@@ -13,7 +13,6 @@ int main(int argc, char *argv[]) {
     app.setApplicationVersion("1.0");
 
     MainWindow window;
-    window.resize(1400, 800);
     window.show();
     return app.exec();
 }

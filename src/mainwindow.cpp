@@ -48,6 +48,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QSaveFile>
+#include <QScreen>
 #include <QtConcurrent>
 #include <QThreadPool>
 
@@ -89,6 +90,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     refreshCategoryTree();
     refreshSearch();
 
+    restoreWindowGeometry();
+
     trayIcon = new QSystemTrayIcon(this);
     trayIcon->setIcon(QIcon::fromTheme("applications-graphics"));
     trayIcon->setToolTip(QStringLiteral("HiTikZ - TikZ 代码管理器"));
@@ -100,12 +103,16 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     QAction *quitAct = trayMenu->addAction(QStringLiteral("退出"));
 
     connect(showAct, &QAction::triggered, this, [this]() {
+        restoreWindowGeometry();
         show();
         raise();
         activateWindow();
         searchPanel->setFocus();
     });
-    connect(hideAct, &QAction::triggered, this, &QMainWindow::hide);
+    connect(hideAct, &QAction::triggered, this, [this]() {
+        saveWindowGeometry();
+        hide();
+    });
     connect(quitAct, &QAction::triggered, this, [this]() {
         m_forceQuit = true;
         close();
@@ -113,8 +120,10 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     connect(trayIcon, &QSystemTrayIcon::activated, this, [this](QSystemTrayIcon::ActivationReason reason) {
         if (reason == QSystemTrayIcon::DoubleClick || reason == QSystemTrayIcon::Trigger) {
             if (isVisible() && !isMinimized()) {
+                saveWindowGeometry();
                 hide();
             } else {
+                restoreWindowGeometry();
                 show();
                 raise();
                 activateWindow();
@@ -135,6 +144,44 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     QTimer::singleShot(300, this, [this]() {
         recoverDrafts();
     });
+}
+
+void MainWindow::centerOnScreen()
+{
+    QScreen *screen = QGuiApplication::primaryScreen();
+    if (!screen) return;
+
+    QRect screenGeometry = screen->availableGeometry();
+
+    int w = qMin(width(), screenGeometry.width() - 20);
+    int h = qMin(height(), screenGeometry.height() - 20);
+    if (w != width() || h != height())
+        resize(w, h);
+
+    int x = screenGeometry.x() + (screenGeometry.width() - w) / 2;
+    int y = screenGeometry.y() + (screenGeometry.height() - h) / 2;
+
+    move(x, y);
+}
+
+void MainWindow::saveWindowGeometry()
+{
+    QSettings settings("HiTikZ", "TikzManager");
+    settings.setValue("window/geometry", saveGeometry());
+    settings.setValue("window/state", saveState());
+}
+
+void MainWindow::restoreWindowGeometry()
+{
+    QSettings settings("HiTikZ", "TikzManager");
+    QByteArray geometry = settings.value("window/geometry").toByteArray();
+    if (!geometry.isEmpty()) {
+        restoreGeometry(geometry);
+        restoreState(settings.value("window/state").toByteArray());
+    } else {
+        resize(1400, 800);
+        centerOnScreen();
+    }
 }
 
 MainWindow::~MainWindow()
@@ -344,6 +391,7 @@ void MainWindow::onTabCloseRequested(int index)
 void MainWindow::closeEvent(QCloseEvent *event)
 {
     if (trayIcon && trayIcon->isVisible() && !m_forceQuit) {
+        saveWindowGeometry();
         hide();
         event->ignore();
         return;
@@ -420,6 +468,7 @@ void MainWindow::closeEvent(QCloseEvent *event)
     }
 
     clearAllDrafts();
+    saveWindowGeometry();
 
     if (trayIcon)
         trayIcon->hide();
@@ -2165,8 +2214,16 @@ void MainWindow::applyGlobalHotkey()
 
     connect(ks, &KdeGlobalShortcut::activated, this, [this](const QString &id) {
         if (id == "toggle_window") {
-            if (isVisible() && !isMinimized()) hide();
-            else { show(); raise(); activateWindow(); searchPanel->setFocus(); }
+            if (isVisible() && !isMinimized()) {
+                saveWindowGeometry();
+                hide();
+            } else {
+                restoreWindowGeometry();
+                show();
+                raise();
+                activateWindow();
+                searchPanel->setFocus();
+            }
         }
     });
     ks->registerShortcut("toggle_window", QStringLiteral("显示/隐藏窗口"), keyStr);
@@ -2187,8 +2244,16 @@ void MainWindow::applyGlobalHotkey()
     globalHotkey = new QHotkey(ks, true, this);
     if (globalHotkey->isRegistered()) {
         connect(globalHotkey, &QHotkey::activated, this, [this]() {
-            if (isVisible() && !isMinimized()) hide();
-            else { show(); raise(); activateWindow(); searchPanel->setFocus(); }
+            if (isVisible() && !isMinimized()) {
+                saveWindowGeometry();
+                hide();
+            } else {
+                restoreWindowGeometry();
+                show();
+                raise();
+                activateWindow();
+                searchPanel->setFocus();
+            }
         });
     }
 #endif

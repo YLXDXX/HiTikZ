@@ -88,6 +88,9 @@ private:
     void recoverDrafts();
     void clearDraft();
     void clearAllDrafts();
+    void centerOnScreen();
+    void saveWindowGeometry();
+    void restoreWindowGeometry();
 
     QString snippetDataPath(const QString &id) const;
 
