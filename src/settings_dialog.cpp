@@ -23,8 +23,8 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     : QDialog(parent)
 {
     setWindowTitle(QStringLiteral("设置"));
-    setMinimumSize(750, 800);
-    resize(800, 900);
+    setMinimumSize(750, 900);
+    resize(800, 1000);
 
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
 

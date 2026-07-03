@@ -1,6 +1,6 @@
 {
   "id": "20000000-0000-0000-0000-000000000118",
-  "name": "摩擦力 - INCLINED ground",
+  "name": "摩擦力 - 倾斜地面",
   "description": "摩擦力分析，包括静摩擦与滑动摩擦。 (INCLINED ground)",
   "category": "物理/力学",
   "tags": [

@@ -1,6 +1,6 @@
 {
   "id": "20000000-0000-0000-0000-000000000210",
-  "name": "镜像电荷（球体） - CHARGE IMAGE - fieldlines",
+  "name": "镜像电荷（球体） - 电场线",
   "description": "接地导体球前点电荷的镜像法（method of images）。 (CHARGE IMAGE - fieldlines)",
   "category": "物理/电磁学",
   "tags": [

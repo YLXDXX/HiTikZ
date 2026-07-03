@@ -1,6 +1,6 @@
 {
   "id": "20000000-0000-0000-0000-000000000224",
-  "name": "转动惯量 - MOMENT OF INERTIA - RING 3D - parallel axis / Steiner's theorem",
+  "name": "转动惯量 - 圆环三维（平行轴定理）",
   "description": "常见几何体的转动惯量计算与对比。 (MOMENT OF INERTIA - RING 3D - parallel axis / Steiner's theorem)",
   "category": "物理/力学",
   "tags": [

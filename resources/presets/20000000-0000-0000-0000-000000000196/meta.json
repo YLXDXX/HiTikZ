@@ -1,6 +1,6 @@
 {
   "id": "20000000-0000-0000-0000-000000000196",
-  "name": "平面电场 - PLANE field with gaussian surface",
+  "name": "平面电场 - 含高斯面",
   "description": "均匀带电平面的电场，展示高斯面的选取。 (PLANE field with gaussian surface)",
   "category": "物理/电磁学",
   "tags": [

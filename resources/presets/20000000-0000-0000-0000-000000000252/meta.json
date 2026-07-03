@@ -1,6 +1,6 @@
 {
   "id": "20000000-0000-0000-0000-000000000252",
-  "name": "CMS三维坐标轴 - CMS conventional coordinate system with LHC and other detectors",
+  "name": "CMS三维坐标轴 - CMS坐标系（含LHC）",
   "description": "CMS（紧凑渺子线圈）探测器的三维坐标轴系统。 (CMS conventional coordinate system with LHC and other detectors)",
   "category": "物理/粒子物理",
   "tags": [

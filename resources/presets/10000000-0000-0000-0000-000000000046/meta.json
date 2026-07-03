@@ -1,6 +1,6 @@
 {
   "id": "10000000-0000-0000-0000-000000000046",
-  "name": "高斯分布 - GAUSSIANs: CLs, p-value large overlap",
+  "name": "高斯分布 - CLs方法 p值（大重叠）",
   "description": "高斯分布曲线的参数变化图示。 (GAUSSIANs: CLs, p-value large overlap)",
   "category": "数学/统计",
   "tags": [

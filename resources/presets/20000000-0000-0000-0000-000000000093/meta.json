@@ -1,6 +1,6 @@
 {
   "id": "20000000-0000-0000-0000-000000000093",
-  "name": "简谐振子 - COS - overdamped",
+  "name": "简谐振子 - 余弦过阻尼",
   "description": "简谐振子的运动方程与能量分析。 (COS - overdamped)",
   "category": "物理/力学",
   "tags": [

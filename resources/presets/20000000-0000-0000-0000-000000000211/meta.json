@@ -1,6 +1,6 @@
 {
   "id": "20000000-0000-0000-0000-000000000211",
-  "name": "物体稳定性 - INSTABILITY including neutral equilibrium",
+  "name": "物体稳定性 - 不稳定性（含中性平衡）",
   "description": "刚体平衡的稳定性分析。 (INSTABILITY including neutral equilibrium)",
   "category": "物理/力学",
   "tags": [

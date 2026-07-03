@@ -1,6 +1,6 @@
 {
   "id": "30000000-0000-0000-0000-000000000015",
-  "name": "交流电路波形 - AC circuit LCR in series",
+  "name": "交流电路波形 - LCR串联",
   "description": "交流电路中电压、电流的相位关系波形图。 (AC circuit LCR in series)",
   "category": "电路",
   "tags": [

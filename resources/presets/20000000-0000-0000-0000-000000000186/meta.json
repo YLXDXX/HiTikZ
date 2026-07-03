@@ -1,6 +1,6 @@
 {
   "id": "20000000-0000-0000-0000-000000000186",
-  "name": "球体电场 - SOLID CHARGED SPHERE 3D",
+  "name": "球体电场 - 带电实心球体三维",
   "description": "均匀带电球体的电场分布（高斯定理）。 (SOLID CHARGED SPHERE 3D)",
   "category": "物理/电磁学",
   "tags": [

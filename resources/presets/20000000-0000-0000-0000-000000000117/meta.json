@@ -1,6 +1,6 @@
 {
   "id": "20000000-0000-0000-0000-000000000117",
-  "name": "摩擦力 - HORIZONTAL ground - lift",
+  "name": "摩擦力 - 水平地面举升",
   "description": "摩擦力分析，包括静摩擦与滑动摩擦。 (HORIZONTAL ground - lift)",
   "category": "物理/力学",
   "tags": [

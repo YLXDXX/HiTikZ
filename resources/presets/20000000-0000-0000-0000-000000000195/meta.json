@@ -1,6 +1,6 @@
 {
   "id": "20000000-0000-0000-0000-000000000195",
-  "name": "平面电场 - PLANE field with electric field",
+  "name": "平面电场 - 含电场线",
   "description": "均匀带电平面的电场，展示高斯面的选取。 (PLANE field with electric field)",
   "category": "物理/电磁学",
   "tags": [

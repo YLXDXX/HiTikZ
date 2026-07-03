@@ -1,6 +1,6 @@
 {
   "id": "30000000-0000-0000-0000-000000000010",
-  "name": "RC电路 - RC with CLOSED switch",
+  "name": "RC电路 - 开关闭合",
   "description": "RC电路的充放电特性与时间常数。 (RC with CLOSED switch)",
   "category": "电路",
   "tags": [

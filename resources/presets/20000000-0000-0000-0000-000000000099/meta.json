@@ -1,6 +1,6 @@
 {
   "id": "20000000-0000-0000-0000-000000000099",
-  "name": "滑轮系统 - TABLE double",
+  "name": "滑轮系统 - 桌面双滑轮",
   "description": "滑轮系统的力学分析，含张力和加速度。 (TABLE double)",
   "category": "物理/力学",
   "tags": [

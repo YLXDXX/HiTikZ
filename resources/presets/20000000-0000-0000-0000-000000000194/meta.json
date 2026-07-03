@@ -1,6 +1,6 @@
 {
   "id": "20000000-0000-0000-0000-000000000194",
-  "name": "平面电场 - ROUND SHEET integration",
+  "name": "平面电场 - 圆形薄板积分",
   "description": "均匀带电平面的电场，展示高斯面的选取。 (ROUND SHEET integration)",
   "category": "物理/电磁学",
   "tags": [

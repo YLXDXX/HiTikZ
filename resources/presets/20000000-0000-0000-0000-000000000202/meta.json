@@ -1,6 +1,6 @@
 {
   "id": "20000000-0000-0000-0000-000000000202",
-  "name": "电场线1 - POINT CHARGE +1 - equipotential",
+  "name": "电场线1 - 正点电荷等势面",
   "description": "电场线分布图，展示点电荷与电荷系统的电场。 (POINT CHARGE +1 - equipotential)",
   "category": "物理/电磁学",
   "tags": [

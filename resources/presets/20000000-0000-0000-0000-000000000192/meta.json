@@ -1,6 +1,6 @@
 {
   "id": "20000000-0000-0000-0000-000000000192",
-  "name": "球体电场 - CONDUCTOR with cavity",
+  "name": "球体电场 - 带空腔导体",
   "description": "均匀带电球体的电场分布（高斯定理）。 (CONDUCTOR with cavity)",
   "category": "物理/电磁学",
   "tags": [

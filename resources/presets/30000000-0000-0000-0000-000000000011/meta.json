@@ -1,6 +1,6 @@
 {
   "id": "30000000-0000-0000-0000-000000000011",
-  "name": "RC电路 - RC+EMF with OPEN switch",
+  "name": "RC+EMF电路 - 开关断开",
   "description": "RC电路的充放电特性与时间常数。 (RC+EMF with OPEN switch)",
   "category": "电路",
   "tags": [

@@ -1,6 +1,6 @@
 {
   "id": "20000000-0000-0000-0000-000000000143",
-  "name": "电流 - CONDUCTION MODEL",
+  "name": "电流 - 传导模型",
   "description": "电流的微观模型，展示电子漂移与导体。 (CONDUCTION MODEL)",
   "category": "物理/电磁学",
   "tags": [

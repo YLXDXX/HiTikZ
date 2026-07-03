@@ -1,6 +1,6 @@
 {
   "id": "20000000-0000-0000-0000-000000000076",
-  "name": "弹簧 - VERTICAL spring - extension at rest",
+  "name": "弹簧 - 垂直弹簧静止伸长",
   "description": "弹簧振子的胡克定律与简谐运动。 (VERTICAL spring - extension at rest)",
   "category": "物理/力学",
   "tags": [
