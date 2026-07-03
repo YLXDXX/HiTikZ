@@ -1742,6 +1742,7 @@ void MainWindow::generateAllPreviews()
     m_previewQueue = all;
     m_previewTotal = all.size();
     m_previewDone = 0;
+    m_batchFailures.clear();
     m_batchGenerating = true;
     m_compiling = true;
     compileAct->setEnabled(false);
@@ -1773,11 +1774,15 @@ void MainWindow::processNextPreview()
         statusBar()->showMessage(
             QStringLiteral("预览生成完毕: %1 个条目").arg(m_previewTotal), kStatusBarLongMs);
         refreshSearch();
+
+        showBatchPreviewSummary();
+
         emit batchPreviewFinished();
         return;
     }
 
     Snippet s = m_previewQueue.takeFirst();
+    m_currentBatchSnippet = s;
     m_currentBatchSnippetId = s.id;
     QString code = resolveParamsFromCode(s.code);
 
@@ -1802,7 +1807,7 @@ void MainWindow::processNextPreview()
     compiler->compile(code, s.templateId, s.id, s.packages, s.tikzLibraries);
 }
 
-void MainWindow::onBatchPreviewCompiled(bool success, const QString &pdfPath, const QString &)
+void MainWindow::onBatchPreviewCompiled(bool success, const QString &pdfPath, const QString &log)
 {
     if (!m_batchGenerating) return;
 
@@ -1814,11 +1819,118 @@ void MainWindow::onBatchPreviewCompiled(bool success, const QString &pdfPath, co
     m_previewDone++;
     if (success) {
         savePreviewData(pdfPath, m_currentBatchSnippetId);
+    } else {
+        m_batchFailures.append({m_currentBatchSnippet, log});
     }
     statusBar()->showMessage(
         QStringLiteral("生成预览: %1/%2").arg(m_previewDone).arg(m_previewTotal), 0);
 
     processNextPreview();
+}
+
+void MainWindow::showBatchPreviewSummary()
+{
+    int successCount = m_previewTotal - m_batchFailures.size();
+
+    auto *dlg = new QDialog(this);
+    dlg->setWindowTitle(QStringLiteral("批量预览生成报告"));
+    dlg->resize(700, 500);
+    dlg->setAttribute(Qt::WA_DeleteOnClose);
+
+    auto *layout = new QVBoxLayout(dlg);
+
+    auto *logWidget = new QPlainTextEdit(dlg);
+    logWidget->setReadOnly(true);
+    logWidget->setFont(logPanel->font());
+
+    QTextCursor cursor = logWidget->textCursor();
+    cursor.movePosition(QTextCursor::Start);
+
+    QTextCharFormat summaryFmt;
+    summaryFmt.setForeground(QColor(60, 120, 200));
+    summaryFmt.setFontWeight(QFont::Bold);
+    cursor.insertText(QStringLiteral("批量生成预览完成：总计 %1 个，成功 %2 个，失败 %3 个\n\n")
+                           .arg(m_previewTotal)
+                           .arg(successCount)
+                           .arg(m_batchFailures.size()),
+                       summaryFmt);
+
+    if (!m_batchFailures.isEmpty()) {
+        QTextCharFormat headerFmt;
+        headerFmt.setForeground(QColor(220, 30, 30));
+        headerFmt.setFontWeight(QFont::Bold);
+        cursor.insertText(QStringLiteral("--- 失败详情 ---\n\n"), headerFmt);
+
+        for (int i = 0; i < m_batchFailures.size(); ++i) {
+            const auto &pair = m_batchFailures[i];
+            const Snippet &s = pair.first;
+            const QString &log = pair.second;
+
+            QTextCharFormat idFmt;
+            idFmt.setForeground(QColor(200, 140, 0));
+            idFmt.setFontWeight(QFont::Bold);
+            cursor.insertText(QStringLiteral("[%1] %2\n").arg(i + 1).arg(s.name), idFmt);
+            cursor.insertText(QStringLiteral("    ID: %1\n").arg(s.id));
+
+            if (log.isEmpty()) {
+                QTextCharFormat errFmt;
+                errFmt.setForeground(QColor(220, 30, 30));
+                cursor.insertText(QStringLiteral("    编译失败，无详细错误信息（可能超时）\n\n"), errFmt);
+            } else {
+                static const QRegularExpression errorRe("^!\\s");
+                static const QRegularExpression warningRe("Warning",
+                    QRegularExpression::CaseInsensitiveOption);
+                static const QRegularExpression lineRe("^l\\.(\\d+)");
+                static const QRegularExpression noiseBannerRe(
+                    "^(This is XeTeX|entering extended mode|Transcript written on|No file .*\\.aux)"
+                );
+                static const QRegularExpression noiseFileRe("^[\\(/].*\\.(sty|cls|def|cfg|fd|aux|tex|map|enc|tfm)");
+
+                const QStringList lines = log.split('\n');
+                bool inErrorBlock = false;
+                for (const QString &line : lines) {
+                    bool isError = errorRe.match(line).hasMatch();
+                    bool isLineNum = lineRe.match(line.trimmed()).hasMatch();
+                    bool isWarn = warningRe.match(line).hasMatch();
+                    bool isNoise = noiseBannerRe.match(line).hasMatch()
+                        || noiseFileRe.match(line.trimmed()).hasMatch();
+
+                    if (isError) {
+                        inErrorBlock = true;
+                        QTextCharFormat errFmt;
+                        errFmt.setForeground(QColor(220, 30, 30));
+                        errFmt.setFontWeight(QFont::Bold);
+                        cursor.insertText(QStringLiteral("    %1\n").arg(line), errFmt);
+                    } else if (isLineNum) {
+                        QTextCharFormat lnFmt;
+                        lnFmt.setForeground(QColor(180, 60, 60));
+                        cursor.insertText(QStringLiteral("    %1\n").arg(line), lnFmt);
+                    } else if (isWarn) {
+                        QTextCharFormat warnFmt;
+                        warnFmt.setForeground(QColor(200, 140, 0));
+                        cursor.insertText(QStringLiteral("    %1\n").arg(line), warnFmt);
+                    } else if (inErrorBlock && !line.trimmed().isEmpty() && !isNoise) {
+                        cursor.insertText(QStringLiteral("    %1\n").arg(line));
+                    } else if (line.trimmed().isEmpty() || isNoise || line.trimmed() == "?") {
+                        inErrorBlock = false;
+                    }
+                }
+                cursor.insertText("\n");
+            }
+        }
+    }
+
+    cursor.movePosition(QTextCursor::Start);
+    logWidget->setTextCursor(cursor);
+
+    layout->addWidget(logWidget);
+
+    auto *btnBox = new QDialogButtonBox(QDialogButtonBox::Close, dlg);
+    connect(btnBox, &QDialogButtonBox::rejected, dlg, &QDialog::close);
+    connect(btnBox, &QDialogButtonBox::accepted, dlg, &QDialog::close);
+    layout->addWidget(btnBox);
+
+    dlg->show();
 }
 
 void MainWindow::refreshTemplateCombo()

@@ -156,9 +156,11 @@ private:
     int m_userCodeStartLine = 1;
     QMap<QString, QMap<QString, QString>> m_perSnippetParamValues;
     QList<Snippet> m_previewQueue;
+    Snippet m_currentBatchSnippet;
     QString m_currentBatchSnippetId;
     int m_previewTotal = 0;
     int m_previewDone = 0;
+    QList<QPair<Snippet, QString>> m_batchFailures;
     QMetaObject::Connection m_compileConn;
     QTimer *m_batchTimeoutTimer = nullptr;
     QTimer *m_batchKillFallbackTimer = nullptr;
@@ -170,4 +172,5 @@ private:
 private:
     void processNextPreview();
     void onBatchPreviewCompiled(bool success, const QString &pdfPath, const QString &log);
+    void showBatchPreviewSummary();
 };
