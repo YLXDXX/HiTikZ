@@ -1,1 +1,73 @@
-\tikzset{>=latex} % for LaTeX arrow head\n\contourlength{1.6pt}\n\colorlet{Bcol}{violet!90}\n\colorlet{BFcol}{red!60!black}\n\colorlet{Scol}{green!60!black}\n\colorlet{veccol}{green!45!black}\n\colorlet{Icol}{blue!70!black}\n\colorlet{mucol}{red!90!black}\n\tikzstyle{BField}=[->,thick,Bcol]\n\tikzstyle{current}=[->,Icol] %thick,\n\tikzstyle{force}=[->,thick,BFcol]\n\tikzstyle{vector}=[->,thick,veccol]\n\tikzstyle{mu vector}=[->,thick,mucol]\n\tikzstyle{spin}=[->,very thick,Scol]\n\tikzstyle{velocity}=[->,very thick,vcol]\n\tikzstyle{charge+}=[very thin,draw=black,top color=red!50,bottom color=red!90!black,shading angle=20,circle,inner sep=0.5]\n\tikzstyle{charge-}=[very thin,draw=black,top color=blue!50,bottom color=blue!80,shading angle=20,circle,inner sep=0.5]\n\tikzstyle{metal}=[top color=black!15,bottom color=black!25,middle color=black!5,shading angle=10]\n\tikzset{\n  BFieldLine/.style={thick,Bcol,decoration={markings,mark=at position #1 with {\arrow{latex}}},\n                                 postaction={decorate}},\n  BFieldLine/.default=0.5,\n  pics/magnet/.style={ %args={#1}\n    code={\n      \def\h{0.9}\n      \coordinate (-N) at (0,\h);\n      \coordinate (-S) at (0,-\h);\n      \draw[pic actions,thick,top color=red!60,bottom color=red!90,shading angle=20]\n        (-0.8*\h/2,0) rectangle ++(0.8*\h,\h);\n      \draw[pic actions,thick,top color=blue!60,bottom color=blue!90,shading angle=20]\n        (-0.8*\h/2,0) rectangle ++(0.8*\h,-\h);\n      \node[pic actions] at (0, \h/2) {\textbf{N}};\n      \node[pic actions] at (0,-\h/2) {\textbf{S}};\n  }},\n}\n\n% B FIELD through current loop\n\n\n\n\n% MAGNET FIELD through current loop - SN\n  \def\Rx{1.45}\n  \def\Ry{0.43}\n  \def\H{3}\n  \def\L{4}\n  \def\NB{5}\n  \def\ang{36}\n\def\W{4}\n\n\begin{tikzpicture}\n  \n  % MAGNETIC\n  \draw (0,\Ry) arc (90:270:{\Rx} and {\Ry});\n  \foreach \i [evaluate={\y=(0.34*\H)*\i^2/\NB; \out=1*\i^2; \in=180+10*\i^2; \f=0.80-0.10*\i;}] in {1,...,\NB}{\n    \draw[BFieldLine=\f] (-0.95*\H, 0.4*\y/\H) to[out= \out,in= \in,looseness=0.8] (0.25*\W, \y);\n    \draw[BFieldLine=\f] (-0.95*\H,-0.4*\y/\H) to[out=-\out,in=-\in,looseness=0.8] (0.25*\W,-\y);\n  }\n  \pic[rotate=-90] (M) at (-0.9*\W,0) {magnet};\n  \node[Bcol] at (0.26*\W,0.52*\H) {$\vb{B}$};\n  \n  % CIRCUIT\n  \draw[force] ( 95:{\Rx} and {\Ry}) --++ (-25:0.8*\Ry) node[right=0] {\contour{white}{$\vb{F}$}};\n  \draw[force] (-95:{\Rx} and {\Ry}) --++ ( 25:0.8*\Ry) node[right=1] {\contour{white}{$\vb{F}$}};\n  \draw[white,very thick]\n        (0,\Ry) arc (90:-90:{\Rx} and {\Ry});\n  \draw (0,\Ry) arc (90:-90:{\Rx} and {\Ry});\n  \draw[mu vector] (0,0) --++ (-0.3*\W,0) node[above left=-3] {\contour{white}{$\vb*{\mu}$}};\n  \draw[current]\n    (-14:{1.1*\Rx} and {1.1*\Ry}) arc (-14:14:{1.1*\Rx} and {1.1*\Ry})\n    node[midway,right=2] {$I$};\n  \n\end{tikzpicture}\n
+\tikzset{>=latex} % for LaTeX arrow head
+\contourlength{1.6pt}
+\colorlet{Bcol}{violet!90}
+\colorlet{BFcol}{red!60!black}
+\colorlet{Scol}{green!60!black}
+\colorlet{veccol}{green!45!black}
+\colorlet{Icol}{blue!70!black}
+\colorlet{mucol}{red!90!black}
+\tikzstyle{BField}=[->,thick,Bcol]
+\tikzstyle{current}=[->,Icol] %thick,
+\tikzstyle{force}=[->,thick,BFcol]
+\tikzstyle{vector}=[->,thick,veccol]
+\tikzstyle{mu vector}=[->,thick,mucol]
+\tikzstyle{spin}=[->,very thick,Scol]
+\tikzstyle{velocity}=[->,very thick,vcol]
+\tikzstyle{charge+}=[very thin,draw=black,top color=red!50,bottom color=red!90!black,shading angle=20,circle,inner sep=0.5]
+\tikzstyle{charge-}=[very thin,draw=black,top color=blue!50,bottom color=blue!80,shading angle=20,circle,inner sep=0.5]
+\tikzstyle{metal}=[top color=black!15,bottom color=black!25,middle color=black!5,shading angle=10]
+\tikzset{
+  BFieldLine/.style={thick,Bcol,decoration={markings,mark=at position #1 with {\arrow{latex}}},
+                                 postaction={decorate}},
+  BFieldLine/.default=0.5,
+  pics/magnet/.style={ %args={#1}
+    code={
+      \def\h{0.9}
+      \coordinate (-N) at (0,\h);
+      \coordinate (-S) at (0,-\h);
+      \draw[pic actions,thick,top color=red!60,bottom color=red!90,shading angle=20]
+        (-0.8*\h/2,0) rectangle ++(0.8*\h,\h);
+      \draw[pic actions,thick,top color=blue!60,bottom color=blue!90,shading angle=20]
+        (-0.8*\h/2,0) rectangle ++(0.8*\h,-\h);
+      \node[pic actions] at (0, \h/2) {\textbf{N}};
+      \node[pic actions] at (0,-\h/2) {\textbf{S}};
+  }},
+}
+
+% B FIELD through current loop
+
+
+
+
+% MAGNET FIELD through current loop - SN
+  \def\Rx{1.45}
+  \def\Ry{0.43}
+  \def\H{3}
+  \def\L{4}
+  \def\NB{5}
+  \def\ang{36}
+\def\W{4}
+
+\begin{tikzpicture}
+  
+  % MAGNETIC
+  \draw (0,\Ry) arc (90:270:{\Rx} and {\Ry});
+  \foreach \i [evaluate={\y=(0.34*\H)*\i^2/\NB; \out=1*\i^2; \in=180+10*\i^2; \f=0.80-0.10*\i;}] in {1,...,\NB}{
+    \draw[BFieldLine=\f] (-0.95*\H, 0.4*\y/\H) to[out= \out,in= \in,looseness=0.8] (0.25*\W, \y);
+    \draw[BFieldLine=\f] (-0.95*\H,-0.4*\y/\H) to[out=-\out,in=-\in,looseness=0.8] (0.25*\W,-\y);
+  }
+  \pic[rotate=-90] (M) at (-0.9*\W,0) {magnet};
+  \node[Bcol] at (0.26*\W,0.52*\H) {$\vb{B}$};
+  
+  % CIRCUIT
+  \draw[force] ( 95:{\Rx} and {\Ry}) --++ (-25:0.8*\Ry) node[right=0] {\contour{white}{$\vb{F}$}};
+  \draw[force] (-95:{\Rx} and {\Ry}) --++ ( 25:0.8*\Ry) node[right=1] {\contour{white}{$\vb{F}$}};
+  \draw[white,very thick]
+        (0,\Ry) arc (90:-90:{\Rx} and {\Ry});
+  \draw (0,\Ry) arc (90:-90:{\Rx} and {\Ry});
+  \draw[mu vector] (0,0) --++ (-0.3*\W,0) node[above left=-3] {\contour{white}{$\vb*{\mu}$}};
+  \draw[current]
+    (-14:{1.1*\Rx} and {1.1*\Ry}) arc (-14:14:{1.1*\Rx} and {1.1*\Ry})
+    node[midway,right=2] {$I$};
+  
+\end{tikzpicture}

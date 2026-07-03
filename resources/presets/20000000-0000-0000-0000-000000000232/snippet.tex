@@ -1,1 +1,60 @@
-\tikzset{>=latex} % for LaTeX arrow head\n\contourlength{0.8pt}\n\n\colorlet{xcol}{blue!70!black}\n\colorlet{myred}{red!65!black}\n\tikzstyle{rvec}=[->,xcol,very thick,line cap=round]\n\tikzstyle{mass line}=[line width=0.5,draw=red!30!black]\n\tikzstyle{myarr}=[-{Latex[length=3,width=2]},blue!40!black]\n\tikzstyle{myarr2}=[{Latex[length=3,width=2]}-{Latex[length=3,width=2]},blue!40!black]\n\tikzstyle{mass}=[mass line, %rounded corners=1,\n                  top color=red!40!black!30,bottom color=red!40!black!10,shading angle=30]\n\tikzstyle{middle mass}=[mass line,top color=red!40!black!50,bottom color=red!40!black!50,\n                         middle color=red!40!black!10,shading angle=30]\n\n\def\r{0.05} % pulley small radius\n\tikzset{\n  pics/rotarr/.style={\n    code={\n      \draw[white,line width=0.8] ({#1*cos(210)},0) arc(-210:35:{#1} and {0.35*#1});\n      \draw[-{>[flex'=1]}] ({#1*cos(210)},0) coordinate (W1) arc(-210:35:{#1} and {0.35*#1})\n        node[midway] (W2) {} --++ (150:0.1) coordinate (W3);\n  }},\n  pics/rotarr/.default=0.3,\n}\n\n\LARGE\n\n% MOMENT OF INERTIA - masses on rods\n\def\ang{-20} % angle of whole picture\n\n\n\n\n% MOMENT OF INERTIA - RING\n  \def\h{0.9}   % length z axis\n  \def\R{1.9}   % circle radius\n\def\Ry{0.35} % vertical radius\n\def\Rx{0.90} % horizontal radius\n\def\rod{\n\def\H{0.12}  % thickness\n\n\begin{tikzpicture}[rotate=\ang]\n  \def\sx{0.85}\n  \def\sy{0.68}\n  \coordinate (O) at (0,0);\n  \draw[line cap=round] (0,\Ry) -- (0,-2.0*\Ry);\n  \draw[mass line,even odd rule,\n        top color=red!40!black!30,bottom color=red!40!black!30,middle color=red!40!black!20,shading angle=30]\n    (O) ellipse({\Rx} and \Ry) ellipse({\sx*\Rx} and \sy*\Ry);\n  \draw[line cap=round] (O) --++ (0,2.5*\Ry); %node[left] {$z$};\n  \pic[xscale=1,rotate=\ang] at (0,2.0*\Ry) {rotarr};\n  \node[right=0] at (W3) {$\omega$};\n  \draw[myarr] (O) --++ (0:{0.5*(\sx+0.94)*\Rx} and {0.5*(\sy+0.94)*\Ry})\n    node[below=2,right=-2,scale=0.9] {$R$};\n\end{tikzpicture}\n
+\tikzset{>=latex} % for LaTeX arrow head
+\contourlength{0.8pt}
+
+\colorlet{xcol}{blue!70!black}
+\colorlet{myred}{red!65!black}
+\tikzstyle{rvec}=[->,xcol,very thick,line cap=round]
+\tikzstyle{mass line}=[line width=0.5,draw=red!30!black]
+\tikzstyle{myarr}=[-{Latex[length=3,width=2]},blue!40!black]
+\tikzstyle{myarr2}=[{Latex[length=3,width=2]}-{Latex[length=3,width=2]},blue!40!black]
+\tikzstyle{mass}=[mass line, %rounded corners=1,
+                  top color=red!40!black!30,bottom color=red!40!black!10,shading angle=30]
+\tikzstyle{middle mass}=[mass line,top color=red!40!black!50,bottom color=red!40!black!50,
+                         middle color=red!40!black!10,shading angle=30]
+
+\def\r{0.05} % pulley small radius
+\tikzset{
+  pics/rotarr/.style={
+    code={
+      \draw[white,line width=0.8] ({#1*cos(210)},0) arc(-210:35:{#1} and {0.35*#1});
+      \draw[-{>[flex'=1]}] ({#1*cos(210)},0) coordinate (W1) arc(-210:35:{#1} and {0.35*#1})
+        node[midway] (W2) {} --++ (150:0.1) coordinate (W3);
+  }},
+  pics/rotarr/.default=0.3,
+}
+
+
+% MOMENT OF INERTIA - masses on rods
+\def\ang{-20} % angle of whole picture
+
+
+
+
+% MOMENT OF INERTIA - RING
+  \def\h{0.9}   % length z axis
+  \def\R{1.9}   % circle radius
+\def\Ry{0.35} % vertical radius
+\def\Rx{0.90} % horizontal radius
+\def\rod{
+  \draw[middle mass,shading angle=\ang+30]
+    (-\L/2,-\Ry) coordinate (BL) -++ (\L,0)
+    arc(270:90:{\Rx} and {\Ry}) --++ (-\L,0)
+    arc(90:270:{\Rx} and {\Ry});
+  \draw[middle mass,shading angle=\ang+30]
+    (\L/2,0) ellipse({\Rx} and {\Ry});
+}
+
+\begin{tikzpicture}[rotate=\ang]
+  \def\sx{0.85}
+  \def\sy{0.68}
+  \coordinate (O) at (0,0);
+  \draw[line cap=round] (0,\Ry) -- (0,-2.0*\Ry);
+  \draw[mass line,even odd rule,
+        top color=red!40!black!30,bottom color=red!40!black!30,middle color=red!40!black!20,shading angle=30]
+    (O) ellipse({\Rx} and \Ry) ellipse({\sx*\Rx} and \sy*\Ry);
+  \draw[line cap=round] (O) --++ (0,2.5*\Ry); %node[left] {$z$};
+  \pic[xscale=1,rotate=\ang] at (0,2.0*\Ry) {rotarr};
+  \node[right=0] at (W3) {$\omega$};
+  \draw[myarr] (O) --++ (0:{0.5*(\sx+0.94)*\Rx} and {0.5*(\sy+0.94)*\Ry})
+    node[below=2,right=-2,scale=0.9] {$R$};
+\end{tikzpicture}
