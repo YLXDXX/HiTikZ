@@ -59,7 +59,14 @@
 
 
 % CEILING PULLEY - three masses without joint
-
+  \def\W{2.2} % ground width
+  \def\D{0.3} % ground depth
+  \def\L{0.7} % rope length
+\def\H{1.6}      % ceiling height
+\def\px{0.31*\W} % pulley x position
+\def\py{0.80*\H} % pulley y position
+\def\mx{\px+\R}  % mass x position
+\def\my{0.28*\H} % mass y position
 
 \begin{tikzpicture}
   \def\h{0.53} % mass height
