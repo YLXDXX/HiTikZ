@@ -2,7 +2,7 @@
 
 > 面向 Linux (KDE 6 / Wayland) 的 TikZ/PGF 矢量图形管理工具。
 > 创建、编辑、预览、搜索、导出 TikZ 图像并支持批量操作。
-> 当前版本：1.0（2026-07-02 更新）
+> 当前版本：1.1（2026-07-03 更新）
 
 ---
 
@@ -55,7 +55,7 @@
 - **适应式缩放**：支持适应整页 / 适应宽度 / 适应高度三种显示模式，滚轮缩放以鼠标位置为中心，左键拖拽平移
 - **重编译保持视口**：重新编译后自动保持 PDF 的缩放倍率和滚动位置，继续查看修改前的同一位置，方便对比细节变化
 - **预览持久化**：编译成功后自动保存 PDF 和缩略图 PNG，下次切换片段即时展示预览
-- **批量预览生成**：设置面板中一键异步生成所有片段预览（队列式编译，状态栏实时进度，单片段 30 秒超时自动跳过错片）
+- **批量预览生成报告**：设置中点击"生成所有预览"后，编译完成自动弹出报告窗口，显示总计/成功/失败数量，失败列表含 ID、名称和格式化编译错误详情
 - **彩色日志面板**：错误行红色高亮、警告橙色，双击错误行跳转到编辑器对应行
 - **模糊搜索**：Unicode 子序列匹配，双字索引加速，支持名称和简介搜索，连续匹配高分、间隔扣分
 - **树形分类**：支持层级分类（如 `数学/几何`），含"未分类"节点，拖拽片段到分类节点即可重新分类
@@ -70,7 +70,7 @@
 - **格式导出**：编译生成的 PDF 可转换并复制为 PNG/SVG 到剪贴板，也可直接导出为 `.tex` / `.pdf` / `.png` / `.svg` 文件
 - **导入 .tex 文件**：支持导入单个 `.tex` 文件，自动提取 TikZ 代码（三段式回退），从导言区解析 `\usepackage` 宏包、`\usetikzlibrary` 库声明及自定义命令，自动检测模板（含 circuitikz 时自动选用电路模板），文件名作为片段名称
 - **从剪贴板导入**：无需手动保存文件，直接粘贴完整 `.tex` 源码即可导入，自动解析宏包、库、自定义命令和模板
-- **自定义命令智能处理**：自动识别并提取 `\newcommand`（含 `*` 变体及 `\cmd` 无花括号语法）、`\NewDocumentCommand`、`\tikzset`、`\tikzstyle`、`\ctikzset`、`\definecolor`、`\colorlet`、`\pgfmathdeclarerandomlist`、`\makeatletter`/`\makeatother` 等 14 类定义命令，编译时自动注入导言区，复制文档时正确编排（完整语法说明见[自定义命令处理](#自定义命令处理)）
+- **自定义命令智能处理**：自动识别并提取40余类定义命令（含 `\newcommand`、`\NewDocumentCommand`、`\tikzset`、`\tikzstyle`、`\ctikzset`、`\definecolor`、`\colorlet`、`\contourlength`、`\pgfkeys`、`\pgfplotsset`、`\pgfmathsetmacro`/`\pgfmathsetlength`、`\def`、`\newif`、`\newboolean`/`\setboolean`、`\pgfdeclarelayer`/`\pgfsetlayers`、`\pgfdeclareradialshading`、`\tdplotsetmaincoords`、`\makeatletter`/`\makeatother` 等），编译时自动注入导言区，复制文档时正确编排
 - **存档导入/导出**：片段以 tar.gz 格式打包，支持单选 / 多选批量 / 全部导出，同时支持导出为独立 .tex 文档、PDF、PNG、SVG 格式
 - **标签过滤**：搜索框下方自动展示所有片段的标签徽章，点击筛选，多标签 AND 组合；大量标签时自动折叠为两行并通过弹出窗口选择
 - **系统托盘**：最小化到托盘，全局快捷键一键呼出/隐藏，托盘菜单"退出"触发关闭前保存提示
@@ -78,7 +78,7 @@
 - **全局快捷键（KDE）**：KDE 桌面通过 KGlobalAccel 注册系统级快捷键
 - **字体大小调节**：设置面板中可分别调整代码编辑区字体大小（8-48 pt）和全局界面字体大小（8-48 pt），左栏分类树和缩略图名称跟随界面字体设置
 - **依赖检测**：启动时检测 `xelatex` 和当前配置的 SVG 转换工具（`pdftocairo` 或 `inkscape`），缺失时弹出安装指引
-- **9 个预置片段**：数学（几何 / 函数）、物理（力学）、电路（RLC / 分压 / 运放）各 3 个典型示例
+- **94 个高质量预置片段**：涵盖数学（统计/几何/微积分）、物理（电磁学/力学/光学/热力学）、电路、化学等学科领域，均从 tikz.net 和 TeXample.net 精选并经过 XeLaTeX 编译验证
 - **C++17 + Qt6 原生实现**：高性能，启动快，原生 Wayland 支持
 
 ---
@@ -410,28 +410,48 @@ calc,er,angles,patterns,decorations.pathmorphing
 
 在 TikZ 代码编辑器中，与 TikZ 绘图层无关的 LaTeX 定义命令（`\newcommand`、`\tikzset` 等）约定写在 `\begin{tikzpicture}` 或 `\begin{circuitikz}` 环境**之外**（上方）。系统自动检测并抽取这些命令，在编译和复制文档时将其放入导言区（`\documentclass` 之后、`\begin{document}` 之前），确保编译正确。
 
-**支持的定义命令清单**（共 14 类）：
+**支持的定义命令清单**（共 40+ 类）：
 
 | 命令 | 语法示例 | 说明 |
 |------|---------|------|
 | `\newcommand` / `\renewcommand` / `\providecommand` | `\newcommand{\foo}[2]{#1+#2}` 或 `\newcommand\foo[2]{#1+#2}` | 旧格式，支持 `*` 变体 |
-| `\newcommand` 可选默认值 | `\newcommand\foo[2][default]{#1+#2}` | 第二个 `[...]` 为可选参数默认值 |
 | `\NewDocumentCommand` / `\RenewDocumentCommand` / `\ProvideDocumentCommand` / `\DeclareDocumentCommand` | `\NewDocumentCommand{\foo}{ O{red} m }{\draw[#1] #2;}` | xparse 新格式 |
 | `\NewExpandableDocumentCommand` | `\NewExpandableDocumentCommand{\foo}{ m }{#1}` | 可展开变体 |
 | `\NewCommandCopy` | `\NewCommandCopy{\new}{\old}` | 命令复制 |
-| `\tikzset` | `\tikzset{style/.style={draw=red}, pic/.pic={...}}` | TikZ 样式和 pic 定义 |
+| `\DeclareMathOperator` | `\DeclareMathOperator{\argmax}{argmax}` | 数学算子声明 |
+| `\DeclareRobustCommand` | `\DeclareRobustCommand{\foo}[1]{#1}` | 鲁棒命令 |
+| `\tikzset` | `\tikzset{style/.style={draw=red}}` | TikZ 样式和 pic 定义 |
 | `\tikzstyle` | `\tikzstyle{name}=[options]` 或 `\tikzstyle{name}+=[...]` | 旧版 TikZ 样式（兼容） |
 | `\ctikzset` | `\ctikzset{bipoles/length=1cm}` | CircuitikZ 全局设置 |
+| `\pgfkeys` | `\pgfkeys{/tikz/line width=1pt}` | PGF 键值设置 |
+| `\pgfplotsset` | `\pgfplotsset{compat=1.18}` | pgfplots 兼容性设置 |
 | `\definecolor` | `\definecolor{myblue}{RGB}{20,20,100}` | 颜色定义 |
 | `\colorlet` | `\colorlet{myshadow}{blue!50!white}` | 颜色别名 |
+| `\contourlength` | `\contourlength{1.4pt}` | 轮廓文本线宽（contour 包） |
+| `\pgfmathsetmacro` / `\pgfmathsetlength` | `\pgfmathsetmacro{\n}{round(10/3)}` | PGF 数学宏/长度定义 |
 | `\pgfmathdeclarerandomlist` | `\pgfmathdeclarerandomlist{lst}{{a}{b}}` | PGF 随机列表声明 |
-| `\makeatletter` / `\makeatother` | `\makeatletter` … `\makeatother` | @ 字符类别切换（包裹含 @ 的自定义命令） |
+| `\pgfmathdeclarefunction` | `\pgfmathdeclarefunction{f}{1}{#1*#1}` | PGF 自定义数学函数 |
+| `\def` | `\def\mymacro#1{#1}` | TeX 原语定义 |
+| `\newif` / `\newboolean` / `\setboolean` | `\newboolean{show}` `\setboolean{show}{true}` | 条件开关（ifthen） |
+| `\newlength` / `\newcounter` / `\newsavebox` | `\newlength{\mylen}` | 寄存器分配 |
+| `\setlength` | `\setlength{\parindent}{0pt}` | 长度设置 |
+| `\setcounter` | `\setcounter{page}{1}` | 计数器设置 |
+| `\sansmath` | `\sansmath` | 无衬线数学字体 |
+| `\pgfdeclarelayer` / `\pgfsetlayers` | `\pgfdeclarelayer{bg}` `\pgfsetlayers{bg,main}` | PGF 图层管理 |
+| `\pgfdeclareradialshading` / `\pgfdeclareverticalshading` | `\pgfdeclareradialshading[tikz@ball]{ring}{...}` | PGF 自定义渐变着色 |
+| `\pgfdeclaredecoration` | `\pgfdeclaredecoration{name}{initial}{...}` | PGF 自定义装饰 |
+| `\usepgfplotslibrary` | `\usepgfplotslibrary{fillbetween}` | pgfplots 库 |
+| `\tdplotsetmaincoords` | `\tdplotsetmaincoords{70}{110}` | tikz-3dplot 视角设置 |
+| `\tikzmath` | `\tikzmath{ \x = 10; }` | TikZ 数学运算 |
+| `\PreviewEnvironment` | `\PreviewEnvironment{tikzpicture}` | preview 包环境声明 |
+| `\makeatletter` / `\makeatother` | `\makeatletter` … `\makeatother` | @ 字符类别切换 |
 
 **抽取规则**：
 - 仅提取 `\begin{tikzpicture}` / `\begin{circuitikz}` **之前**的定义命令
 - 环境内部的命令（如图内 `\tikzset`）原样保留不提取
 - 多行定义、嵌套花括号、混合格式（新旧混用、花括号/无花括号混用）均正确解析
-- 编译时：抽取 → 注入模板 `\begin{document}` 前
+- 编译时：先注入宏包和 TikZ 库，再注入自定义命令，确保依赖顺序正确
+- 清理时保留换行分隔符，防止 LaTeX 注释行与后续命令合并
 - 复制文档/导出 .tex 时：抽取 → 注入完整文档导言区
 
 ### 完整文档复制
@@ -499,19 +519,58 @@ calc,er,angles,patterns,decorations.pathmorphing
 
 ## 预置片段清单
 
-程序首次启动时自动安装 9 个高质量教学示例（数学 3 / 物理 3 / 电路 3）：
+程序首次启动时自动安装 94 个高质量 TikZ 教学示例，均从 [tikz.net](https://tikz.net) 和 [TeXample.net](https://texample.net) 精选并经过 XeLaTeX 编译验证，所有标题、描述、标签已本地化为中文。
 
-| 分类 | 片段名称 | 简介 | 参数 |
-|------|---------|------|------|
-| 数学/几何 | 勾股定理 | 直角三角形三边正方形面积关系 | — |
-| 数学/函数 | 三角函数图像 | 正弦和余弦函数曲线 | `xmax=7.5` |
-| 数学/几何 | 立方体投影 | 三维立方体斜二测投影 | — |
-| 物理/力学 | 斜面受力分析 | 重力分解：N、mg sinθ | — |
-| 物理/力学 | 单摆运动 | 摆球、重力与张力 | `angle=30` |
-| 物理/力学 | 弹簧振子 | 墙壁、弹簧、质量块 | `x=2.5` |
-| 电路/基础 | RLC串联电路 | RLC 串联谐振电路 | — |
-| 电路/基础 | 分压电路 | 两电阻分压电路 | — |
-| 电路/放大 | 运算放大器 | 反相运算放大器 | — |
+### 分类统计
+
+| 学科 | 数量 | UUID 前缀 | 主要分类 |
+|------|------|----------|---------|
+| 数学 | 24 | `10000000` | 几何、函数、微积分、统计、分析、拓扑 |
+| 物理 | 63 | `20000000` | 电磁学、力学、光学、热力学、流体力学、粒子物理、相对论 |
+| 电路 | 5 | `30000000` | 交流电路、RC电路、变压器、振荡器 |
+| 化学 | 2 | `40000000` | 有机分子、元素周期表 |
+
+### 数学类（24 个）
+
+**数学/几何**（9 个）：垂线作图、简单曲线、光滑曲线的控制点、自定义光滑曲线端点、球体体积、球坐标、角度与标注、角平分线、叶序
+
+**数学/函数**（5 个）：抛物线轨迹、双曲正切函数、函数图像、极坐标
+
+**数学/微积分**（4 个）：函数平均值、柱坐标体积微分、直角坐标体积微分、球坐标表面积微分
+
+**数学/统计**（3 个）：正态分布、高斯分布、线性回归
+
+**数学/分析**（1 个）：复数平面
+
+**数学/拓扑**（1 个）：平面到环面
+
+**数学/艺术**（1 个）：埃舍尔砖与彭罗斯三角
+
+### 物理类（63 个）
+
+**物理/电磁学**（27 个）：电磁波、霍尔效应、载流导线磁场、毕奥-萨伐尔定律、电流、电荷在磁场中、楞次定律、磁场回路、磁场、导线磁场力、磁力、电流磁力、磁矩、电场、球体电场、平面电场、棒电场、平板电场、电场线、体电场、镜像电荷（平面）、镜像电荷（球体）、变压器、变压器绕组、磁力线、偶极子磁力线、电磁波谱
+
+**物理/力学**（16 个）：弹簧、简谐振子、滑轮系统、引力动力学、摩擦力、物体稳定性、滑块稳定性、梯子稳定性、扭矩、转动惯量、振子近似、摆与滑块、加速度、抛体运动、能量与功
+
+**物理/光学**（9 个）：光学折射、透镜、棱镜、偏振片与分析器、光学偏振、光学棱镜、透镜像差、相位延迟片、光学衍射
+
+**物理/热力学**（3 个）：热力学P-V图、黑体辐射颜色、理想气体
+
+**物理/流体力学**（3 个）：伯努利原理、气压计（流体力学）、伯努利方程
+
+**物理/粒子物理**（2 个）：喷注向量与MT2变量、CMS三维坐标轴
+
+**物理/相对论**（1 个）：彭罗斯图
+
+**物理/量子**（1 个）：布洛赫球
+
+### 电路类（5 个）
+
+变压器电路、电容电路、RC电路、交流电路波形、考毕兹振荡器
+
+### 化学类（2 个）
+
+元素周期表、有机分子结构（含分子振动）
 
 ---
 
@@ -573,7 +632,7 @@ calc,er,angles,patterns,decorations.pathmorphing
 - 模板中必须包含 `%%% TIKZ_CODE_HERE %%%` 占位符
 
 **工具**：
-- **生成所有预览** — 异步队列遍历全部片段编译生成 PDF + 缩略图 PNG（每片段 30 秒超时，状态栏实时进度）
+- **生成所有预览** — 异步队列遍历全部片段编译生成 PDF + 缩略图 PNG（每片段 30 秒超时，状态栏实时进度）。编译完成后自动弹出报告窗口，统计成功/失败数量，列出失败片段详情及编译错误
 - **重置所有内容** — 删除所有用户数据，需输入"确定重置"二次确认（高危操作）
 
 ---
@@ -624,7 +683,7 @@ resources/
 │   ├── default_math.tex            # tikz, amsmath, xcolor
 │   ├── default_physics.tex         # tikz, xcolor
 │   └── default_circuit.tex         # tikz, xcolor, circuitikz, preview
-└── presets/                         # 出厂预置片段（9 个）
+└── presets/                         # 出厂预置片段（94 个）
     └── <uuid>/
         ├── meta.json
         └── snippet.tex
