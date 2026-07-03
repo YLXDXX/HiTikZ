@@ -21,6 +21,7 @@ struct Snippet {
     QString code;
     bool isPreset = false;
 };
+Q_DECLARE_METATYPE(Snippet)
 
 struct SearchResult {
     Snippet snippet;

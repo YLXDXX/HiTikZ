@@ -5,6 +5,8 @@
 #include <QStandardPaths>
 #include <QDebug>
 #include <QRegularExpression>
+#include <QEventLoop>
+#include <QTimer>
 
 LatexCompiler::LatexCompiler(QObject *parent)
     : QObject(parent)
@@ -689,6 +691,45 @@ void LatexCompiler::cancelCompile()
     if (process && process->state() != QProcess::NotRunning) {
         process->kill();
     }
+}
+
+bool LatexCompiler::compileBlocking(const QString &texCode, const QString &templateId, const QString &snippetId,
+                                     const QString &packages, const QString &tikzLibraries,
+                                     int timeoutMs, QString &outPdfPath, QString &outLog)
+{
+    QEventLoop loop;
+    QTimer timer;
+    timer.setSingleShot(true);
+
+    bool success = false;
+    QString pdfPath, log;
+
+    QMetaObject::Connection conn = connect(this, &LatexCompiler::compilationFinished,
+        [&](bool s, const QString &pdf, const QString &l) {
+            success = s;
+            pdfPath = pdf;
+            log = l;
+            loop.quit();
+        });
+    connect(&timer, &QTimer::timeout, &loop, &QEventLoop::quit);
+
+    compile(texCode, templateId, snippetId, packages, tikzLibraries);
+    timer.start(timeoutMs);
+    loop.exec();
+
+    disconnect(conn);
+
+    if (!timer.isActive()) {
+        cancelCompile();
+        outLog = QStringLiteral("Compilation timed out after %1 ms").arg(timeoutMs);
+        outPdfPath.clear();
+        return false;
+    }
+    timer.stop();
+
+    outPdfPath = pdfPath;
+    outLog = log;
+    return success;
 }
 
 int LatexCompiler::userCodeStartLine() const

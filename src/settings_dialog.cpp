@@ -61,6 +61,15 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     QVBoxLayout *behaviorLayout = new QVBoxLayout(behaviorGroup);
     autoCompileOnSaveCheck = new QCheckBox(QStringLiteral("保存后自动编译"));
     behaviorLayout->addWidget(autoCompileOnSaveCheck);
+    QHBoxLayout *threadLayout = new QHBoxLayout;
+    threadLayout->addWidget(new QLabel(QStringLiteral("编译线程数:")));
+    threadCountSpin = new QSpinBox;
+    threadCountSpin->setRange(1, 32);
+    threadCountSpin->setValue(6);
+    threadCountSpin->setToolTip(QStringLiteral("批量预览时同时编译的线程数量"));
+    threadLayout->addWidget(threadCountSpin);
+    threadLayout->addStretch();
+    behaviorLayout->addLayout(threadLayout);
     mainLayout->addWidget(behaviorGroup);
 
     QGroupBox *shortcutGroup = new QGroupBox(QStringLiteral("快捷键设置"));
@@ -218,8 +227,8 @@ void SettingsDialog::loadSettings()
     closeTabShortcutEdit->setKeySequence(QKeySequence(settings.value("shortcuts/closeTab", "Ctrl+W").toString()));
     globalHotkeyEdit->setKeySequence(QKeySequence(settings.value("shortcuts/globalHotkey", "").toString()));
     autoCompileOnSaveCheck->setChecked(settings.value("behavior/autoCompileOnSave", true).toBool());
+    threadCountSpin->setValue(settings.value("behavior/threadCount", 6).toInt());
 }
-
 void SettingsDialog::saveSettings()
 {
     QSettings settings("HiTikZ", "TikzManager");
@@ -240,6 +249,7 @@ void SettingsDialog::saveSettings()
     settings.setValue("shortcuts/closeTab", closeTabShortcutEdit->keySequence().toString());
     settings.setValue("shortcuts/globalHotkey", globalHotkeyEdit->keySequence().toString());
     settings.setValue("behavior/autoCompileOnSave", autoCompileOnSaveCheck->isChecked());
+    settings.setValue("behavior/threadCount", threadCountSpin->value());
 }
 
 void SettingsDialog::applyToCompiler(LatexCompiler *compiler)

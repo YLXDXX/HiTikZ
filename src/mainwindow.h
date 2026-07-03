@@ -21,6 +21,8 @@
 #include <QSettings>
 #include <QToolButton>
 #include <QTabWidget>
+#include <QAtomicInt>
+#include <QMutex>
 #include "snippet_manager.h"
 
 #ifdef HAS_QHOTKEY
@@ -155,22 +157,17 @@ private:
     int m_loadingDepth = 0;
     int m_userCodeStartLine = 1;
     QMap<QString, QMap<QString, QString>> m_perSnippetParamValues;
-    QList<Snippet> m_previewQueue;
-    Snippet m_currentBatchSnippet;
-    QString m_currentBatchSnippetId;
     int m_previewTotal = 0;
-    int m_previewDone = 0;
+    QAtomicInt m_batchCompleted{0};
+    QAtomicInt m_batchSubmitted{0};
     QList<QPair<Snippet, QString>> m_batchFailures;
-    QMetaObject::Connection m_compileConn;
-    QTimer *m_batchTimeoutTimer = nullptr;
-    QTimer *m_batchKillFallbackTimer = nullptr;
+    QMutex m_batchMutex;
     QTimer *searchDebounceTimer = nullptr;
     QTimer *autoSaveTimer = nullptr;
     QLabel *m_compileStatusLabel = nullptr;
     QTimer *m_compileStatusTimer = nullptr;
 
 private:
-    void processNextPreview();
-    void onBatchPreviewCompiled(bool success, const QString &pdfPath, const QString &log);
+    void onBatchTaskFinished(const Snippet &snippet, bool success, const QString &pdfPath, const QString &log);
     void showBatchPreviewSummary();
 };

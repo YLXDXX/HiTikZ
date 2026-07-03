@@ -48,6 +48,8 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QSaveFile>
+#include <QtConcurrent>
+#include <QThreadPool>
 
 #define STRINGIFY(x) STRINGIFY_IMPL(x)
 #define STRINGIFY_IMPL(x) #x
@@ -1686,30 +1688,22 @@ void MainWindow::savePreviewData(const QString &pdfPath, const QString &snippetI
         return;
     }
 
-    if (m_batchGenerating) {
-        QProcess pngProc;
-        QStringList args;
-        args << "-png" << "-r" << QString::number(kPreviewDpi) << "-singlefile" << pdfPath << (basePath + "/preview");
-        pngProc.start("pdftocairo", args);
-        pngProc.waitForFinished(10000);
-    } else {
-        QProcess *pngProc = new QProcess(this);
-        connect(pngProc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
-            pngProc, &QProcess::deleteLater);
-        QTimer *timeout = new QTimer(pngProc);
-        timeout->setSingleShot(true);
-        connect(timeout, &QTimer::timeout, pngProc, [pngProc]() {
-            if (pngProc->state() != QProcess::NotRunning) {
-                pngProc->kill();
-            }
-        });
-        connect(pngProc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
-            timeout, &QTimer::stop);
-        timeout->start(15000);
-        QStringList args;
-        args << "-png" << "-r" << QString::number(kPreviewDpi) << "-singlefile" << pdfPath << (basePath + "/preview");
-        pngProc->start("pdftocairo", args);
-    }
+    QProcess *pngProc = new QProcess(this);
+    connect(pngProc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+        pngProc, &QProcess::deleteLater);
+    QTimer *timeout = new QTimer(pngProc);
+    timeout->setSingleShot(true);
+    connect(timeout, &QTimer::timeout, pngProc, [pngProc]() {
+        if (pngProc->state() != QProcess::NotRunning) {
+            pngProc->kill();
+        }
+    });
+    connect(pngProc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+        timeout, &QTimer::stop);
+    timeout->start(15000);
+    QStringList args;
+    args << "-png" << "-r" << QString::number(kPreviewDpi) << "-singlefile" << pdfPath << (basePath + "/preview");
+    pngProc->start("pdftocairo", args);
 }
 
 void MainWindow::loadPreviewForSnippet(const QString &id)
@@ -1739,9 +1733,9 @@ void MainWindow::generateAllPreviews()
         return;
     }
 
-    m_previewQueue = all;
     m_previewTotal = all.size();
-    m_previewDone = 0;
+    m_batchCompleted.storeRelaxed(0);
+    m_batchSubmitted.storeRelaxed(0);
     m_batchFailures.clear();
     m_batchGenerating = true;
     m_compiling = true;
@@ -1749,83 +1743,71 @@ void MainWindow::generateAllPreviews()
     applyParamsAct->setEnabled(false);
     statusBar()->showMessage(QStringLiteral("正在生成所有预览..."), 0);
 
-    m_compileConn = connect(compiler, &LatexCompiler::compilationFinished,
-        this, &MainWindow::onBatchPreviewCompiled);
+    int threadCount = QSettings("HiTikZ", "TikzManager").value("behavior/threadCount", 6).toInt();
+    if (threadCount < 1) threadCount = 1;
+    if (threadCount > 32) threadCount = 32;
+    QThreadPool::globalInstance()->setMaxThreadCount(threadCount);
 
-    processNextPreview();
+    for (const Snippet &s : all) {
+        m_batchSubmitted.fetchAndAddRelaxed(1);
+        QtConcurrent::run([this, s]() {
+            QString code = resolveParamsFromCode(s.code);
+
+            LatexCompiler localCompiler;
+            SettingsDialog::applyToCompiler(&localCompiler);
+
+            QString pdfPath, log;
+            bool ok = localCompiler.compileBlocking(code, s.templateId, s.id,
+                s.packages, s.tikzLibraries, kBatchCompileTimeoutMs, pdfPath, log);
+
+            if (ok && !pdfPath.isEmpty()) {
+                QString basePath = snippetDataPath(s.id);
+                QString previewPdf = basePath + "/preview.pdf";
+                if (QFile::exists(previewPdf))
+                    QFile::remove(previewPdf);
+                QFile::copy(pdfPath, previewPdf);
+
+                QProcess pngProc;
+                QStringList args;
+                args << "-png" << "-r" << QString::number(kPreviewDpi) << "-singlefile"
+                     << pdfPath << (basePath + "/preview");
+                pngProc.start("pdftocairo", args);
+                pngProc.waitForFinished(10000);
+            }
+
+            QMetaObject::invokeMethod(this, "onBatchTaskFinished", Qt::QueuedConnection,
+                Q_ARG(Snippet, s), Q_ARG(bool, ok), Q_ARG(QString, pdfPath), Q_ARG(QString, log));
+        });
+    }
 }
 
-void MainWindow::processNextPreview()
+void MainWindow::onBatchTaskFinished(const Snippet &snippet, bool success, const QString &pdfPath, const QString &log)
 {
-    if (m_previewQueue.isEmpty()) {
-        disconnect(m_compileConn);
+    Q_UNUSED(pdfPath)
+
+    if (!m_batchGenerating) return;
+
+    int done = m_batchCompleted.fetchAndAddRelaxed(1) + 1;
+
+    if (!success) {
+        QMutexLocker locker(&m_batchMutex);
+        m_batchFailures.append({snippet, log});
+    }
+
+    statusBar()->showMessage(
+        QStringLiteral("生成预览: %1/%2").arg(done).arg(m_previewTotal), 0);
+
+    if (done >= m_previewTotal) {
         m_batchGenerating = false;
         m_compiling = false;
         compileAct->setEnabled(true);
         applyParamsAct->setEnabled(true);
-        if (m_batchTimeoutTimer) {
-            delete m_batchTimeoutTimer;
-            m_batchTimeoutTimer = nullptr;
-        }
-        if (m_batchKillFallbackTimer) {
-            delete m_batchKillFallbackTimer;
-            m_batchKillFallbackTimer = nullptr;
-        }
         statusBar()->showMessage(
             QStringLiteral("预览生成完毕: %1 个条目").arg(m_previewTotal), kStatusBarLongMs);
         refreshSearch();
-
         showBatchPreviewSummary();
-
         emit batchPreviewFinished();
-        return;
     }
-
-    Snippet s = m_previewQueue.takeFirst();
-    m_currentBatchSnippet = s;
-    m_currentBatchSnippetId = s.id;
-    QString code = resolveParamsFromCode(s.code);
-
-    if (!m_batchTimeoutTimer) {
-        m_batchTimeoutTimer = new QTimer(this);
-        m_batchTimeoutTimer->setSingleShot(true);
-        connect(m_batchTimeoutTimer, &QTimer::timeout, this, [this]() {
-            compiler->cancelCompile();
-            m_batchTimeoutTimer->stop();
-            if (!m_batchKillFallbackTimer) {
-                m_batchKillFallbackTimer = new QTimer(this);
-                m_batchKillFallbackTimer->setSingleShot(true);
-                connect(m_batchKillFallbackTimer, &QTimer::timeout, this, [this]() {
-                    onBatchPreviewCompiled(false, QString(), QString());
-                });
-            }
-            m_batchKillFallbackTimer->start(2000);
-        });
-    }
-    m_batchTimeoutTimer->start(kBatchCompileTimeoutMs);
-
-    compiler->compile(code, s.templateId, s.id, s.packages, s.tikzLibraries);
-}
-
-void MainWindow::onBatchPreviewCompiled(bool success, const QString &pdfPath, const QString &log)
-{
-    if (!m_batchGenerating) return;
-
-    if (m_batchTimeoutTimer)
-        m_batchTimeoutTimer->stop();
-    if (m_batchKillFallbackTimer)
-        m_batchKillFallbackTimer->stop();
-
-    m_previewDone++;
-    if (success) {
-        savePreviewData(pdfPath, m_currentBatchSnippetId);
-    } else {
-        m_batchFailures.append({m_currentBatchSnippet, log});
-    }
-    statusBar()->showMessage(
-        QStringLiteral("生成预览: %1/%2").arg(m_previewDone).arg(m_previewTotal), 0);
-
-    processNextPreview();
 }
 
 void MainWindow::showBatchPreviewSummary()

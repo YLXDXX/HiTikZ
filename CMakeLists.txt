@@ -8,7 +8,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Widgets Pdf PdfWidgets)
+find_package(Qt6 REQUIRED COMPONENTS Widgets Pdf PdfWidgets Concurrent)
 
 option(WITH_KGLOBALACCEL "Build with KDE KGlobalAccel support" ON)
 option(WITH_QHOTKEY "Build with global hotkey support" ON)
@@ -53,7 +53,7 @@ add_executable(TikzManager
     src/flow_layout.cpp
 )
 
-target_link_libraries(TikzManager PRIVATE Qt6::Widgets Qt6::Pdf Qt6::PdfWidgets)
+target_link_libraries(TikzManager PRIVATE Qt6::Widgets Qt6::Pdf Qt6::PdfWidgets Qt6::Concurrent)
 
 target_compile_definitions(TikzManager PRIVATE
     RESOURCE_DIR=${CMAKE_SOURCE_DIR}/resources
@@ -126,7 +126,7 @@ add_executable(test_multitab
     src/latex_compiler.cpp
 )
 target_include_directories(test_multitab PRIVATE ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(test_multitab PRIVATE Qt6::Widgets Qt6::Pdf Qt6::PdfWidgets)
+target_link_libraries(test_multitab PRIVATE Qt6::Widgets Qt6::Pdf Qt6::PdfWidgets Qt6::Concurrent)
 target_compile_definitions(test_multitab PRIVATE
     RESOURCE_DIR=${CMAKE_SOURCE_DIR}/resources
 )
