@@ -167,7 +167,9 @@ private:
     QLabel *m_compileStatusLabel = nullptr;
     QTimer *m_compileStatusTimer = nullptr;
 
-private:
+private slots:
     void onBatchTaskFinished(const Snippet &snippet, bool success, const QString &pdfPath, const QString &log);
+
+private:
     void showBatchPreviewSummary();
 };
