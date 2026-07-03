@@ -481,6 +481,7 @@ void MainWindow::setupUI()
     setWindowTitle(QStringLiteral("HiTikZ - TikZ 代码合集管理器"));
 
     QToolBar *toolBar = addToolBar(QStringLiteral("工具栏"));
+    toolBar->setObjectName(QStringLiteral("mainToolBar"));
 
     QAction *newAct = toolBar->addAction(QStringLiteral("新建片段"));
     QAction *deleteAct = toolBar->addAction(QStringLiteral("删除片段"));
@@ -1799,7 +1800,7 @@ void MainWindow::generateAllPreviews()
 
     for (const Snippet &s : all) {
         m_batchSubmitted.fetchAndAddRelaxed(1);
-        QtConcurrent::run([this, s]() {
+        QThreadPool::globalInstance()->start([this, s] {
             QString code = resolveParamsFromCode(s.code);
 
             LatexCompiler localCompiler;

@@ -3,12 +3,21 @@
 #include <QDir>
 #include <QDebug>
 #include <QRegularExpression>
-#include <cassert>
+#include <cstdlib>
+
+static int g_failed = 0;
+
+#define CHECK(expr, msg) \
+    do { \
+        if (!(expr)) { \
+            qDebug() << "FAIL:" << msg; \
+            g_failed++; \
+        } \
+    } while (0)
 
 int main(int argc, char *argv[]) {
     QCoreApplication app(argc, argv);
 
-    int failed = 0;
     QString testDir = QDir::tempPath() + "/hitikz_tex_import_test/";
     QDir().mkpath(testDir);
 
@@ -25,27 +34,26 @@ int main(int argc, char *argv[]) {
 
         QString fpath = testDir + "test1.tex";
         QFile f(fpath);
-        f.open(QIODevice::WriteOnly | QIODevice::Text);
+        if (!f.open(QIODevice::WriteOnly | QIODevice::Text)) { g_failed++; }
         f.write(texContent.toUtf8());
         f.close();
 
-        // Read and parse
         QFile rf(fpath);
-        rf.open(QIODevice::ReadOnly | QIODevice::Text);
+        if (!rf.open(QIODevice::ReadOnly | QIODevice::Text)) { g_failed++; }
         QString content = QString::fromUtf8(rf.readAll());
         rf.close();
 
         int docBegin = content.indexOf("\\begin{document}");
         int docEnd = content.indexOf("\\end{document}");
-        assert(docBegin >= 0 && docEnd > docBegin);
+        CHECK(docBegin >= 0 && docEnd > docBegin, "Should have document environment");
 
         int codeStart = content.indexOf('\n', docBegin) + 1;
         QString code = content.mid(codeStart, docEnd - codeStart).trimmed();
-        assert(code.contains("\\begin{tikzpicture}"));
-        assert(code.contains("\\end{tikzpicture}"));
-        assert(code.contains("\\draw (0,0) -- (1,1);"));
-        assert(!code.contains("\\documentclass"));
-        assert(!code.contains("\\usepackage"));
+        CHECK(code.contains("\\begin{tikzpicture}"), "Should contain tikzpicture");
+        CHECK(code.contains("\\end{tikzpicture}"), "Should contain end tikzpicture");
+        CHECK(code.contains("\\draw (0,0) -- (1,1);"), "Should contain draw command");
+        CHECK(!code.contains("\\documentclass"), "Should not contain documentclass");
+        CHECK(!code.contains("\\usepackage"), "Should not contain usepackage");
         qDebug() << "PASS: Test 1 - Extract code from document body";
     }
 
@@ -58,28 +66,59 @@ int main(int argc, char *argv[]) {
 
         QString fpath = testDir + "test2.tex";
         QFile f(fpath);
-        f.open(QIODevice::WriteOnly | QIODevice::Text);
+        if (!f.open(QIODevice::WriteOnly | QIODevice::Text)) { g_failed++; }
         f.write(texContent.toUtf8());
         f.close();
 
         QFile rf(fpath);
-        rf.open(QIODevice::ReadOnly | QIODevice::Text);
+        if (!rf.open(QIODevice::ReadOnly | QIODevice::Text)) { g_failed++; }
         QString content = QString::fromUtf8(rf.readAll());
         rf.close();
 
         int docBegin = content.indexOf("\\begin{document}");
         if (docBegin >= 0) {
             qDebug() << "FAIL: Test 2a - Should have no document environment";
-            failed++;
+            g_failed++;
         } else {
             int tikzBegin = content.indexOf("\\begin{tikzpicture}");
             int tikzEnd = content.indexOf("\\end{tikzpicture}");
-            assert(tikzBegin >= 0 && tikzEnd > tikzBegin);
+            CHECK(tikzBegin >= 0 && tikzEnd > tikzBegin, "Should have tikzpicture");
             QString code = content.mid(tikzBegin, tikzEnd + 17 - tikzBegin);
-            assert(code.contains("\\begin{tikzpicture}"));
-            assert(code.contains("\\end{tikzpicture}"));
-            assert(code.contains("\\draw (0,0) circle (1);"));
+            CHECK(code.contains("\\begin{tikzpicture}"), "Should contain begin tikzpicture");
+            CHECK(code.contains("\\end{tikzpicture}"), "Should contain end tikzpicture");
+            CHECK(code.contains("\\draw (0,0) circle (1);"), "Should contain draw circle");
             qDebug() << "PASS: Test 2 - Extract tikzpicture from standalone file";
+        }
+    }
+
+    // Test 3: Fallback to full content when no tikzpicture or document
+    {
+        QString texContent = "\\draw (0,0) -- (2,2);";
+
+        QString fpath = testDir + "test3.tex";
+        QFile f(fpath);
+        if (!f.open(QIODevice::WriteOnly | QIODevice::Text)) { g_failed++; }
+        f.write(texContent.toUtf8());
+        f.close();
+
+        QFile rf(fpath);
+        if (!rf.open(QIODevice::ReadOnly | QIODevice::Text)) { g_failed++; }
+        QString content = QString::fromUtf8(rf.readAll());
+        rf.close();
+
+        int docBegin = content.indexOf("\\begin{document}");
+        int tikzBegin = content.indexOf("\\begin{tikzpicture}");
+        QString code;
+        if (docBegin >= 0) {
+            qDebug() << "FAIL: Test 3a - Should have no document";
+            g_failed++;
+        } else if (tikzBegin >= 0) {
+            qDebug() << "FAIL: Test 3b - Should have no tikzpicture";
+            g_failed++;
+        } else {
+            code = content.trimmed();
+            CHECK(code == "\\draw (0,0) -- (2,2);", "Fallback code should match");
+            qDebug() << "PASS: Test 3 - Fallback to full content";
         }
     }
 
@@ -110,21 +149,11 @@ int main(int argc, char *argv[]) {
             }
         }
 
-        if (packages.size() < 5) {
-            qDebug() << "FAIL: Test 4a - Expected at least 5 packages, got" << packages.size();
-            failed++;
-        } else if (!packages.contains("tikz")) {
-            qDebug() << "FAIL: Test 4b - 'tikz' package not found";
-            failed++;
-        } else if (!packages.contains("amsmath")) {
-            qDebug() << "FAIL: Test 4c - 'amsmath' package not found";
-            failed++;
-        } else if (!packages.contains("[european, nosiunitx]circuitikz")) {
-            qDebug() << "FAIL: Test 4d - circuitikz with options not parsed correctly";
-            failed++;
-        } else {
-            qDebug() << "PASS: Test 4 - Package parsing from preamble";
-        }
+        CHECK(packages.size() >= 5, "Should have at least 5 packages");
+        CHECK(packages.contains("tikz"), "Should contain 'tikz'");
+        CHECK(packages.contains("amsmath"), "Should contain 'amsmath'");
+        CHECK(packages.contains("[european, nosiunitx]circuitikz"), "Should contain circuitikz with options");
+        qDebug() << "PASS: Test 4 - Package parsing from preamble";
     }
 
     // Test 5: Parse \usetikzlibrary from preamble
@@ -148,18 +177,10 @@ int main(int argc, char *argv[]) {
             }
         }
 
-        if (libraries.size() < 5) {
-            qDebug() << "FAIL: Test 5a - Expected at least 5 libraries, got" << libraries.size();
-            failed++;
-        } else if (!libraries.contains("calc")) {
-            qDebug() << "FAIL: Test 5b - 'calc' library not found";
-            failed++;
-        } else if (!libraries.contains("decorations.pathmorphing")) {
-            qDebug() << "FAIL: Test 5c - 'decorations.pathmorphing' not found";
-            failed++;
-        } else {
-            qDebug() << "PASS: Test 5 - TikZ library parsing from preamble";
-        }
+        CHECK(libraries.size() >= 5, "Should have at least 5 libraries");
+        CHECK(libraries.contains("calc"), "Should contain 'calc'");
+        CHECK(libraries.contains("decorations.pathmorphing"), "Should contain 'decorations.pathmorphing'");
+        qDebug() << "PASS: Test 5 - TikZ library parsing from preamble";
     }
 
     // Test 6: Full .tex file with packages and libraries extraction
@@ -179,30 +200,25 @@ int main(int argc, char *argv[]) {
 
         QString fpath = testDir + "test6.tex";
         QFile f(fpath);
-        f.open(QIODevice::WriteOnly | QIODevice::Text);
+        if (!f.open(QIODevice::WriteOnly | QIODevice::Text)) { g_failed++; }
         f.write(texContent.toUtf8());
         f.close();
 
         QFile rf(fpath);
-        rf.open(QIODevice::ReadOnly | QIODevice::Text);
+        if (!rf.open(QIODevice::ReadOnly | QIODevice::Text)) { g_failed++; }
         QString content = QString::fromUtf8(rf.readAll());
         rf.close();
 
         int docBegin = content.indexOf("\\begin{document}");
         int docEnd = content.indexOf("\\end{document}");
-        assert(docBegin >= 0 && docEnd > docBegin);
+        CHECK(docBegin >= 0 && docEnd > docBegin, "Should have document environment");
 
         QString preamble = content.left(docBegin);
         int codeStart = content.indexOf('\n', docBegin) + 1;
         QString code = content.mid(codeStart, docEnd - codeStart).trimmed();
 
-        // Verify code extraction
-        if (!code.contains("\\begin{tikzpicture}")) {
-            qDebug() << "FAIL: Test 6a - tikzpicture not in extracted code";
-            failed++;
-        }
+        CHECK(code.contains("\\begin{tikzpicture}"), "tikzpicture should be in extracted code");
 
-        // Verify package parsing
         QStringList packages;
         QRegularExpression usepkgRe("\\\\usepackage(?:\\[([^\\]]*)\\])?\\{([^}]*)\\}");
         QRegularExpressionMatchIterator pkgIt = usepkgRe.globalMatch(preamble);
@@ -220,15 +236,9 @@ int main(int argc, char *argv[]) {
             }
         }
 
-        if (!packages.contains("tikz-3dplot")) {
-            qDebug() << "FAIL: Test 6b - tikz-3dplot not parsed";
-            failed++;
-        } else if (!packages.contains("[european]circuitikz")) {
-            qDebug() << "FAIL: Test 6c - [european]circuitikz not parsed";
-            failed++;
-        }
+        CHECK(packages.contains("tikz-3dplot"), "tikz-3dplot should be parsed");
+        CHECK(packages.contains("[european]circuitikz"), "circuitikz with option should be parsed");
 
-        // Verify library parsing
         QStringList libraries;
         QRegularExpression uselibRe("\\\\usetikzlibrary\\{([^}]*)\\}");
         QRegularExpressionMatchIterator libIt = uselibRe.globalMatch(preamble);
@@ -243,58 +253,19 @@ int main(int argc, char *argv[]) {
             }
         }
 
-        if (!libraries.contains("calc")) {
-            qDebug() << "FAIL: Test 6d - calc library not parsed";
-            failed++;
-        } else if (!libraries.contains("angles")) {
-            qDebug() << "FAIL: Test 6e - angles library not parsed";
-            failed++;
-        } else if (!libraries.contains("quotes")) {
-            qDebug() << "FAIL: Test 6f - quotes library not parsed";
-            failed++;
-        }
+        CHECK(libraries.contains("calc"), "calc library should be parsed");
+        CHECK(libraries.contains("angles"), "angles library should be parsed");
+        CHECK(libraries.contains("quotes"), "quotes library should be parsed");
 
-        if (failed == 0) {  // no failures from any test yet
-            qDebug() << "PASS: Test 6 - Full .tex file with packages and libraries";
-        }
+        qDebug() << "PASS: Test 6 - Full .tex file with packages and libraries";
 
         QFile::remove(fpath);
     }
-    {
-        QString texContent = "\\draw (0,0) -- (2,2);";
 
-        QString fpath = testDir + "test3.tex";
-        QFile f(fpath);
-        f.open(QIODevice::WriteOnly | QIODevice::Text);
-        f.write(texContent.toUtf8());
-        f.close();
-
-        QFile rf(fpath);
-        rf.open(QIODevice::ReadOnly | QIODevice::Text);
-        QString content = QString::fromUtf8(rf.readAll());
-        rf.close();
-
-        int docBegin = content.indexOf("\\begin{document}");
-        int tikzBegin = content.indexOf("\\begin{tikzpicture}");
-        QString code;
-        if (docBegin >= 0) {
-            qDebug() << "FAIL: Test 3a - Should have no document";
-            failed++;
-        } else if (tikzBegin >= 0) {
-            qDebug() << "FAIL: Test 3b - Should have no tikzpicture";
-            failed++;
-        } else {
-            code = content.trimmed();
-            assert(code == "\\draw (0,0) -- (2,2);");
-            qDebug() << "PASS: Test 3 - Fallback to full content";
-        }
-    }
-
-    // Cleanup
     QDir(testDir).removeRecursively();
 
-    if (failed > 0) {
-        qDebug() << "\n" << failed << "test(s) failed!";
+    if (g_failed > 0) {
+        qDebug() << "\n" << g_failed << "test(s) failed!";
         return 1;
     }
 

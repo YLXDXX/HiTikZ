@@ -8,8 +8,6 @@
 #include <QProcess>
 #include <QTemporaryDir>
 #include <QDebug>
-#include <QEventLoop>
-#include <QTimer>
 #include <QSaveFile>
 #include <algorithm>
 
@@ -548,20 +546,11 @@ int SnippetManager::deleteCategory(const QString &category)
 
 static bool runProcessSync(QProcess &proc, int timeoutMs = 30000)
 {
-    if (proc.state() == QProcess::NotRunning) {
-        if (!proc.waitForStarted(3000))
-            return false;
-    }
-
-    QEventLoop loop;
-    QTimer timer;
-    timer.setSingleShot(true);
-    QObject::connect(&timer, &QTimer::timeout, &loop, &QEventLoop::quit);
-    QObject::connect(&proc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
-                     &loop, &QEventLoop::quit);
-    timer.start(timeoutMs);
-    loop.exec();
-    return proc.state() == QProcess::NotRunning;
+    if (!proc.waitForStarted(3000))
+        return false;
+    if (!proc.waitForFinished(timeoutMs))
+        return false;
+    return true;
 }
 
 int SnippetManager::getUncategorizedCount(bool includePresets) const

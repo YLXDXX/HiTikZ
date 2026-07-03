@@ -1,8 +1,17 @@
 #include "snippet_manager.h"
 #include <QCoreApplication>
 #include <QDebug>
-#include <cassert>
 #include <QDir>
+
+static int g_failed = 0;
+
+#define CHECK(expr, msg) \
+    do { \
+        if (!(expr)) { \
+            qDebug() << "FAIL:" << msg; \
+            g_failed++; \
+        } \
+    } while (0)
 
 int main(int argc, char *argv[]) {
     QCoreApplication app(argc, argv);
@@ -12,59 +21,58 @@ int main(int argc, char *argv[]) {
     // Test 1: Base path exists
     {
         QString basePath = mgr.getBasePath();
-        assert(!basePath.isEmpty());
-        assert(QDir(basePath).exists());
+        CHECK(!basePath.isEmpty(), "Base path should not be empty");
+        CHECK(QDir(basePath).exists(), "Base path should exist");
         qDebug() << "PASS: Test 1 - Base path exists:" << basePath;
     }
 
     // Test 2: Create snippet
     {
         QString id = mgr.createSnippet("Test Snippet", "math/geometry");
-        assert(!id.isEmpty());
-        assert(mgr.snippetExists(id));
+        CHECK(!id.isEmpty(), "Should create snippet");
+        CHECK(mgr.snippetExists(id), "Snippet should exist after creation");
         qDebug() << "PASS: Test 2 - Create snippet, id:" << id;
 
         // Test 3: Load snippet
         Snippet s = mgr.loadSnippet(id);
-        assert(s.id == id);
-        assert(s.name == "Test Snippet");
-        assert(s.category == "math/geometry");
-        assert(s.code.contains("tikzpicture"));
+        CHECK(s.id == id, "Loaded snippet id should match");
+        CHECK(s.name == "Test Snippet", "Loaded snippet name should match");
+        CHECK(s.category == "math/geometry", "Loaded snippet category should match");
+        CHECK(s.code.contains("tikzpicture"), "Loaded snippet should contain tikzpicture");
         qDebug() << "PASS: Test 3 - Load snippet matches";
 
         // Test 4: Update snippet
         s.description = "A test description";
         s.tags = QStringList{"test", "geometry"};
         s.code = "\\begin{tikzpicture}\\draw (0,0)--(1,1);\\end{tikzpicture}";
-        assert(mgr.saveSnippet(s));
+        bool saved = mgr.saveSnippet(s);
+        CHECK(saved, "Save snippet should succeed");
         Snippet s2 = mgr.loadSnippet(id);
-        assert(s2.description == "A test description");
-        assert(s2.tags.size() == 2);
-        assert(s2.tags.contains("test"));
-        assert(s2.code == s.code);
+        CHECK(s2.description == "A test description", "Description should be updated");
+        CHECK(s2.tags.size() == 2, "Should have 2 tags");
+        CHECK(s2.tags.contains("test"), "Should contain 'test' tag");
+        CHECK(s2.code == s.code, "Code should match after update");
         qDebug() << "PASS: Test 4 - Update snippet";
 
         // Test 5: GetAllSnippets
         QList<Snippet> all = mgr.getAllSnippets();
-        assert(all.size() >= 1);
+        CHECK(all.size() >= 1, "Should have at least 1 snippet");
         bool found = false;
         for (const auto &sn : all) {
-            if (sn.id == id) {
-                found = true;
-                break;
-            }
+            if (sn.id == id) { found = true; break; }
         }
-        assert(found);
+        CHECK(found, "Created snippet should be in getAllSnippets");
         qDebug() << "PASS: Test 5 - getAllSnippets contains new snippet";
 
         // Test 6: Delete snippet
-        assert(mgr.deleteSnippet(id));
-        assert(!mgr.snippetExists(id));
+        bool deleted = mgr.deleteSnippet(id);
+        CHECK(deleted, "Delete snippet should succeed");
+        CHECK(!mgr.snippetExists(id), "Snippet should not exist after deletion");
         qDebug() << "PASS: Test 6 - Delete snippet";
 
         // Test 7: Loading non-existent snippet returns empty
         Snippet empty = mgr.loadSnippet(id);
-        assert(empty.id.isEmpty());
+        CHECK(empty.id.isEmpty(), "Loading non-existent should return empty id");
         qDebug() << "PASS: Test 7 - Load non-existent returns empty";
     }
 
@@ -79,24 +87,24 @@ int main(int argc, char *argv[]) {
         bool foundNoCode = false;
         for (const auto &sn : noCode) {
             if (sn.id == id) {
-                assert(sn.code.isEmpty());
+                CHECK(sn.code.isEmpty(), "getAllSnippets(false) should not load code");
                 foundNoCode = true;
                 break;
             }
         }
-        assert(foundNoCode);
+        CHECK(foundNoCode, "Snippet should be found in getAllSnippets(false)");
         qDebug() << "PASS: Test 8a - getAllSnippets(false) does not load code";
 
         QList<Snippet> withCode = mgr.getAllSnippets(true);
         bool foundWithCode = false;
         for (const auto &sn : withCode) {
             if (sn.id == id) {
-                assert(sn.code == s.code);
+                CHECK(sn.code == s.code, "getAllSnippets(true) code should match");
                 foundWithCode = true;
                 break;
             }
         }
-        assert(foundWithCode);
+        CHECK(foundWithCode, "Snippet should be found in getAllSnippets(true)");
         qDebug() << "PASS: Test 8b - getAllSnippets(true) loads code correctly";
 
         mgr.deleteSnippet(id);
@@ -111,8 +119,8 @@ int main(int argc, char *argv[]) {
 
         mgr.renameCategory("test/renamecat", "test/renamed");
         Snippet reloaded = mgr.loadSnippet(id);
-        assert(reloaded.code == s.code);
-        assert(reloaded.category == "test/renamed");
+        CHECK(reloaded.code == s.code, "renameCategory should preserve code");
+        CHECK(reloaded.category == "test/renamed", "renameCategory should change category");
         qDebug() << "PASS: Test 9 - renameCategory preserves snippet code";
 
         mgr.deleteSnippet(id);
@@ -129,27 +137,38 @@ int main(int argc, char *argv[]) {
 
         QString zipPath = QDir::tempPath() + "/test_export.tar.gz";
         if (QFile::exists(zipPath)) QFile::remove(zipPath);
-        assert(mgr.exportSnippetZip(id, zipPath));
-        assert(QFile::exists(zipPath));
+
+        bool exportOk = mgr.exportSnippetZip(id, zipPath);
+        CHECK(exportOk, "Export snippet should succeed");
+        CHECK(QFile::exists(zipPath), "Archive file should exist after export");
         qDebug() << "PASS: Test 10a - Export snippet to archive";
 
         QStringList importedIds = mgr.importSnippetsZip(zipPath);
-        assert(!importedIds.isEmpty());
+        CHECK(!importedIds.isEmpty(), "Import should return non-empty list");
         qDebug() << "PASS: Test 10b - Import snippet from archive";
 
-        QString newId = importedIds.first();
-        assert(mgr.snippetExists(newId));
-        assert(!mgr.isPresetId(newId));
-        Snippet imported = mgr.loadSnippet(newId);
-        assert(imported.name == s.name);
-        assert(imported.description == s.description);
-        assert(imported.code == s.code);
-        assert(imported.tags == s.tags);
-        qDebug() << "PASS: Test 10c - Imported data matches original";
+        if (importedIds.isEmpty()) {
+            qDebug() << "SKIP: Test 10c - Cannot test imported data (import failed)";
+        } else {
+            QString newId = importedIds.first();
+            CHECK(mgr.snippetExists(newId), "Imported snippet should exist");
+            CHECK(!mgr.isPresetId(newId), "Imported snippet should not be a preset");
+            Snippet imported = mgr.loadSnippet(newId);
+            CHECK(imported.name == s.name, "Imported name should match");
+            CHECK(imported.description == s.description, "Imported description should match");
+            CHECK(imported.code == s.code, "Imported code should match");
+            CHECK(imported.tags == s.tags, "Imported tags should match");
+            qDebug() << "PASS: Test 10c - Imported data matches original";
+            mgr.deleteSnippet(newId);
+        }
 
         QFile::remove(zipPath);
         mgr.deleteSnippet(id);
-        mgr.deleteSnippet(newId);
+    }
+
+    if (g_failed > 0) {
+        qDebug() << "\n" << g_failed << "test(s) FAILED!";
+        return 1;
     }
 
     qDebug() << "\nAll tests passed!";
