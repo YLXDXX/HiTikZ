@@ -66,7 +66,7 @@ rgb(0.9cm)=(1,1,1)}
   \coordinate (P) at (0:\Rin);
   
   % WIRE
-  \draw[shading=ring, ring color=black!60,even odd rule]
+  \draw[shading=ring,even odd rule]
     (0,0) circle (\Rin) circle (\Rout);
   %\fill[metal]
   %  (\Rin,\Rout) -- (0,\Rout) -- 
@@ -129,7 +129,7 @@ rgb(0.9cm)=(1,1,1)}
   
   % WIRE
   \draw[dashed] (0,0,0) -- (0,0,-0.5*\Rin);
-  \draw[shading=ring, ring color=black!60,domain=0:360,samples=120,even odd rule]
+  \draw[shading=ring,domain=0:360,samples=120,even odd rule]
     plot ({\Rin*cos(\x)},{\Rin*sin(\x)},{\t*cos(\x)})
     plot ({\Rout*cos(\x)},{\Rout*sin(\x)},{-\t*cos(\x)});
   \draw[dashed] (0,0,1.39*\Rin) -- (0,0,0);
