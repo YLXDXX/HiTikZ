@@ -2,7 +2,6 @@
 
 > 面向 Linux (KDE 6 / Wayland) 的 TikZ/PGF 矢量图形管理工具。
 > 创建、编辑、预览、搜索、导出 TikZ 图像并支持批量操作。
-> 当前版本：1.2（2026-07-03 更新）
 
 ---
 
@@ -99,39 +98,64 @@
 | **tar** | GNU tar（用于导入/导出存档） |
 | **unzip** | （可选）导入 .zip 格式存档时的回退工具 |
 
-### 安装依赖（Arch / Manjaro）
+## 依赖安装指南
+
+### Arch / Manjaro
 
 ```bash
-sudo pacman -S cmake gcc qt6-base poppler texlive-core kf6-kglobalaccel
+sudo pacman -S --needed base-devel cmake git \
+    qt6-base qt6-pdf qt6-tools \
+    extra-cmake-modules kglobalaccel
 ```
 
-### 安装依赖（Debian / Ubuntu）
+> **注意**：如果 `kglobalaccel` 包未提供 KF6 版本，可尝试安装 `kglobalaccel6`。当前 Arch 滚动更新，`kglobalaccel` 已默认提供 KF6。
+
+---
+
+### Debian / Ubuntu
+
+> **前置条件**：需要 **Debian Trixie (13)+** 或 **Ubuntu 24.04+**，较低版本可能缺少 `qt6-pdf-dev` 或 `libkf6globalaccel-dev`。
 
 ```bash
-sudo apt install cmake g++ qt6-base-dev libqt6pdf6 libqt6pdfwidgets6 \
-    qt6-pdf-dev qt6-pdfwidgets-dev texlive-xetex poppler-utils
+sudo apt update
+sudo apt install -y build-essential cmake git pkg-config \
+    qt6-base-dev qt6-pdf-dev qt6-tools-dev \
+    extra-cmake-modules libkf6globalaccel-dev
 ```
 
-### 安装依赖（Fedora）
+> **如果 `qt6-pdf-dev` 不存在**（较旧系统），可改用 PPA：
+> ```bash
+> sudo add-apt-repository ppa:okirby/qt6-backports
+> sudo apt update
+> sudo apt install qt6-pdf-dev
+> ```
+
+---
+
+### Fedora
+
+> **前置条件**：建议 **Fedora 40+**（KF6 和 Qt6 PDF 模块完整可用）。
 
 ```bash
-sudo dnf install cmake gcc-c++ qt6-qtbase-devel qt6-qtpdf-devel \
-    texlive-xetex poppler-utils
+sudo dnf install -y cmake git gcc-c++ make pkgconf-pkg-config \
+    qt6-qtbase-devel qt6-qtpdf-devel qt6-qttools-devel \
+    extra-cmake-modules kf6-kglobalaccel-devel
 ```
 
 ---
 
-## 快速开始
+### 构建步骤（通用）
 
 ```bash
 # 克隆项目
-git clone <repo-url> HiTikZ
+git clone https://gitee.com/ylxdxx/HiTikZ.git #国内
+git clone https://github.com/YLXDXX/HiTikZ.git #国外
 cd HiTikZ
 
-# 构建（自动检测 KF6GlobalAccel，不可用时回退 QHotkey）
+# 构建
 mkdir build && cd build
 cmake ..
-cmake --build . -j$(nproc)
+cmake --build .
 
 # 运行
 ./TikzManager
@@ -140,14 +164,29 @@ cmake --build . -j$(nproc)
 ctest --output-on-failure
 ```
 
-CMake 选项：
+如需禁用 KGlobalAccel（仅用 QHotkey 后备方案）：
+```bash
+cmake .. -DWITH_KGLOBALACCEL=OFF
+```
 
-| 选项 | 默认值 | 说明 |
-|------|--------|------|
-| `WITH_KGLOBALACCEL` | ON | 启用 KDE KGlobalAccel 全局快捷键 |
-| `WITH_QHOTKEY` | ON | KGlobalAccel 不可用时回退 QHotkey |
+如需同时禁用全局快捷键：
+```bash
+cmake .. -DWITH_KGLOBALACCEL=OFF -DWITH_QHOTKEY=OFF
+```
 
 ---
+
+### 运行时依赖（非构建依赖）
+
+行时需要 LaTeX 发行版：
+
+| 发行版          | 安装命令                                                     |
+| --------------- | ------------------------------------------------------------ |
+| Arch / Manjaro  | `sudo pacman -S texlive`                                     |
+| Debian / Ubuntu | `sudo apt install texlive texlive-latex-extra texlive-pictures` |
+| Fedora          | `sudo dnf install texlive-scheme-medium texlive-pictures`    |
+
+PDF 预览依赖 `Qt6::PdfWidgets`，已在构建依赖中包含，无需额外运行时安装。
 
 ## 用户界面
 
