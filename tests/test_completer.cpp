@@ -429,6 +429,29 @@ static int test_path_keywords_completable()
     return failed;
 }
 
+static int test_key_handlers()
+{
+    int failed = 0;
+    const QStringList handlers = TikzWords::tikzKeyHandlers();
+
+    const char *expected[] = {
+        "style", "default", "code", "append style", "initial",
+        "add", "store in", "value required", "value forbidden",
+        "try", "retry", "handler", nullptr
+    };
+
+    for (int i = 0; expected[i] != nullptr; i++) {
+        if (!handlers.contains(QString::fromLatin1(expected[i]))) {
+            fprintf(stderr, "FAIL: KH-%d - tikzKeyHandlers() should contain '%s'\n",
+                    i + 1, expected[i]);
+            failed++;
+        }
+    }
+
+    if (failed == 0) fprintf(stderr, "PASS: PGF key handlers (style, default, code, ...)\n");
+    return failed;
+}
+
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
@@ -446,6 +469,7 @@ int main(int argc, char *argv[])
     failed += test_value_hints_arc_angles();
     failed += test_value_hints_curve_angles();
     failed += test_path_keywords_completable();
+    failed += test_key_handlers();
 
     if (failed > 0) {
         fprintf(stderr, "\n%d test(s) failed!\n", failed);

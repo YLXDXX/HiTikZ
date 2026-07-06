@@ -498,6 +498,28 @@ inline const QStringList tikzAnchors() {
     return list;
 }
 
+inline const QStringList tikzKeyHandlers() {
+    static const QStringList list = {
+        "style",
+        "default",
+        "code",
+        "append style",
+        "prefix style",
+        "initial",
+        "add",
+        "store in",
+        "estore in",
+        "value required",
+        "value forbidden",
+        "try",
+        "retry",
+        "search also",
+        "cd",
+        "handler",
+    };
+    return list;
+}
+
 inline const QStringList tikzColors() {
     static const QStringList list = {
         "red", "green", "blue", "cyan", "magenta", "yellow", "black",

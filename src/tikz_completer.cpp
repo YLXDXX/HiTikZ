@@ -45,7 +45,12 @@ void TikzCompleter::initCompleters()
     makeCompleter(TkzCtxCmd, cmdWords);
     makeCompleter(TkzCtxBeg, TikzWords::tikzEnvironments());
     makeCompleter(TkzCtxBrk,      TikzWords::tikzOptions());
-    makeCompleter(TkzCtxDot,      TikzWords::tikzAnchors());
+    {
+        QStringList dotWords = TikzWords::tikzAnchors();
+        dotWords << TikzWords::tikzKeyHandlers();
+        dotWords.removeDuplicates();
+        makeCompleter(TkzCtxDot, dotWords);
+    }
     makeCompleter(TkzCtxLib,     {"calc","arrows","shapes","positioning","patterns",
                                 "decorations","intersections","through","angles",
                                 "quotes","math","spy","shadows","fadings","fit",
