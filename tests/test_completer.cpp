@@ -49,6 +49,22 @@ static int test_options_contain_new_entries()
         {"execute at end node", "execute at end node key"},
         {"circular drop shadow", "circular drop shadow key"},
         {"clip", "clip key"},
+        {"end angle", "end angle arc key"},
+        {"delta angle", "delta angle arc key"},
+        {"above=of", "above=of positioning"},
+        {"below=of", "below=of positioning"},
+        {"isosceles triangle", "isosceles triangle shape"},
+        {"semicircle", "semicircle shape"},
+        {"circular sector", "circular sector shape"},
+        {"single arrow", "single arrow shape"},
+        {"double arrow", "double arrow shape"},
+        {"axis z line", "pgfplots axis z line"},
+        {"zmin", "pgfplots zmin"},
+        {"zmax", "pgfplots zmax"},
+        {"ztick", "pgfplots ztick"},
+        {"zticklabels", "pgfplots zticklabels"},
+        {"zstep", "pgfplots zstep"},
+        {"z radius", "z radius for elliptical arcs"},
     };
 
     for (const auto &e : entries) {
@@ -293,6 +309,51 @@ static int test_colors_in_options()
     return failed;
 }
 
+static int test_value_hints_arc_angles()
+{
+    int failed = 0;
+    const auto hints = TikzWords::tikzValueHints();
+
+    bool hasStart = false;
+    bool hasEnd = false;
+    for (const auto &pair : hints) {
+        if (pair.first == QStringLiteral("start angle")) {
+            hasStart = true;
+            if (pair.second.isEmpty()) {
+                fprintf(stderr, "FAIL: VH-SA1 - 'start angle' hints should not be empty\n");
+                failed++;
+            }
+            if (!pair.second.contains(QStringLiteral("90"))) {
+                fprintf(stderr, "FAIL: VH-SA2 - 'start angle' hints should contain 90\n");
+                failed++;
+            }
+        }
+        if (pair.first == QStringLiteral("end angle")) {
+            hasEnd = true;
+            if (pair.second.isEmpty()) {
+                fprintf(stderr, "FAIL: VH-EA1 - 'end angle' hints should not be empty\n");
+                failed++;
+            }
+            if (!pair.second.contains(QStringLiteral("360"))) {
+                fprintf(stderr, "FAIL: VH-EA2 - 'end angle' hints should contain 360\n");
+                failed++;
+            }
+        }
+    }
+
+    if (!hasStart) {
+        fprintf(stderr, "FAIL: VH-SA3 - value hints should contain 'start angle' key\n");
+        failed++;
+    }
+    if (!hasEnd) {
+        fprintf(stderr, "FAIL: VH-EA3 - value hints should contain 'end angle' key\n");
+        failed++;
+    }
+
+    if (failed == 0) fprintf(stderr, "PASS: arc angle value hints\n");
+    return failed;
+}
+
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
@@ -307,6 +368,7 @@ int main(int argc, char *argv[])
     failed += test_all_completable_words_no_duplicates();
     failed += test_arrow_specs_not_duplicated();
     failed += test_colors_in_options();
+    failed += test_value_hints_arc_angles();
 
     if (failed > 0) {
         fprintf(stderr, "\n%d test(s) failed!\n", failed);

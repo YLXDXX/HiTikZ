@@ -327,6 +327,7 @@ inline const QStringList tikzOptions() {
         "radius", "rectangle",
         "regular polygon", "regular polygon sides",
         "remember picture", "right color", "right delimiter", "right=of",
+        "above=of", "below=of",
         "rotate", "rotate around", "rounded corners",
         "row sep",
         "samples", "scale", "scale around",
@@ -335,7 +336,7 @@ inline const QStringList tikzOptions() {
         "sibling distance",
         "sloped", "smooth", "solid",
         "star", "star point height", "star point ratio",
-        "start", "start angle",
+        "start", "start angle", "end angle", "delta angle",
         "stealth", "step",
         "tension", "text", "text centered",
         "text depth", "text height", "text opacity",
@@ -348,7 +349,7 @@ inline const QStringList tikzOptions() {
         "xscale", "xshift", "xslant", "xstep", "xtick", "xticklabels",
         "y", "y radius", "ylabel", "ymax", "ymin",
         "yscale", "yshift", "yslant", "ystep", "ytick", "yticklabels",
-        "z", "zlabel",
+        "z", "z radius", "zlabel",
 
         // ── pgfplots axis ──
         "ymode", "zmode",
@@ -368,8 +369,9 @@ inline const QStringList tikzOptions() {
         "minor tick num",
         "enlargelimits",
         "width", "height",
-        "axis x line", "axis y line",
+        "axis x line", "axis y line", "axis z line",
         "axis line style",
+        "zmin", "zmax", "ztick", "zticklabels", "zstep",
 
         // ── CircuitikZ keys (verified from pgfcircbipoles.tex) ──
         "american", "european",
@@ -439,6 +441,8 @@ inline const QStringList tikzOptions() {
         // ── More node shapes ──
         "coordinate", "rectangle split", "rectangle split parts",
         "circle split",
+        "isosceles triangle", "semicircle", "circular sector",
+        "single arrow", "double arrow",
 
         // ── More alignment / text ──
         "text ragged", "text badly ragged", "text badly centered",
@@ -639,6 +643,10 @@ inline QVector<WordPair> tikzValueHints() {
         {"bend left", {"90","60","45","30","15"}},
         {"bend right", {"90","60","45","30","15"}},
         {"bend angle", {"90","60","45","30","15"}},
+
+        // ── Arc ──
+        {"start angle", {"0","30","45","60","90","120","135","150","180","210","225","240","270","300","315","330"}},
+        {"end angle", {"0","30","45","60","90","120","135","150","180","210","225","240","270","300","315","330","360"}},
 
         // ── Rotation ──
         {"rotate", {"90","180","270","45","60","30","15"}},
