@@ -76,6 +76,11 @@ static int test_options_contain_new_entries()
         {"dash dot dot", "dash dot dot line type"},
         {"densely dash dot", "densely dash dot line type"},
         {"densely dash dot dot", "densely dash dot dot line type"},
+        {"name path", "intersections name path"},
+        {"name intersections", "intersections compute"},
+        {"of", "intersections of key"},
+        {"by", "intersections by key"},
+        {"sort by", "intersections sort by"},
     };
 
     for (const auto &e : entries) {

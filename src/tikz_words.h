@@ -464,6 +464,11 @@ inline const QStringList tikzOptions() {
         // ── Path construction keywords ──
         "controls", "parabola",
 
+        // ── Intersections library (\\usetikzlibrary{intersections}) ──
+        "name path", "name path global",
+        "name intersections",
+        "of", "by", "sort by", "total",
+
         // ── Named colors (valid as direct bracket keys, e.g. \\draw[red]) ──
         "red", "green", "blue", "cyan", "magenta", "yellow",
         "black", "white", "gray", "darkgray", "lightgray",
