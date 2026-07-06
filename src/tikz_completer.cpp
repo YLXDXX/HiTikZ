@@ -189,6 +189,27 @@ TikzCompleter::Context TikzCompleter::detectContext(const QString &textBefore) c
     }
 
     {
+        int dotIdx = text.lastIndexOf('.');
+        if (dotIdx >= 0 && dotIdx < len - 1) {
+            QChar beforeDot = text.at(dotIdx - 1);
+            if (beforeDot.isLetterOrNumber() || beforeDot == '/') {
+                QString afterDot = text.mid(dotIdx + 1);
+                bool allWordChars = true;
+                for (const QChar &c : afterDot) {
+                    if (c.isSpace())
+                        break;
+                    if (!c.isLetterOrNumber() && c != '_' && c != '-') {
+                        allWordChars = false;
+                        break;
+                    }
+                }
+                if (allWordChars && afterDot.length() >= 1)
+                    return TkzCtxDot;
+            }
+        }
+    }
+
+    {
         int atCount = text.count("@@");
         if (atCount > 0 && atCount % 2 == 1)
             return TkzCtxAt;
