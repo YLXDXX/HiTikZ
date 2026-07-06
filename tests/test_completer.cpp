@@ -68,6 +68,8 @@ static int test_options_contain_new_entries()
         {"out", "out curve angle"},
         {"in looseness", "in looseness curve key"},
         {"out looseness", "out looseness curve key"},
+        {"controls", "Bezier control points"},
+        {"parabola", "parabola path operation"},
     };
 
     for (const auto &e : entries) {
@@ -402,6 +404,31 @@ static int test_value_hints_curve_angles()
     return failed;
 }
 
+static int test_path_keywords_completable()
+{
+    int failed = 0;
+    QStringList words = TikzWords::allCompletableWords();
+
+    const char *pathKeywords[] = {
+        "cycle", "controls", "parabola",
+        "rectangle", "ellipse", "grid",
+        "circle", "arc", "node", "coordinate",
+        "sin", "cos", "plot", "to", "edge",
+        "closedcycle", nullptr
+    };
+
+    for (int i = 0; pathKeywords[i] != nullptr; i++) {
+        if (!words.contains(QString::fromLatin1(pathKeywords[i]), Qt::CaseInsensitive)) {
+            fprintf(stderr, "FAIL: PK-%d - allCompletableWords() should contain '%s'\n",
+                    i + 1, pathKeywords[i]);
+            failed++;
+        }
+    }
+
+    if (failed == 0) fprintf(stderr, "PASS: all path construction keywords completable\n");
+    return failed;
+}
+
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
@@ -418,6 +445,7 @@ int main(int argc, char *argv[])
     failed += test_colors_in_options();
     failed += test_value_hints_arc_angles();
     failed += test_value_hints_curve_angles();
+    failed += test_path_keywords_completable();
 
     if (failed > 0) {
         fprintf(stderr, "\n%d test(s) failed!\n", failed);

@@ -457,6 +457,9 @@ inline const QStringList tikzOptions() {
         "circular drop shadow",
         "clip",
 
+        // ── Path construction keywords ──
+        "controls", "parabola",
+
         // ── Named colors (valid as direct bracket keys, e.g. \\draw[red]) ──
         "red", "green", "blue", "cyan", "magenta", "yellow",
         "black", "white", "gray", "darkgray", "lightgray",
