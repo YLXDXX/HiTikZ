@@ -269,6 +269,30 @@ static int test_arrow_specs_not_duplicated()
     return failed;
 }
 
+static int test_colors_in_options()
+{
+    int failed = 0;
+    const QStringList opts = TikzWords::tikzOptions();
+
+    const char *colors[] = {
+        "red", "green", "blue", "cyan", "magenta", "yellow",
+        "black", "white", "gray", "darkgray", "lightgray",
+        "brown", "lime", "olive", "orange", "pink", "purple",
+        "teal", "violet", nullptr
+    };
+
+    for (int i = 0; colors[i] != nullptr; i++) {
+        if (!opts.contains(QString::fromLatin1(colors[i]))) {
+            fprintf(stderr, "FAIL: COL-%d - tikzOptions() should contain color '%s'\n",
+                    i + 1, colors[i]);
+            failed++;
+        }
+    }
+
+    if (failed == 0) fprintf(stderr, "PASS: all 19 named colors in tikzOptions\n");
+    return failed;
+}
+
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
@@ -282,6 +306,7 @@ int main(int argc, char *argv[])
     failed += test_detect_context();
     failed += test_all_completable_words_no_duplicates();
     failed += test_arrow_specs_not_duplicated();
+    failed += test_colors_in_options();
 
     if (failed > 0) {
         fprintf(stderr, "\n%d test(s) failed!\n", failed);

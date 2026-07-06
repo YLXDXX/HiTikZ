@@ -451,6 +451,12 @@ inline const QStringList tikzOptions() {
         "execute at begin node", "execute at end node",
         "circular drop shadow",
         "clip",
+
+        // ── Named colors (valid as direct bracket keys, e.g. \\draw[red]) ──
+        "red", "green", "blue", "cyan", "magenta", "yellow",
+        "black", "white", "gray", "darkgray", "lightgray",
+        "brown", "lime", "olive", "orange", "pink", "purple",
+        "teal", "violet",
     };
     return list;
 }
