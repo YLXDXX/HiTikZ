@@ -346,7 +346,7 @@ inline const QStringList tikzOptions() {
         "tension", "text", "text centered",
         "text depth", "text height", "text opacity",
         "text width",
-        "thick", "thin", "tight", "to path", "top color",
+        "thick", "thin", "tight", "to path", "bottom color", "top color",
         "transform canvas", "transform shape",
         "ultra thick", "ultra thin",
         "very thick", "very thin", "visible on",

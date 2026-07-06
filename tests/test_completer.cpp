@@ -110,7 +110,7 @@ static int test_options_existing_entries_preserved()
         "arrow", "bend left", "bend right",
         "coordinate", "circle", "rectangle",
         "grid", "grid style",
-        "help lines",
+        "help lines", "top color", "bottom color",
         nullptr
     };
 
