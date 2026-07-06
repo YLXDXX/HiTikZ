@@ -70,6 +70,12 @@ static int test_options_contain_new_entries()
         {"out looseness", "out looseness curve key"},
         {"controls", "Bezier control points"},
         {"parabola", "parabola path operation"},
+        {"densely dashed", "densely dashed line type"},
+        {"densely dotted", "densely dotted line type"},
+        {"dash dot", "dash dot line type"},
+        {"dash dot dot", "dash dot dot line type"},
+        {"densely dash dot", "densely dash dot line type"},
+        {"densely dash dot dot", "densely dash dot dot line type"},
     };
 
     for (const auto &e : entries) {
