@@ -5,6 +5,7 @@
 #include <QKeyEvent>
 #include <QTextCursor>
 #include <QRegularExpression>
+#include <QWindow>
 
 TikzCompleter::TikzCompleter(QPlainTextEdit *editor, QObject *parent)
     : QObject(parent), m_editor(editor)
@@ -24,7 +25,16 @@ void TikzCompleter::initCompleters()
         comp->setCompletionMode(QCompleter::PopupCompletion);
         comp->setCaseSensitivity(Qt::CaseInsensitive);
         comp->setMaxVisibleItems(12);
-        comp->popup()->setMinimumWidth(200);
+
+        QAbstractItemView *popup = comp->popup();
+        popup->setMinimumWidth(200);
+
+        popup->winId();
+        if (auto *popupHandle = popup->windowHandle()) {
+            if (auto *editorHandle = m_editor->window()->windowHandle()) {
+                popupHandle->setTransientParent(editorHandle);
+            }
+        }
 
         m_completers[ctx] = comp;
     };
@@ -357,6 +367,12 @@ void TikzCompleter::tryComplete()
     if (!m_completers.contains(ctx)) return;
 
     QCompleter *comp = m_completers[ctx];
+
+    if (ctx != m_activeContext && m_activeContext != TkzCtxNone) {
+        if (m_completers.contains(m_activeContext))
+            m_completers[m_activeContext]->popup()->hide();
+    }
+
     m_activeContext = ctx;
 
     QString oldPrefix = comp->completionPrefix();
