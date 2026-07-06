@@ -191,7 +191,12 @@ TikzCompleter::Context TikzCompleter::detectContext(const QString &textBefore) c
         else if (ch == '[' && braceDepth == 0) {
             if (bracketDepth > 0) bracketDepth--;
             else {
-                // Check if this bracket belongs to a command
+                QString afterBracket = text.mid(i + 1);
+                int eqIdx = afterBracket.lastIndexOf('=');
+                int commaIdx = afterBracket.lastIndexOf(',');
+                if (eqIdx >= 0 && (commaIdx < 0 || commaIdx <= eqIdx))
+                    return TkzCtxEq;
+
                 static const QRegularExpression cmdRe(QStringLiteral("\\\\([a-zA-Z@]+)"));
                 QString beforeBracket = text.left(i);
                 QRegularExpressionMatch m = cmdRe.match(beforeBracket);
