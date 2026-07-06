@@ -155,3 +155,11 @@ add_executable(test_fixes
 )
 target_link_libraries(test_fixes PRIVATE Qt6::Core)
 add_test(NAME Fixes COMMAND test_fixes)
+
+add_executable(test_completer
+    tests/test_completer.cpp
+    src/tikz_completer.cpp
+)
+target_include_directories(test_completer PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_completer PRIVATE Qt6::Widgets)
+add_test(NAME Completer COMMAND test_completer)

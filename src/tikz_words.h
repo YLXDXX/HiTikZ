@@ -2,6 +2,7 @@
 #include <QStringList>
 #include <QVector>
 #include <QPair>
+#include <QSet>
 
 namespace TikzWords {
 
@@ -426,9 +427,30 @@ inline const QStringList tikzOptions() {
         "loop above", "loop below", "loop left", "loop right",
         "every state",
 
+        // ── Arrow specifications (verified PGF/TikZ keys) ──
+        "->", "<-", "<->",
+
+        // ── Predefined styles ──
+        "help lines",
+        "every picture", "every label", "every pin",
+        "every to", "every scope",
+        "label position",
+
         // ── More node shapes ──
         "coordinate", "rectangle split", "rectangle split parts",
         "circle split",
+
+        // ── More alignment / text ──
+        "text ragged", "text badly ragged", "text badly centered",
+
+        // ── More joins / caps ──
+        "miter limit",
+
+        // ── More misc ──
+        "no draw", "no fill", "reset cm",
+        "execute at begin node", "execute at end node",
+        "circular drop shadow",
+        "clip",
     };
     return list;
 }
@@ -571,10 +593,20 @@ inline QVector<WordPair> tikzValueHints() {
         // ── Arrows ──
         {"arrow", tikzArrowValues()},
         {"-", tikzArrowValues()},
+        {">", tikzArrowValues()},
+        {">=", tikzArrowValues()},
         {"mark", {"*", "x", "+", "-", "|", "o", "asterisk", "star",
                   "oplus", "otimes", "square", "square*",
                   "triangle", "triangle*", "diamond", "diamond*",
                   "pentagon", "pentagon*", "text", "none"}},
+
+        // ── Patterns ──
+        {"pattern", {"horizontal lines", "vertical lines",
+                     "north east lines", "north west lines",
+                     "crosshatch", "crosshatch dots",
+                     "bricks", "checkerboard",
+                     "grid", "dots", "fivepointed stars",
+                     "sixpointed stars"}},
 
         // ── Line widths ──
         {"line width", tikzLineWidthValues()},
@@ -650,12 +682,26 @@ inline QVector<WordPair> tikzValueHints() {
 
 inline QStringList allCompletableWords() {
     QStringList result;
-    result << tikzCommands() << tikzOptions() << tikzAnchors()
-           << tikzColors() << tikzArrows()
-           << tikzLineTypes() << tikzLineWidths()
-           << tikzMathFunctions() << tikzArrowValues()
-           << tikzLineWidthValues();
-    result.removeDuplicates();
+    QSet<QString> seen;
+    auto appendUnique = [&](const QStringList &words) {
+        for (const QString &w : words) {
+            QString lower = w.toLower();
+            if (!seen.contains(lower)) {
+                seen.insert(lower);
+                result << w;
+            }
+        }
+    };
+    appendUnique(tikzCommands());
+    appendUnique(tikzOptions());
+    appendUnique(tikzAnchors());
+    appendUnique(tikzColors());
+    appendUnique(tikzArrows());
+    appendUnique(tikzLineTypes());
+    appendUnique(tikzLineWidths());
+    appendUnique(tikzMathFunctions());
+    appendUnique(tikzArrowValues());
+    appendUnique(tikzLineWidthValues());
     result.sort(Qt::CaseInsensitive);
     return result;
 }
