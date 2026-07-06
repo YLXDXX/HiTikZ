@@ -65,6 +65,9 @@ static int test_options_contain_new_entries()
         {"zticklabels", "pgfplots zticklabels"},
         {"zstep", "pgfplots zstep"},
         {"z radius", "z radius for elliptical arcs"},
+        {"out", "out curve angle"},
+        {"in looseness", "in looseness curve key"},
+        {"out looseness", "out looseness curve key"},
     };
 
     for (const auto &e : entries) {
@@ -354,6 +357,43 @@ static int test_value_hints_arc_angles()
     return failed;
 }
 
+static int test_value_hints_curve_angles()
+{
+    int failed = 0;
+    const auto hints = TikzWords::tikzValueHints();
+
+    bool hasIn = false;
+    bool hasOut = false;
+    for (const auto &pair : hints) {
+        if (pair.first == QStringLiteral("in")) {
+            hasIn = true;
+            if (pair.second.isEmpty()) {
+                fprintf(stderr, "FAIL: VH-CA1 - 'in' hints should not be empty\n");
+                failed++;
+            }
+        }
+        if (pair.first == QStringLiteral("out")) {
+            hasOut = true;
+            if (pair.second.isEmpty()) {
+                fprintf(stderr, "FAIL: VH-CA2 - 'out' hints should not be empty\n");
+                failed++;
+            }
+        }
+    }
+
+    if (!hasIn) {
+        fprintf(stderr, "FAIL: VH-CA3 - value hints should contain 'in' key\n");
+        failed++;
+    }
+    if (!hasOut) {
+        fprintf(stderr, "FAIL: VH-CA4 - value hints should contain 'out' key\n");
+        failed++;
+    }
+
+    if (failed == 0) fprintf(stderr, "PASS: curve angle value hints (in/out)\n");
+    return failed;
+}
+
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
@@ -369,6 +409,7 @@ int main(int argc, char *argv[])
     failed += test_arrow_specs_not_duplicated();
     failed += test_colors_in_options();
     failed += test_value_hints_arc_angles();
+    failed += test_value_hints_curve_angles();
 
     if (failed > 0) {
         fprintf(stderr, "\n%d test(s) failed!\n", failed);

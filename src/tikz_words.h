@@ -306,7 +306,8 @@ inline const QStringList tikzOptions() {
         "fill", "fill opacity",
         "font", "fontsize",
         "grow", "grow cyclic",
-        "in", "inner color", "inner sep", "inner xsep", "inner ysep",
+        "in", "out", "in looseness", "out looseness",
+        "inner color", "inner sep", "inner xsep", "inner ysep",
         "join", "join round",
         "label",
         "late options", "left color", "left delimiter", "left=of",
@@ -647,6 +648,10 @@ inline QVector<WordPair> tikzValueHints() {
         // ── Arc ──
         {"start angle", {"0","30","45","60","90","120","135","150","180","210","225","240","270","300","315","330"}},
         {"end angle", {"0","30","45","60","90","120","135","150","180","210","225","240","270","300","315","330","360"}},
+
+        // ── Curve to-path ──
+        {"in", {"0","30","45","60","90","120","135","150","180","-135","-120","-90","-60","-45","-30"}},
+        {"out", {"0","30","45","60","90","120","135","150","180","-135","-120","-90","-60","-45","-30"}},
 
         // ── Rotation ──
         {"rotate", {"90","180","270","45","60","30","15"}},
