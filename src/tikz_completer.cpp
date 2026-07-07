@@ -79,10 +79,13 @@ void TikzCompleter::initCompleters()
         "shapes.gates.logic.IEC","shapes.gates.logic.US"
     });
 
+    QStringList arrowVals = TikzWords::tikzArrows();
+    arrowVals.erase(std::remove_if(arrowVals.begin(), arrowVals.end(),
+        [](const QString &s) { return s.contains(' '); }), arrowVals.end());
     QStringList valueWords;
     valueWords << TikzWords::tikzColors()
                << TikzWords::tikzLineWidths()
-               << TikzWords::tikzArrows()
+               << arrowVals
                << TikzWords::tikzLineTypes()
                << TikzWords::tikzLineWidthValues();
     makeCompleter(TkzCtxEq, valueWords);
@@ -293,8 +296,10 @@ QStringList TikzCompleter::buildBrkCandidates(Context /*ctx*/)
         auto arrKws = TikzKeywords::TikzKeywordDB::instance().filter(
             env, cmdName, m_docState->activeLibs(),
             TikzKeywords::Category::Arrow);
-        for (auto *kw : arrKws)
-            candidates << kw->name;
+        for (auto *kw : arrKws) {
+            if (!kw->name.contains(' '))
+                candidates << kw->name;
+        }
 
         auto decKws = TikzKeywords::TikzKeywordDB::instance().filter(
             env, cmdName, m_docState->activeLibs(),
@@ -339,7 +344,12 @@ void TikzCompleter::updateEqModel(const QString &keyName)
 
     vals << TikzWords::tikzColors();
     vals << TikzWords::tikzLineWidths();
-    vals << TikzWords::tikzArrows();
+    {
+        auto arrVals = TikzWords::tikzArrows();
+        arrVals.erase(std::remove_if(arrVals.begin(), arrVals.end(),
+            [](const QString &s) { return s.contains(' '); }), arrVals.end());
+        vals << arrVals;
+    }
     vals << TikzWords::tikzLineTypes();
     vals << TikzWords::tikzLineWidthValues();
     vals.removeDuplicates();
