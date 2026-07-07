@@ -161,6 +161,7 @@ private:
     bool m_clipboardSvgPending = false;
     int m_loadingDepth = 0;
     int m_userCodeStartLine = 1;
+    QString m_lastSavedCode;
     QMap<QString, QMap<QString, QString>> m_perSnippetParamValues;
     int m_previewTotal = 0;
     QAtomicInt m_batchCompleted{0};

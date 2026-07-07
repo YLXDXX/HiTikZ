@@ -276,6 +276,10 @@ void MainWindow::setEditorForTab(int index)
         tikzLibrariesEdit->clear();
         loadPreviewForSnippet(QString());
         clearParams();
+        if (CodeEditor *ed = currentEditor())
+            m_lastSavedCode = ed->toPlainText();
+        else
+            m_lastSavedCode.clear();
     } else {
         Snippet s = snippetMgr->loadSnippet(sid);
         if (!s.id.isEmpty()) {
@@ -290,6 +294,7 @@ void MainWindow::setEditorForTab(int index)
                 if (ti >= 0) templateCombo->setCurrentIndex(ti);
             }
             loadPreviewForSnippet(sid);
+            m_lastSavedCode = s.code;
         }
     }
 
@@ -1606,6 +1611,7 @@ void MainWindow::loadSnippetIntoEditor(const QString &id)
 
     loadPreviewForSnippet(id);
 
+    m_lastSavedCode = s.code;
     m_loadingDepth--;
     performParseParams();
 }
@@ -1632,6 +1638,8 @@ void MainWindow::saveCurrentSnippet()
     s.tags = tags;
     snippetMgr->saveSnippet(s);
 
+    m_lastSavedCode = ed->toPlainText();
+
     int tabIdx = findTabForSnippet(currentSnippetId);
     if (tabIdx >= 0)
         tabWidget->setTabText(tabIdx, s.name.isEmpty() ? currentSnippetId.left(8) : s.name);
@@ -1648,8 +1656,16 @@ void MainWindow::onCurrentSnippetChanged()
             QString title = nameEdit->text().isEmpty()
                 ? QStringLiteral("未命名")
                 : nameEdit->text();
-            if (!title.endsWith(QStringLiteral(" *")))
-                title += QStringLiteral(" *");
+
+            bool isDirty = (ed->toPlainText() != m_lastSavedCode);
+
+            if (isDirty) {
+                if (!title.endsWith(QStringLiteral(" *")))
+                    title += QStringLiteral(" *");
+            } else {
+                if (title.endsWith(QStringLiteral(" *")))
+                    title.chop(2);
+            }
             tabWidget->setTabText(tabIdx, title);
         }
     }
