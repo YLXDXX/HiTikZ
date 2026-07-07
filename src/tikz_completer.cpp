@@ -367,8 +367,7 @@ void TikzCompleter::updateUserModels()
     for (const auto &n : m_docState->userNodes())
         coords << n;
     coords.removeDuplicates();
-    if (!coords.isEmpty())
-        setModelForContext(TkzCtxCoord, coords);
+    setModelForContext(TkzCtxCoord, coords);
 
     // Update TkzCtxUserCmd with user commands and foreach variables
     QStringList ucmds;
@@ -377,8 +376,7 @@ void TikzCompleter::updateUserModels()
     for (const auto &v : m_docState->foreachVars())
         ucmds << (QLatin1String("\\") + v);
     ucmds.removeDuplicates();
-    if (!ucmds.isEmpty())
-        setModelForContext(TkzCtxUserCmd, ucmds);
+    setModelForContext(TkzCtxUserCmd, ucmds);
 
     // Merge user commands into TkzCtxCmd so they appear alongside standard
     QStringList allCmds;

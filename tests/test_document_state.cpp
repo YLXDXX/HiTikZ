@@ -129,6 +129,51 @@ static int test_foreach_variable_parsing()
     return failed;
 }
 
+static int test_foreach_spaces_around_slash()
+{
+    int failed = 0;
+    QTextDocument doc;
+    doc.setPlainText(
+        "\\foreach \\xyz / \\xtext in {-1,-0.5/-\\frac{1}{2},0.5/\\frac{1}{2},1} {\n"
+        "  \\draw (\\xyz,1pt) -- (\\xyz,-1pt) node [anchor=north,fill=white] { $\\xtext$ } ;\n"
+        "}\n");
+    TikzDocumentState state;
+    state.reparse(&doc);
+    const auto &vars = state.foreachVars();
+    if (!vars.contains("xyz")) {
+        fprintf(stderr, "FAIL: DCS-FS1 - 'xyz' should be in foreach vars (space before /)\n");
+        failed++;
+    }
+    if (!vars.contains("xtext")) {
+        fprintf(stderr, "FAIL: DCS-FS2 - 'xtext' should be in foreach vars (space after /)\n");
+        failed++;
+    }
+    if (failed == 0) fprintf(stderr, "PASS: foreach with spaces around /\n");
+    return failed;
+}
+
+static int test_foreach_multiple_vars()
+{
+    int failed = 0;
+    QTextDocument doc;
+    doc.setPlainText(
+        "\\foreach \\a/\\b/\\c in {1/2/3, 4/5/6} {\n"
+        "  \\node at (\\a,\\b) {\\c};\n"
+        "}\n"
+        "\\foreach \\p / \\q / \\r in {x/y/z} { (\\p,\\q) -- (\\r,0); }\n");
+    TikzDocumentState state;
+    state.reparse(&doc);
+    const auto &vars = state.foreachVars();
+    if (!vars.contains("a")) { fprintf(stderr, "FAIL: DCS-FM1 - 'a' should be in foreach vars\n"); failed++; }
+    if (!vars.contains("b")) { fprintf(stderr, "FAIL: DCS-FM2 - 'b' should be in foreach vars\n"); failed++; }
+    if (!vars.contains("c")) { fprintf(stderr, "FAIL: DCS-FM3 - 'c' should be in foreach vars\n"); failed++; }
+    if (!vars.contains("p")) { fprintf(stderr, "FAIL: DCS-FM4 - 'p' should be in foreach vars\n"); failed++; }
+    if (!vars.contains("q")) { fprintf(stderr, "FAIL: DCS-FM5 - 'q' should be in foreach vars\n"); failed++; }
+    if (!vars.contains("r")) { fprintf(stderr, "FAIL: DCS-FM6 - 'r' should be in foreach vars\n"); failed++; }
+    if (failed == 0) fprintf(stderr, "PASS: foreach with multiple variables\n");
+    return failed;
+}
+
 static int test_color_parsing()
 {
     int failed = 0;
@@ -291,6 +336,8 @@ int main(int argc, char *argv[])
     failed += test_user_style_parsing();
     failed += test_coordinate_node_parsing();
     failed += test_foreach_variable_parsing();
+    failed += test_foreach_spaces_around_slash();
+    failed += test_foreach_multiple_vars();
     failed += test_color_parsing();
     failed += test_user_command_parsing();
     failed += test_current_env_name();

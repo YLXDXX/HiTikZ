@@ -169,23 +169,24 @@ void TikzHighlighter::applyUserHighlights(const QString &text)
             highlightWord(text, node, m_nodeNameFormat);
     }
 
-    // Highlight foreach variables
-    for (const QString &var : m_docState->foreachVars()) {
-        static const QRegularExpression varRe(
-            QStringLiteral("\\\\[a-zA-Z]+"));
-        // Only highlight variables preceded by backslash
-        int searchPos = 0;
-        while (searchPos < text.length()) {
-            int idx = text.indexOf("\\" + var, searchPos);
-            if (idx < 0) break;
-            int end = idx + 1 + var.length();
-            // Check word boundary
-            if (end >= text.length() || !text.at(end).isLetter()) {
-                setFormat(idx, end - idx, m_foreachVarFormat);
+        // Highlight foreach variables
+        for (const QString &var : m_docState->foreachVars()) {
+            static const QRegularExpression varRe(
+                QStringLiteral("\\\\[a-zA-Z]+"));
+            // Only highlight variables preceded by backslash
+            int searchPos = 0;
+            while (searchPos < text.length()) {
+                int idx = text.indexOf("\\" + var, searchPos);
+                if (idx < 0) break;
+                int end = idx + 1 + var.length();
+                // Check word boundary
+                if (end >= text.length() || !text.at(end).isLetter()) {
+                    if (format(idx).foreground() != m_commentFormat.foreground())
+                        setFormat(idx, end - idx, m_foreachVarFormat);
+                }
+                searchPos = end;
             }
-            searchPos = end;
         }
-    }
 
     // Highlight user commands
     for (const QString &cmd : m_docState->userCommands()) {
@@ -215,8 +216,10 @@ void TikzHighlighter::highlightWord(const QString &text, const QString &word,
         bool leftOk = (idx == 0 || !text.at(idx - 1).isLetterOrNumber());
         bool rightOk = (idx + word.length() >= text.length()
                         || !text.at(idx + word.length()).isLetterOrNumber());
-        if (leftOk && rightOk)
-            setFormat(idx, word.length(), fmt);
+        if (leftOk && rightOk) {
+            if (format(idx).foreground() != m_commentFormat.foreground())
+                setFormat(idx, word.length(), fmt);
+        }
         searchPos = idx + 1;
     }
 }

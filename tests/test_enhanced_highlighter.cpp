@@ -1,5 +1,7 @@
 #include <QApplication>
 #include <QTextDocument>
+#include <QTextBlock>
+#include <QTextLayout>
 #include "tikz_highlighter.h"
 #include "tikz_document_state.h"
 #include <cstdio>
@@ -222,6 +224,86 @@ static int test_combined_rules()
     return failed;
 }
 
+static int test_foreach_vars_with_spaces()
+{
+    int failed = 0;
+    QTextDocument doc;
+    doc.setPlainText(
+        "\\foreach \\xyz / \\xtext in {-1,-0.5/-\\frac{1}{2},0.5/\\frac{1}{2},1} {\n"
+        "  \\draw (\\xyz,1pt) -- (\\xyz,-1pt) node { $\\xtext$ } ;\n"
+        "}\n");
+
+    TikzDocumentState state;
+    state.reparse(&doc);
+
+    const auto &vars = state.foreachVars();
+    if (!vars.contains("xyz")) {
+        fprintf(stderr, "FAIL: HL-FS1 - xyz should be in foreach vars\n");
+        failed++;
+    }
+    if (!vars.contains("xtext")) {
+        fprintf(stderr, "FAIL: HL-FS2 - xtext should be in foreach vars\n");
+        failed++;
+    }
+
+    TikzHighlighter hl(&doc);
+    hl.setDocumentState(&state);
+    hl.rehighlight();
+
+    fprintf(stderr, "PASS: foreach vars with spaces around /\n");
+    return failed;
+}
+
+static bool isCommentFormat(const QTextCharFormat &fmt)
+{
+    return fmt.foreground().color() == QColor(150, 150, 150);
+}
+
+static int test_comment_not_overwritten_by_user_highlights()
+{
+    int failed = 0;
+    QTextDocument doc;
+    doc.setPlainText(
+        "\\tikzset{mystyle/.style={draw}}\n"
+        "\\coordinate (A) at (0,0);\n"
+        "\\foreach \\x in {1,2,3} {\n"
+        "  \\draw (\\x,0) -- (\\x,1); % mystyle A \\x here\n"
+        "}\n");
+
+    TikzDocumentState state;
+    state.reparse(&doc);
+
+    TikzHighlighter hl(&doc);
+    hl.setDocumentState(&state);
+    hl.rehighlight();
+
+    QTextBlock block = doc.findBlockByNumber(3);
+    QTextLayout *layout = block.layout();
+
+    QVector<QTextLayout::FormatRange> ranges = layout->formats();
+
+    int commentStart = block.text().indexOf('%');
+
+    for (const auto &r : ranges) {
+        if (r.start >= commentStart && commentStart > 0) {
+            if (!isCommentFormat(r.format)) {
+                if (r.format.foreground() != QColor(150, 150, 150)) {
+                    fprintf(stderr, "FAIL: HL-CP1 - format at %d (inside comment) should be comment format, got R=%d G=%d B=%d\n",
+                            r.start,
+                            r.format.foreground().color().red(),
+                            r.format.foreground().color().green(),
+                            r.format.foreground().color().blue());
+                    failed++;
+                    break;
+                }
+            }
+        }
+    }
+
+    if (failed == 0) fprintf(stderr, "PASS: comment not overwritten by user highlights\n");
+    return failed;
+}
+
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
@@ -237,6 +319,8 @@ int main(int argc, char *argv[])
     failed += test_key_value_highlight();
     failed += test_multiline_comment();
     failed += test_combined_rules();
+    failed += test_foreach_vars_with_spaces();
+    failed += test_comment_not_overwritten_by_user_highlights();
 
     if (failed > 0) {
         fprintf(stderr, "\n%d test(s) failed!\n", failed);

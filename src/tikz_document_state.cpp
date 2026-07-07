@@ -14,7 +14,7 @@ TikzDocumentState::TikzDocumentState()
     m_coordinateRe = QRegularExpression(
         QStringLiteral("\\\\coordinate\\s*(?:\\[[^\\]]*\\]\\s*)?\\(([^)]+)\\)"));
     m_foreachRe = QRegularExpression(
-        QStringLiteral("\\\\foreach\\s+\\\\([a-zA-Z]+)(?:/\\\\([a-zA-Z]+))?\\s+in"));
+        QStringLiteral("\\\\foreach\\s+((?:\\\\[a-zA-Z]+\\s*(?:/\\s*)?)+)in"));
     m_newcmdRe = QRegularExpression(
         QStringLiteral("\\\\(?:new|renew|provide)command\\*?\\s*\\{?\\\\([a-zA-Z@]+)"));
     m_defRe = QRegularExpression(QStringLiteral("\\\\def\\s*\\\\([a-zA-Z]+)"));
@@ -212,13 +212,18 @@ void TikzDocumentState::parseLine(const QString &text, int blockStartPos,
                 continue;
             }
 
-            // \foreach \var in ...
+            // \foreach \var / \var2 in ...
             QRegularExpressionMatch fe = m_foreachRe.match(text, pos);
             if (fe.hasMatch() && fe.capturedStart() == pos) {
-                QString var1 = fe.captured(1);
-                QString var2 = fe.captured(2);
-                if (!var1.isEmpty()) m_foreachVars.insert(var1);
-                if (!var2.isEmpty()) m_foreachVars.insert(var2);
+                QString varsStr = fe.captured(1);
+                static const QRegularExpression varExtractRe(QStringLiteral("\\\\([a-zA-Z]+)"));
+                QRegularExpressionMatchIterator vit = varExtractRe.globalMatch(varsStr);
+                while (vit.hasNext()) {
+                    QRegularExpressionMatch vm = vit.next();
+                    QString varName = vm.captured(1);
+                    if (!varName.isEmpty())
+                        m_foreachVars.insert(varName);
+                }
                 pos = fe.capturedEnd();
                 continue;
             }

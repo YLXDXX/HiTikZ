@@ -459,6 +459,34 @@ static int test_path_keywords_completable()
     return failed;
 }
 
+static int test_model_clearing_on_empty_list()
+{
+    int failed = 0;
+
+    QPlainTextEdit editor;
+    TikzCompleter completer(&editor);
+
+    QStringList vals = {"coordA", "coordB"};
+    completer.setModelForContext(TikzCompleter::TkzCtxCoord, vals);
+
+    QCompleter *qcomp = nullptr;
+    {
+        QPlainTextEdit e2;
+        TikzCompleter c2(&e2);
+        c2.setModelForContext(TikzCompleter::TkzCtxCoord, vals);
+    }
+
+    completer.setModelForContext(TikzCompleter::TkzCtxCoord, QStringList());
+
+    QStringList vals2 = {"\\cmdA", "\\cmdB"};
+    completer.setModelForContext(TikzCompleter::TkzCtxUserCmd, vals2);
+
+    completer.setModelForContext(TikzCompleter::TkzCtxUserCmd, QStringList());
+
+    fprintf(stderr, "PASS: model clearing on empty list\n");
+    return failed;
+}
+
 static int test_key_handlers()
 {
     int failed = 0;
@@ -523,6 +551,7 @@ int main(int argc, char *argv[])
     failed += test_value_hints_curve_angles();
     failed += test_value_hints_angles_library();
     failed += test_path_keywords_completable();
+    failed += test_model_clearing_on_empty_list();
     failed += test_key_handlers();
 
     if (failed > 0) {
