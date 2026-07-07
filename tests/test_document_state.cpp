@@ -235,6 +235,53 @@ static int test_circuitikz_scope()
     return failed;
 }
 
+static int test_style_with_spaces()
+{
+    int failed = 0;
+    QTextDocument doc;
+    doc.setPlainText(
+        "\\tikzset{\n"
+        "  test lines/.style={color=#1!20,very thin},\n"
+        "  test lines/.default=red,\n"
+        "  my box/.style={draw, thick},\n"
+        "}\n");
+    TikzDocumentState state;
+    state.reparse(&doc);
+    const auto &styles = state.userStyles();
+    if (!styles.contains("test lines")) {
+        fprintf(stderr, "FAIL: DCS-SW1 - 'test lines' with space should be detected\n");
+        failed++;
+    }
+    if (!styles.contains("my box")) {
+        fprintf(stderr, "FAIL: DCS-SW2 - 'my box' with space should be detected\n");
+        failed++;
+    }
+    if (failed == 0) fprintf(stderr, "PASS: style names with spaces\n");
+    return failed;
+}
+
+static int test_pic_name_detection()
+{
+    int failed = 0;
+    QTextDocument doc;
+    doc.setPlainText(
+        "\\pic (alpha) [angle radius=0.5cm] {right angle = A--B--C};\n"
+        "\\pic[red] (beta) at (0,0) {mypic};\n");
+    TikzDocumentState state;
+    state.reparse(&doc);
+    const auto &nodes = state.userNodes();
+    if (!nodes.contains("alpha")) {
+        fprintf(stderr, "FAIL: DCS-PN1 - 'alpha' from \\pic should be detected\n");
+        failed++;
+    }
+    if (!nodes.contains("beta")) {
+        fprintf(stderr, "FAIL: DCS-PN2 - 'beta' from \\pic should be detected\n");
+        failed++;
+    }
+    if (failed == 0) fprintf(stderr, "PASS: \\pic name detection\n");
+    return failed;
+}
+
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
@@ -249,6 +296,8 @@ int main(int argc, char *argv[])
     failed += test_current_env_name();
     failed += test_snippet_libraries();
     failed += test_circuitikz_scope();
+    failed += test_style_with_spaces();
+    failed += test_pic_name_detection();
     if (failed > 0) { fprintf(stderr, "\n%d test(s) failed!\n", failed); return 1; }
     fprintf(stderr, "\nAll TikzDocumentState tests passed!\n");
     return 0;

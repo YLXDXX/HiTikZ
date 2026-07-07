@@ -19,9 +19,11 @@ TikzDocumentState::TikzDocumentState()
         QStringLiteral("\\\\(?:new|renew|provide)command\\*?\\s*\\{?\\\\([a-zA-Z@]+)"));
     m_defRe = QRegularExpression(QStringLiteral("\\\\def\\s*\\\\([a-zA-Z]+)"));
     m_nodeRe = QRegularExpression(
-        QStringLiteral("\\\\node(?:\\[[^\\]]*\\])?\\s*(?:\\(([^)]+)\\))?"));
+        QStringLiteral("\\\\(?:node|pic)\\s*(?:\\[[^\\]]*\\]\\s*)?"
+                       "(?:at\\s*\\([^)]*\\)\\s*)?\\(([^)]+)\\)"));
     m_styleInTikzsetRe = QRegularExpression(
-        QStringLiteral("(\\w+)/\\.(style|code|pic|append style|prefix style)\\s*=\\s*\\{"));
+        QStringLiteral("([\\w\\s]+)/\\.(style|code|pic|append style|prefix style)"
+                       "\\s*=\\s*\\{"));
     m_commentRe = QRegularExpression(QStringLiteral("%"));
 
     m_tikzEnvSet = {
@@ -268,7 +270,7 @@ void TikzDocumentState::parseLine(const QString &text, int blockStartPos,
     QRegularExpressionMatchIterator sit = m_styleInTikzsetRe.globalMatch(text);
     while (sit.hasNext()) {
         QRegularExpressionMatch sm = sit.next();
-        QString sName = sm.captured(1);
+        QString sName = sm.captured(1).trimmed();
         QString kind = sm.captured(2);
         if (kind == QLatin1String("pic"))
             m_userPics.insert(sName);

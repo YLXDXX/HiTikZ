@@ -3,6 +3,7 @@
 #include "snippet_manager.h"
 #include "latex_compiler.h"
 #include "code_editor.h"
+#include "tikz_document_state.h"
 #include "settings_dialog.h"
 #ifdef HAS_KGLOBALACCEL
 #include "kde_global_shortcut.h"
@@ -1571,6 +1572,26 @@ void MainWindow::loadSnippetIntoEditor(const QString &id)
 
     currentSnippetId = id;
     createNewTab(id, s.code, s.name.isEmpty() ? id.left(8) : s.name);
+
+    // Pass snippet libraries to the editor's document state for completion/highlighting
+    {
+        CodeEditor *editor = currentEditor();
+        if (editor && editor->documentState()) {
+            QStringList libs;
+            if (!s.tikzLibraries.isEmpty()) {
+                for (const QString &lib : s.tikzLibraries.split(',', Qt::SkipEmptyParts))
+                    libs << lib.trimmed();
+            }
+            editor->documentState()->setSnippetLibraries(libs);
+            QStringList pkgs;
+            if (!s.packages.isEmpty()) {
+                for (const QString &pkg : s.packages.split(',', Qt::SkipEmptyParts))
+                    pkgs << pkg.trimmed();
+            }
+            editor->documentState()->setSnippetPackages(pkgs);
+            editor->reparseDocumentState();
+        }
+    }
 
     nameEdit->setText(s.name);
     descEdit->setPlainText(s.description);
