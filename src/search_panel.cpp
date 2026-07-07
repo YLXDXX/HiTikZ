@@ -659,15 +659,19 @@ void SearchPanel::showThumbnailContextMenu(const QPoint &pos)
                     refreshCategoryTree();
                 }
 
-                // Restore the category tree visual selection — must be done
-                // outside the signal blocker so the view repaints the highlight.
+                // Defer tree selection restore — expandAll() triggers internal
+                // layout updates that can overwrite a synchronous setCurrentIndex.
                 if (!savedCategory.isEmpty()) {
-                    m_suppressSelectEmit = true;
-                    QList<QStandardItem*> found = categoryModel->findItems(
-                        savedCategory, Qt::MatchExactly | Qt::MatchRecursive, Qt::UserRole);
-                    if (!found.isEmpty())
-                        categoryTree->setCurrentIndex(found.first()->index());
-                    m_suppressSelectEmit = false;
+                    QTimer::singleShot(0, this, [this, savedCategory]() {
+                        m_suppressSelectEmit = true;
+                        QList<QStandardItem*> found = categoryModel->findItems(
+                            savedCategory,
+                            Qt::MatchExactly | Qt::MatchRecursive,
+                            Qt::UserRole);
+                        if (!found.isEmpty())
+                            categoryTree->setCurrentIndex(found.first()->index());
+                        m_suppressSelectEmit = false;
+                    });
                 }
 
                 // Supply the category directly to bypass any tree selection timing issues
