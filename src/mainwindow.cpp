@@ -659,8 +659,22 @@ void MainWindow::setupUI()
         QLineEdit *nmEdit = new QLineEdit;
         QLineEdit *ctEdit = new QLineEdit;
         ctEdit->setPlaceholderText(QStringLiteral("如: 数学/几何"));
+
+        QComboBox *tplCombo = new QComboBox;
+        QString tplDir = SettingsDialog::templateDir();
+        QDir d(tplDir);
+        QStringList tplFiles = d.entryList(QStringList() << "*.tex", QDir::Files);
+        for (const QString &f : tplFiles) {
+            QString tid = QFileInfo(f).completeBaseName();
+            tplCombo->addItem(tid, tid);
+        }
+        int defaultTplIdx = tplCombo->findData(QStringLiteral("default_math"));
+        if (defaultTplIdx >= 0)
+            tplCombo->setCurrentIndex(defaultTplIdx);
+
         form->addRow(QStringLiteral("片段名称:"), nmEdit);
         form->addRow(QStringLiteral("分类:"), ctEdit);
+        form->addRow(QStringLiteral("模板:"), tplCombo);
         QDialogButtonBox *btnBox = new QDialogButtonBox(
             QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
         form->addRow(btnBox);
@@ -668,6 +682,9 @@ void MainWindow::setupUI()
         connect(btnBox, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);
         if (dlg.exec() == QDialog::Accepted && !nmEdit->text().isEmpty()) {
             QString id = snippetMgr->createSnippet(nmEdit->text(), ctEdit->text());
+            Snippet s = snippetMgr->loadSnippet(id);
+            s.templateId = tplCombo->currentData().toString();
+            snippetMgr->saveSnippet(s);
             refreshSearch();
             refreshCategoryTree();
             loadSnippetIntoEditor(id);
