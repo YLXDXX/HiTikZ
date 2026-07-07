@@ -13,6 +13,7 @@
 #include <QDataStream>
 #include <QDropEvent>
 #include <QEvent>
+#include <QResizeEvent>
 #include <QFileInfo>
 #include <QDir>
 #include <QApplication>
@@ -351,8 +352,6 @@ void SearchPanel::refreshTagFilter()
 
     existingLayout->addWidget(m_tagButtonContainer);
 
-    m_tagButtonContainer->installEventFilter(this);
-
     if (m_tagCollapseTimer)
         m_tagCollapseTimer->start();
 }
@@ -674,8 +673,14 @@ bool SearchPanel::eventFilter(QObject *obj, QEvent *event)
         }
     }
     if (obj == m_tagButtonContainer && event->type() == QEvent::Resize) {
-        if (m_tagCollapseTimer)
-            m_tagCollapseTimer->start();
+        // No-op: resize-driven collapse is handled in resizeEvent()
     }
     return QWidget::eventFilter(obj, event);
+}
+
+void SearchPanel::resizeEvent(QResizeEvent *event)
+{
+    QWidget::resizeEvent(event);
+    if (m_tagCollapseTimer && !m_inTagCollapse)
+        m_tagCollapseTimer->start();
 }
