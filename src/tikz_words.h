@@ -502,8 +502,6 @@ inline const QStringList tikzAnchors() {
         "tap", "tap down", "tap up",
         "v+", "v-",
         "tip",
-        "left", "right",
-        "center", "north", "south", "east", "west",
     };
     return list;
 }
