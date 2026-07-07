@@ -206,6 +206,8 @@ TikzCompleter::Context TikzCompleter::detectContext(const QString &textBefore) c
             if (bracketDepth > 0) bracketDepth--;
             else {
                 QString afterBracket = textBefore.mid(i + 1);
+                if (afterBracket.contains(']'))
+                    continue;
                 int eqIdx = afterBracket.lastIndexOf('=');
                 int commaIdx = afterBracket.lastIndexOf(',');
                 if (eqIdx >= 0 && (commaIdx < 0 || commaIdx <= eqIdx))
@@ -326,22 +328,21 @@ void TikzCompleter::updateBrkModel()
 
 void TikzCompleter::updateEqModel(const QString &keyName)
 {
-    // Look up value hints from keyword DB
     QStringList vals;
     const auto *kw = TikzKeywords::TikzKeywordDB::instance().find(
         keyName, TikzKeywords::Category::Option);
-    if (kw && !kw->valueHints.isEmpty()) {
+    if (kw && !kw->valueHints.isEmpty())
         vals = kw->valueHints;
-    } else {
-        vals = TikzKeywords::TikzKeywordDB::instance().valueHintsFor(keyName);
-    }
-    if (vals.isEmpty()) {
-        vals = TikzWords::tikzColors();
-        vals << TikzWords::tikzLineWidths();
-        vals << TikzWords::tikzArrows();
-        vals << TikzWords::tikzLineTypes();
-        vals << TikzWords::tikzLineWidthValues();
-    }
+
+    QStringList extraHints = TikzKeywords::TikzKeywordDB::instance().valueHintsFor(keyName);
+    vals << extraHints;
+
+    vals << TikzWords::tikzColors();
+    vals << TikzWords::tikzLineWidths();
+    vals << TikzWords::tikzArrows();
+    vals << TikzWords::tikzLineTypes();
+    vals << TikzWords::tikzLineWidthValues();
+    vals.removeDuplicates();
     setModelForContext(TkzCtxEq, vals);
 }
 
@@ -446,15 +447,12 @@ void TikzCompleter::tryComplete()
     case TkzCtxEq: {
         int eqIdx = textBefore.lastIndexOf('=');
         if (eqIdx >= 0) {
-            QString afterEq = textBefore.mid(eqIdx + 1).trimmed();
-            if (!afterEq.isEmpty()) {
-                QString beforeKey = textBefore.left(eqIdx).trimmed();
-                int keyStart = beforeKey.lastIndexOf(',');
-                if (keyStart < 0) keyStart = beforeKey.lastIndexOf('[');
-                QString keyName = beforeKey.mid(keyStart + 1).trimmed();
-                updateEqModel(keyName);
-            }
-            prefix = afterEq;
+            QString beforeKey = textBefore.left(eqIdx).trimmed();
+            int keyStart = beforeKey.lastIndexOf(',');
+            if (keyStart < 0) keyStart = beforeKey.lastIndexOf('[');
+            QString keyName = beforeKey.mid(keyStart + 1).trimmed();
+            updateEqModel(keyName);
+            prefix = textBefore.mid(eqIdx + 1).trimmed();
         }
         break;
     }

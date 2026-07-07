@@ -223,7 +223,8 @@ void CodeEditor::performHighlightCurrentLine()
         QTextCursor findCursor(doc);
 
         while (!findCursor.isNull() && !findCursor.atEnd()) {
-            findCursor = doc->find(word, findCursor, QTextDocument::FindCaseSensitively);
+            findCursor = doc->find(word, findCursor, QTextDocument::FindCaseSensitively
+                                    | QTextDocument::FindWholeWords);
             if (!findCursor.isNull()) {
                 QTextEdit::ExtraSelection wordSel;
                 wordSel.format.setBackground(wordColor);
