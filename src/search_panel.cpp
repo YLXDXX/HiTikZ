@@ -661,18 +661,25 @@ void SearchPanel::showThumbnailContextMenu(const QPoint &pos)
 
                 // Defer tree selection restore — expandAll() triggers internal
                 // layout updates that can overwrite a synchronous setCurrentIndex.
-                if (!savedCategory.isEmpty()) {
-                    QTimer::singleShot(0, this, [this, savedCategory]() {
-                        m_suppressSelectEmit = true;
-                        QList<QStandardItem*> found = categoryModel->findItems(
-                            savedCategory,
-                            Qt::MatchExactly | Qt::MatchRecursive,
-                            Qt::UserRole);
-                        if (!found.isEmpty())
-                            categoryTree->setCurrentIndex(found.first()->index());
-                        m_suppressSelectEmit = false;
-                    });
-                }
+                //
+                // NOTE: findItems(text, flags, column) treats its 3rd parameter
+                // as column number, not role. Passing Qt::UserRole (256) means
+                // searching column 256 of a 1-column model, always returning
+                // empty. Use match() instead to search by Qt::UserRole.
+                QTimer::singleShot(0, this, [this, savedCategory]() {
+                    m_suppressSelectEmit = true;
+                    QModelIndexList found = categoryModel->match(
+                        categoryModel->index(0, 0),
+                        Qt::UserRole,
+                        savedCategory,
+                        1,
+                        Qt::MatchExactly | Qt::MatchRecursive);
+                    if (!found.isEmpty()) {
+                        categoryTree->setCurrentIndex(found.first());
+                        categoryTree->scrollTo(found.first());
+                    }
+                    m_suppressSelectEmit = false;
+                });
 
                 // Supply the category directly to bypass any tree selection timing issues
                 m_pendingCatFilter = savedCategory;

@@ -125,6 +125,7 @@ add_executable(test_multitab
     src/flow_layout.cpp
     src/snippet_manager.cpp
     src/latex_compiler.cpp
+    src/tikz_keywords.cpp
 )
 target_include_directories(test_multitab PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_multitab PRIVATE Qt6::Widgets Qt6::Pdf Qt6::PdfWidgets Qt6::Concurrent)
