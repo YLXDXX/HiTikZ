@@ -176,3 +176,12 @@ add_executable(test_document_state
 target_include_directories(test_document_state PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_document_state PRIVATE Qt6::Widgets)
 add_test(NAME DocumentState COMMAND test_document_state)
+
+add_executable(test_enhanced_highlighter
+    tests/test_enhanced_highlighter.cpp
+    src/tikz_highlighter.cpp
+    src/tikz_document_state.cpp
+)
+target_include_directories(test_enhanced_highlighter PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_enhanced_highlighter PRIVATE Qt6::Widgets)
+add_test(NAME EnhancedHighlighter COMMAND test_enhanced_highlighter)

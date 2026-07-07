@@ -37,6 +37,7 @@ CodeEditor::CodeEditor(QWidget *parent)
 
     m_docState = new TikzDocumentState();
     m_completer->setDocumentState(m_docState);
+    m_highlighter->setDocumentState(m_docState);
 
     m_reparseTimer = new QTimer(this);
     m_reparseTimer->setSingleShot(true);
@@ -61,8 +62,11 @@ TikzDocumentState *CodeEditor::documentState() const
 
 void CodeEditor::reparseDocumentState()
 {
-    if (m_docState)
+    if (m_docState) {
         m_docState->reparse(document());
+        if (m_highlighter)
+            m_highlighter->rehighlight();
+    }
 }
 
 void CodeEditor::refreshParamWords(const QStringList &params)
