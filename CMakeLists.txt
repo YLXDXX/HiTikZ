@@ -46,6 +46,7 @@ add_executable(TikzManager
     src/tikz_highlighter.cpp
     src/tikz_completer.cpp
     src/tikz_keywords.cpp
+    src/tikz_document_state.cpp
     src/settings_dialog.cpp
     src/search_panel.cpp
     src/snippet_properties_dialog.cpp
@@ -162,7 +163,16 @@ add_executable(test_completer
     tests/test_completer.cpp
     src/tikz_completer.cpp
     src/tikz_keywords.cpp
+    src/tikz_document_state.cpp
 )
 target_include_directories(test_completer PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_completer PRIVATE Qt6::Widgets)
 add_test(NAME Completer COMMAND test_completer)
+
+add_executable(test_document_state
+    tests/test_document_state.cpp
+    src/tikz_document_state.cpp
+)
+target_include_directories(test_document_state PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_document_state PRIVATE Qt6::Widgets)
+add_test(NAME DocumentState COMMAND test_document_state)
