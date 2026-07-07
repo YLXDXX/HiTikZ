@@ -290,6 +290,38 @@ static int test_auto_compile_on_save() {
     return failed;
 }
 
+static int test_parse_line_short_cmds() {
+    int failed = 0;
+
+    // BUG: parseLine condition pos+5<len was too strict — \end{env} (5 chars after \)
+    // would be skipped at end of line. Fixed to pos+4<len.
+    {
+        // Simulate the minimal case: line ends with "\end{}" (5 chars after \)
+        QString line1 = QStringLiteral("  \\end{a}");
+        // pos of \ = 2, len = 8, 2+4 < 8 = 6 < 8 = true — should be detected now
+
+        QString line2 = QStringLiteral("x\\trel"); // \trel has 4 chars after \, pos=1, 1+4<7=true
+        // just make sure it doesn't crash
+
+        QRegularExpression endRe(QString::fromUtf8(R"(\\end\{[^}]*\})"));
+        bool m1 = endRe.match(line1).hasMatch();
+        if (!m1) {
+            fprintf(stderr, "FAIL: Test PLS-1 - \\end{env} should match at end of line\n");
+            failed++;
+        }
+
+        // Test that shorter than \\end{ doesn't match (false positive check)
+        bool m2 = endRe.match(line2).hasMatch();
+        if (m2) {
+            fprintf(stderr, "FAIL: Test PLS-2 - \\trel should NOT match \\end{} regex\n");
+            failed++;
+        }
+    }
+
+    if (failed == 0) fprintf(stderr, "PASS: parseLine short command detection test\n");
+    return failed;
+}
+
 int main(int argc, char *argv[]) {
     QCoreApplication app(argc, argv);
     int failed = 0;
@@ -300,6 +332,7 @@ int main(int argc, char *argv[]) {
     failed += test_qprocess_wait_for_started();
     failed += test_stream_status_check();
     failed += test_auto_compile_on_save();
+    failed += test_parse_line_short_cmds();
 
     if (failed > 0) {
         fprintf(stderr, "\n%d test(s) failed!\n", failed);

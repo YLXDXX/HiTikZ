@@ -735,6 +735,11 @@ QStringList SnippetManager::importSnippetsZip(const QString &zipPath)
             Snippet newSnip;
             newSnip.id = newId;
             newSnip.name = subDir;
+            QFile texFile(destDir + "snippet.tex");
+            if (texFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+                newSnip.code = QString::fromUtf8(texFile.readAll());
+                texFile.close();
+            }
             saveSnippet(newSnip);
         }
 

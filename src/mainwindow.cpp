@@ -1207,7 +1207,7 @@ void MainWindow::setupUI()
     connect(copyFullAct, &QAction::triggered, this, copyFullDocument);
 
     auto copyPngFromCurrentPreview = [this]() {
-        if (m_clipboardPngPending) return;
+        if (m_clipboardPngPending || m_clipboardSvgPending) return;
         QString pdfPath;
         if (!currentSnippetId.isEmpty()) {
             pdfPath = snippetDataPath(currentSnippetId) + "/preview.pdf";
@@ -1235,7 +1235,7 @@ void MainWindow::setupUI()
     };
 
     auto copySvgFromCurrentPreview = [this]() {
-        if (m_clipboardSvgPending) return;
+        if (m_clipboardSvgPending || m_clipboardPngPending) return;
         QString pdfPath;
         if (!currentSnippetId.isEmpty()) {
             pdfPath = snippetDataPath(currentSnippetId) + "/preview.pdf";
@@ -1811,7 +1811,7 @@ void MainWindow::savePreviewData(const QString &pdfPath, const QString &snippetI
     timeout->start(15000);
     QStringList args;
     args << "-png" << "-r" << QString::number(kPreviewDpi) << "-singlefile" << pdfPath << (basePath + "/preview");
-    pngProc->start("pdftocairo", args);
+    pngProc->start(compiler->pdfToCairoCommand(), args);
 }
 
 void MainWindow::loadPreviewForSnippet(const QString &id)
@@ -1865,7 +1865,8 @@ void MainWindow::generateAllPreviews()
 
     for (const Snippet &s : all) {
         m_batchSubmitted.fetchAndAddRelaxed(1);
-        QThreadPool::globalInstance()->start([this, s] {
+        QString basePath = snippetDataPath(s.id);
+        QThreadPool::globalInstance()->start([this, s, basePath] {
             if (m_batchCancelFlag.loadRelaxed()) {
                 QMetaObject::invokeMethod(this, "onBatchTaskFinished", Qt::QueuedConnection,
                     Q_ARG(Snippet, s), Q_ARG(bool, false), Q_ARG(QString, QString()),
@@ -1883,7 +1884,6 @@ void MainWindow::generateAllPreviews()
                 s.packages, s.tikzLibraries, kBatchCompileTimeoutMs, pdfPath, log, s.compileCommand);
 
             if (ok && !pdfPath.isEmpty()) {
-                QString basePath = snippetDataPath(s.id);
                 QString previewPdf = basePath + "/preview.pdf";
                 if (QFile::exists(previewPdf))
                     QFile::remove(previewPdf);
@@ -1893,7 +1893,7 @@ void MainWindow::generateAllPreviews()
                 QStringList args;
                 args << "-png" << "-r" << QString::number(kPreviewDpi) << "-singlefile"
                      << pdfPath << (basePath + "/preview");
-                pngProc.start("pdftocairo", args);
+                pngProc.start(localCompiler.pdfToCairoCommand(), args);
                 pngProc.waitForFinished(10000);
             }
 
@@ -2425,7 +2425,8 @@ void MainWindow::performAutoSave()
         QString draftDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/drafts/";
         QDir().mkpath(draftDir);
 
-        QString draftPath = draftDir + (sid.isEmpty() ? "scratch" : sid) + ".json";
+        QString draftPath = draftDir + (sid.isEmpty()
+            ? QStringLiteral("scratch_%1").arg(i) : sid) + ".json";
 
         QJsonObject obj;
         obj["snippetId"] = sid;
@@ -2458,8 +2459,16 @@ void MainWindow::performAutoSave()
 void MainWindow::clearDraft()
 {
     QString draftDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/drafts/";
-    QString draftPath = draftDir + (currentSnippetId.isEmpty() ? "scratch" : currentSnippetId) + ".json";
-    QFile::remove(draftPath);
+    if (currentSnippetId.isEmpty()) {
+        for (int i = 0; i < tabWidget->count(); ++i) {
+            if (tabWidget->currentIndex() == i) {
+                QFile::remove(draftDir + QStringLiteral("scratch_%1.json").arg(i));
+                break;
+            }
+        }
+    } else {
+        QFile::remove(draftDir + currentSnippetId + ".json");
+    }
 }
 
 void MainWindow::clearAllDrafts()

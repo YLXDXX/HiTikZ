@@ -50,6 +50,11 @@ CodeEditor::CodeEditor(QWidget *parent)
     setMouseTracking(true);
 }
 
+CodeEditor::~CodeEditor()
+{
+    delete m_docState;
+}
+
 TikzCompleter *CodeEditor::completer() const
 {
     return m_completer;

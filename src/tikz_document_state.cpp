@@ -106,7 +106,7 @@ void TikzDocumentState::parseLine(const QString &text, int blockStartPos,
         if (ch == QLatin1Char(']')) { if (bracketDepth > 0) bracketDepth--; pos++; continue; }
         if (ch == QLatin1Char('%') && braceDepth == 0 && bracketDepth == 0) return;
 
-        if (ch == QLatin1Char('\\') && pos + 5 < len) {
+        if (ch == QLatin1Char('\\') && pos + 4 < len) {
             // \begin{...}
             QRegularExpressionMatch bm = m_beginRe.match(text, pos);
             if (bm.hasMatch() && bm.capturedStart() == pos) {
