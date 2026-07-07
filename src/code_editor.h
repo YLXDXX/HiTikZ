@@ -1,10 +1,12 @@
 #pragma once
 #include <QPlainTextEdit>
 #include <QWidget>
+#include <QTimer>
 
 class LineNumberArea;
 class TikzHighlighter;
 class TikzCompleter;
+class TikzDocumentState;
 
 class CodeEditor : public QPlainTextEdit {
     Q_OBJECT
@@ -15,11 +17,12 @@ public:
     int lineNumberAreaWidth();
 
     TikzCompleter *completer() const;
+    TikzDocumentState *documentState() const;
 
 public slots:
     void highlightCurrentLine();
-
     void refreshParamWords(const QStringList &params);
+    void reparseDocumentState();
 
 protected:
     void resizeEvent(QResizeEvent *event) override;
@@ -35,8 +38,10 @@ private:
     QWidget *lineNumberArea;
     TikzHighlighter *m_highlighter;
     TikzCompleter *m_completer;
+    TikzDocumentState *m_docState;
     bool m_focusInProgress = false;
     QTimer *m_highlightDebounceTimer = nullptr;
+    QTimer *m_reparseTimer = nullptr;
 
     void performHighlightCurrentLine();
 };

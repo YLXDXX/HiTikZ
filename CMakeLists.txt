@@ -45,6 +45,8 @@ add_executable(TikzManager
     src/code_editor.cpp
     src/tikz_highlighter.cpp
     src/tikz_completer.cpp
+    src/tikz_keywords.cpp
+    src/tikz_document_state.cpp
     src/settings_dialog.cpp
     src/search_panel.cpp
     src/snippet_properties_dialog.cpp
@@ -124,6 +126,8 @@ add_executable(test_multitab
     src/flow_layout.cpp
     src/snippet_manager.cpp
     src/latex_compiler.cpp
+    src/tikz_keywords.cpp
+    src/tikz_document_state.cpp
 )
 target_include_directories(test_multitab PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_multitab PRIVATE Qt6::Widgets Qt6::Pdf Qt6::PdfWidgets Qt6::Concurrent)
@@ -159,7 +163,26 @@ add_test(NAME Fixes COMMAND test_fixes)
 add_executable(test_completer
     tests/test_completer.cpp
     src/tikz_completer.cpp
+    src/tikz_keywords.cpp
+    src/tikz_document_state.cpp
 )
 target_include_directories(test_completer PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_completer PRIVATE Qt6::Widgets)
 add_test(NAME Completer COMMAND test_completer)
+
+add_executable(test_document_state
+    tests/test_document_state.cpp
+    src/tikz_document_state.cpp
+)
+target_include_directories(test_document_state PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_document_state PRIVATE Qt6::Widgets)
+add_test(NAME DocumentState COMMAND test_document_state)
+
+add_executable(test_enhanced_highlighter
+    tests/test_enhanced_highlighter.cpp
+    src/tikz_highlighter.cpp
+    src/tikz_document_state.cpp
+)
+target_include_directories(test_enhanced_highlighter PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_enhanced_highlighter PRIVATE Qt6::Widgets)
+add_test(NAME EnhancedHighlighter COMMAND test_enhanced_highlighter)
