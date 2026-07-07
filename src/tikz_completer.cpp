@@ -370,12 +370,29 @@ void TikzCompleter::updateUserModels()
     if (!coords.isEmpty())
         setModelForContext(TkzCtxCoord, coords);
 
-    // Update TkzCtxUserCmd with user commands
+    // Update TkzCtxUserCmd with user commands and foreach variables
     QStringList ucmds;
     for (const auto &c : m_docState->userCommands())
         ucmds << c;
+    for (const auto &v : m_docState->foreachVars())
+        ucmds << (QLatin1String("\\") + v);
+    ucmds.removeDuplicates();
     if (!ucmds.isEmpty())
         setModelForContext(TkzCtxUserCmd, ucmds);
+
+    // Merge user commands into TkzCtxCmd so they appear alongside standard
+    QStringList allCmds;
+    for (const QString &c : TikzWords::tikzCommands())
+        allCmds << (QLatin1String("\\") + c);
+    allCmds << ucmds;
+    allCmds.removeDuplicates();
+    setModelForContext(TkzCtxCmd, allCmds);
+
+    // Also update TkzCtxWord so foreach vars appear when typing \xyz
+    QStringList wordModel = TikzWords::allCompletableWords();
+    wordModel << ucmds;
+    wordModel.removeDuplicates();
+    setModelForContext(TkzCtxWord, wordModel);
 
     // Merge user styles into TkzCtxBrk
     updateBrkModel();
@@ -493,6 +510,17 @@ void TikzCompleter::tryComplete()
     }
     default:
         break;
+    }
+
+    if (ctx == TkzCtxWord) {
+        int sl = textBefore.lastIndexOf(QLatin1Char('\\'));
+        if (sl >= 0 && sl < static_cast<int>(textBefore.length()) - 1) {
+            QString afterS = textBefore.mid(sl);
+            if (!afterS.isEmpty() && afterS.at(1).isLetter()) {
+                ctx = TkzCtxUserCmd;
+                prefix = afterS;
+            }
+        }
     }
 
     if (!m_completers.contains(ctx)) return;
