@@ -224,11 +224,17 @@ void SearchPanel::refreshSearch()
     int scrollValue = thumbnailList->verticalScrollBar()
         ? thumbnailList->verticalScrollBar()->value() : 0;
 
-    // Category filter
+    // Category filter: use explicit override if set, otherwise read from tree
     QString currentCat;
-    QModelIndex catIdx = categoryTree->currentIndex();
-    if (catIdx.isValid())
-        currentCat = catIdx.data(Qt::UserRole).toString();
+    if (m_hasPendingCatFilter) {
+        currentCat = m_pendingCatFilter;
+        m_hasPendingCatFilter = false;
+        m_pendingCatFilter.clear();
+    } else {
+        QModelIndex catIdx = categoryTree->currentIndex();
+        if (catIdx.isValid())
+            currentCat = catIdx.data(Qt::UserRole).toString();
+    }
 
     thumbnailModel->clear();
 
@@ -265,21 +271,25 @@ void SearchPanel::refreshSearch()
         thumbnailModel->appendRow(item);
     }
 
-    // Restore scroll position and selection silently
-    thumbnailList->verticalScrollBar()->setValue(scrollValue);
+    // Restore scroll position and selection — deferred to next event loop
+    // iteration so the view has processed the model reset and laid out items.
+    QTimer::singleShot(0, this, [this, scrollValue, prevSelectedId]() {
+        if (thumbnailList->verticalScrollBar())
+            thumbnailList->verticalScrollBar()->setValue(scrollValue);
 
-    if (!prevSelectedId.isEmpty()) {
-        m_suppressSelectEmit = true;
-        for (int i = 0; i < thumbnailModel->rowCount(); ++i) {
-            QModelIndex idx = thumbnailModel->index(i, 0);
-            if (idx.data(Qt::UserRole).toString() == prevSelectedId) {
-                thumbnailList->selectionModel()->setCurrentIndex(
-                    idx, QItemSelectionModel::ClearAndSelect);
-                break;
+        if (!prevSelectedId.isEmpty()) {
+            m_suppressSelectEmit = true;
+            for (int i = 0; i < thumbnailModel->rowCount(); ++i) {
+                QModelIndex idx = thumbnailModel->index(i, 0);
+                if (idx.data(Qt::UserRole).toString() == prevSelectedId) {
+                    thumbnailList->selectionModel()->setCurrentIndex(
+                        idx, QItemSelectionModel::ClearAndSelect);
+                    break;
+                }
             }
+            m_suppressSelectEmit = false;
         }
-        m_suppressSelectEmit = false;
-    }
+    });
 }
 
 void SearchPanel::refreshTagFilter()
@@ -634,7 +644,8 @@ void SearchPanel::showThumbnailContextMenu(const QPoint &pos)
         if (!id.isEmpty()) {
             SnippetPropertiesDialog dlg(id, snippetMgr, this);
             if (dlg.exec() == QDialog::Accepted) {
-                // Save current category before tree refresh
+                // Save the current category before refreshing the tree,
+                // so we can feed it into refreshSearch directly.
                 QString savedCategory;
                 QModelIndex savedCatIdx = categoryTree->currentIndex();
                 if (savedCatIdx.isValid())
@@ -653,17 +664,10 @@ void SearchPanel::showThumbnailContextMenu(const QPoint &pos)
                         categoryTree->setCurrentIndex(found.first()->index());
                 }
 
+                // Supply the category directly to bypass any tree selection timing issues
+                m_pendingCatFilter = savedCategory;
+                m_hasPendingCatFilter = true;
                 refreshSearch();
-
-                // Refresh后重新选中被编辑的片段（不触发信号）
-                for (int i = 0; i < thumbnailModel->rowCount(); ++i) {
-                    QModelIndex newIdx = thumbnailModel->index(i, 0);
-                    if (newIdx.data(Qt::UserRole).toString() == id) {
-                        thumbnailList->selectionModel()->setCurrentIndex(
-                            newIdx, QItemSelectionModel::ClearAndSelect);
-                        break;
-                    }
-                }
             }
         }
     }

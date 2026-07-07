@@ -67,5 +67,7 @@ private:
     bool m_suppressSelectEmit = false;
     QTimer *m_tagCollapseTimer = nullptr;
     bool m_inTagCollapse = false;
+    QString m_pendingCatFilter;
+    bool m_hasPendingCatFilter = false;
     static const int kMaxTagRows = 2;
 };
