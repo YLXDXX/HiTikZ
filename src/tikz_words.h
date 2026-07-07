@@ -442,6 +442,7 @@ inline const QStringList tikzOptions() {
         "every picture", "every label", "every pin",
         "every to", "every scope",
         "label position",
+        "information text",
 
         // ── More node shapes ──
         "coordinate", "rectangle split", "rectangle split parts",

@@ -83,6 +83,7 @@ static int test_options_contain_new_entries()
         {"sort by", "intersections sort by"},
         {"nonzero rule", "fill rule nonzero"},
         {"even odd rule", "fill rule even odd"},
+        {"information text", "information text style"},
     };
 
     for (const auto &e : entries) {
