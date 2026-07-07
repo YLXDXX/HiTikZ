@@ -404,7 +404,8 @@ void TikzCompleter::tryComplete()
     QString oldPrefix = comp->completionPrefix();
     comp->setCompletionPrefix(prefix);
 
-    if (prefix.isEmpty() && ctx != TkzCtxCmd && ctx != TkzCtxBeg && ctx != TkzCtxLib) {
+    if (prefix.isEmpty() && ctx != TkzCtxCmd && ctx != TkzCtxBeg
+        && ctx != TkzCtxLib && ctx != TkzCtxBrk && ctx != TkzCtxDot) {
         comp->popup()->hide();
         return;
     }
