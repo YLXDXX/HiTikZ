@@ -10,7 +10,7 @@ int main(int argc, char *argv[]) {
 
     app.setOrganizationName("HiTikZ");
     app.setApplicationName("TikzManager");
-    app.setApplicationVersion("1.0");
+    app.setApplicationVersion("0.2");
 
     MainWindow window;
     window.show();
