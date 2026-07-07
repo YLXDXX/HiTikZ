@@ -212,6 +212,24 @@ void SearchPanel::applyUIFont(const QFont &font)
 void SearchPanel::refreshSearch()
 {
     QString query = searchBox->text().trimmed();
+
+    // Remember currently selected snippet to restore after rebuild
+    QString prevSelectedId;
+    QModelIndex prevIdx = thumbnailList->selectionModel()
+        ? thumbnailList->selectionModel()->currentIndex() : QModelIndex();
+    if (prevIdx.isValid())
+        prevSelectedId = prevIdx.data(Qt::UserRole).toString();
+
+    // Remember scroll position
+    int scrollValue = thumbnailList->verticalScrollBar()
+        ? thumbnailList->verticalScrollBar()->value() : 0;
+
+    // Category filter
+    QString currentCat;
+    QModelIndex catIdx = categoryTree->currentIndex();
+    if (catIdx.isValid())
+        currentCat = catIdx.data(Qt::UserRole).toString();
+
     thumbnailModel->clear();
 
     QList<SearchResult> results = snippetMgr->searchSnippets(query);
@@ -227,6 +245,12 @@ void SearchPanel::refreshSearch()
             if (!hasAllTags) continue;
         }
 
+        if (currentCat == "__uncategorized__") {
+            if (!r.snippet.category.isEmpty()) continue;
+        } else if (!currentCat.isEmpty() && !r.snippet.category.startsWith(currentCat)) {
+            continue;
+        }
+
         QString label = r.snippet.isPreset ? QStringLiteral("[预设] ") + r.snippet.name : r.snippet.name;
         QStandardItem *item = new QStandardItem(label);
         item->setData(r.snippet.id, Qt::UserRole);
@@ -239,6 +263,22 @@ void SearchPanel::refreshSearch()
             item->setIcon(icon);
 
         thumbnailModel->appendRow(item);
+    }
+
+    // Restore scroll position and selection silently
+    thumbnailList->verticalScrollBar()->setValue(scrollValue);
+
+    if (!prevSelectedId.isEmpty()) {
+        m_suppressSelectEmit = true;
+        for (int i = 0; i < thumbnailModel->rowCount(); ++i) {
+            QModelIndex idx = thumbnailModel->index(i, 0);
+            if (idx.data(Qt::UserRole).toString() == prevSelectedId) {
+                thumbnailList->selectionModel()->setCurrentIndex(
+                    idx, QItemSelectionModel::ClearAndSelect);
+                break;
+            }
+        }
+        m_suppressSelectEmit = false;
     }
 }
 
