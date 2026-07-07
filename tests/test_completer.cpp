@@ -81,6 +81,8 @@ static int test_options_contain_new_entries()
         {"of", "intersections of key"},
         {"by", "intersections by key"},
         {"sort by", "intersections sort by"},
+        {"nonzero rule", "fill rule nonzero"},
+        {"even odd rule", "fill rule even odd"},
     };
 
     for (const auto &e : entries) {

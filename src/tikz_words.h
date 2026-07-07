@@ -460,6 +460,7 @@ inline const QStringList tikzOptions() {
         "execute at begin node", "execute at end node",
         "circular drop shadow",
         "clip",
+        "nonzero rule", "even odd rule",
 
         // ── Path construction keywords ──
         "controls", "parabola",
