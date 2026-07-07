@@ -1,6 +1,7 @@
 #include "code_editor.h"
 #include "tikz_highlighter.h"
 #include "tikz_completer.h"
+#include "tikz_document_state.h"
 #include <QPainter>
 #include <QTextBlock>
 #include <QKeyEvent>
@@ -34,12 +35,34 @@ CodeEditor::CodeEditor(QWidget *parent)
     connect(m_highlightDebounceTimer, &QTimer::timeout,
             this, &CodeEditor::performHighlightCurrentLine);
 
+    m_docState = new TikzDocumentState();
+    m_completer->setDocumentState(m_docState);
+
+    m_reparseTimer = new QTimer(this);
+    m_reparseTimer->setSingleShot(true);
+    m_reparseTimer->setInterval(300);
+    connect(m_reparseTimer, &QTimer::timeout,
+            this, &CodeEditor::reparseDocumentState);
+    connect(this, &CodeEditor::textChanged,
+            this, [this]() { m_reparseTimer->start(); });
+
     setMouseTracking(true);
 }
 
 TikzCompleter *CodeEditor::completer() const
 {
     return m_completer;
+}
+
+TikzDocumentState *CodeEditor::documentState() const
+{
+    return m_docState;
+}
+
+void CodeEditor::reparseDocumentState()
+{
+    if (m_docState)
+        m_docState->reparse(document());
 }
 
 void CodeEditor::refreshParamWords(const QStringList &params)

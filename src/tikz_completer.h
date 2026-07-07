@@ -5,19 +5,23 @@
 #include <QHash>
 #include <QStringListModel>
 
+class TikzDocumentState;
+
 class TikzCompleter : public QObject {
     Q_OBJECT
 public:
     enum Context {
         TkzCtxNone,
-        TkzCtxCmd,          // after backslash
-        TkzCtxBeg,          // after begin
-        TkzCtxBrk,          // inside brackets
-        TkzCtxDot,          // after dot
-        TkzCtxEq,           // after equals
-        TkzCtxAt,           // after double at
-        TkzCtxLib,          // after uselibrary
-        TkzCtxWord          // typing any known word
+        TkzCtxCmd,
+        TkzCtxBeg,
+        TkzCtxBrk,
+        TkzCtxDot,
+        TkzCtxEq,
+        TkzCtxAt,
+        TkzCtxLib,
+        TkzCtxWord,
+        TkzCtxCoord,
+        TkzCtxUserCmd
     };
 
     explicit TikzCompleter(QPlainTextEdit *editor, QObject *parent = nullptr);
@@ -32,9 +36,14 @@ public:
 
     void setModelForContext(Context ctx, const QStringList &words);
 
+    void setDocumentState(TikzDocumentState *state);
+
 private:
     void initCompleters();
-    void showCompleter(Context ctx, const QPoint &pos, const QString &prefix);
+    void updateBrkModel();
+    void updateEqModel(const QString &keyName);
+    void updateUserModels();
+    QStringList buildBrkCandidates(Context ctx);
 
     QPlainTextEdit *m_editor;
     QHash<Context, QCompleter *> m_completers;
@@ -42,5 +51,5 @@ private:
     Context m_activeContext = TkzCtxNone;
     mutable QString m_lastTextBeforeCursor;
     mutable Context m_lastContext = TkzCtxNone;
+    TikzDocumentState *m_docState = nullptr;
 };
-
