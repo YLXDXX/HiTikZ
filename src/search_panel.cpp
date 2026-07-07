@@ -651,17 +651,23 @@ void SearchPanel::showThumbnailContextMenu(const QPoint &pos)
                 if (savedCatIdx.isValid())
                     savedCategory = savedCatIdx.data(Qt::UserRole).toString();
 
-                const QSignalBlocker thumbBlocker(thumbnailList->selectionModel());
-                const QSignalBlocker catBlocker(categoryTree->selectionModel());
+                // Block signals during tree rebuild to avoid spurious
+                // category-change events that would reset the thumbnail list.
+                {
+                    const QSignalBlocker thumbBlocker(thumbnailList->selectionModel());
+                    const QSignalBlocker catBlocker(categoryTree->selectionModel());
+                    refreshCategoryTree();
+                }
 
-                refreshCategoryTree();
-
-                // Restore category tree selection silently
+                // Restore the category tree visual selection — must be done
+                // outside the signal blocker so the view repaints the highlight.
                 if (!savedCategory.isEmpty()) {
+                    m_suppressSelectEmit = true;
                     QList<QStandardItem*> found = categoryModel->findItems(
                         savedCategory, Qt::MatchExactly | Qt::MatchRecursive, Qt::UserRole);
                     if (!found.isEmpty())
                         categoryTree->setCurrentIndex(found.first()->index());
+                    m_suppressSelectEmit = false;
                 }
 
                 // Supply the category directly to bypass any tree selection timing issues
