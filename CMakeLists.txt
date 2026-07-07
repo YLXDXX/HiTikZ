@@ -45,6 +45,7 @@ add_executable(TikzManager
     src/code_editor.cpp
     src/tikz_highlighter.cpp
     src/tikz_completer.cpp
+    src/tikz_keywords.cpp
     src/settings_dialog.cpp
     src/search_panel.cpp
     src/snippet_properties_dialog.cpp
@@ -159,6 +160,7 @@ add_test(NAME Fixes COMMAND test_fixes)
 add_executable(test_completer
     tests/test_completer.cpp
     src/tikz_completer.cpp
+    src/tikz_keywords.cpp
 )
 target_include_directories(test_completer PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_completer PRIVATE Qt6::Widgets)
