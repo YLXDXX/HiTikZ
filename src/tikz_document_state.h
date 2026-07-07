@@ -73,16 +73,13 @@ public:
 
 private:
     void parseLine(const QString &text, int blockStartPos, int &braceDepth,
-                   int &bracketDepth, bool &inComment);
+                   int &bracketDepth);
 
     void handleBeginScope(const QString &envName, int pos, int braceDepth);
     void handleEndScope(const QString &envName, int pos);
-    void handleCommand(const QString &text, const QString &cmdName,
-                       int cmdStart, int &pos, int bracketDepth);
 
     QRegularExpression m_beginRe;
     QRegularExpression m_endRe;
-    QRegularExpression m_cmdRe;
     QRegularExpression m_uselibRe;
     QRegularExpression m_tikzsetRe;
     QRegularExpression m_tikzstyleRe;
@@ -93,18 +90,19 @@ private:
     QRegularExpression m_newcmdRe;
     QRegularExpression m_defRe;
     QRegularExpression m_nodeRe;
+    QRegularExpression m_styleInTikzsetRe;
     QRegularExpression m_commentRe;
 
     QVector<Scope> m_scopeStack;
     QSet<QString> m_activeLibs;
-    QSet<QString> m_tikzEnvSet;       // all drawing environment names
+    QSet<QString> m_tikzEnvSet;
 
-    QHash<QString, QString> m_userStyles;       // name -> style content
+    QHash<QString, QString> m_userStyles;
     QSet<QString> m_userCoords;
     QSet<QString> m_userNodes;
     QSet<QString> m_foreachVars;
     QSet<QString> m_userCmds;
-    QHash<QString, QStringList> m_colors;       // name -> {model, spec}
+    QHash<QString, QStringList> m_colors;
     QSet<QString> m_userPics;
 
     // Parsed command contexts
