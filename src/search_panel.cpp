@@ -363,17 +363,23 @@ void SearchPanel::applyTagRowCollapse()
 
     m_inTagCollapse = true;
 
+    // Show all tags temporarily to measure the true row count,
+    // avoiding artificial deflation from previously hidden widgets.
+    for (int i = 0; i < m_tagFlowLayout->count(); ++i) {
+        QLayoutItem *it = m_tagFlowLayout->itemAt(i);
+        if (it && it->widget() && it->widget() != m_moreTagsBtn)
+            it->widget()->setVisible(true);
+    }
+
+    m_tagFlowLayout->invalidate();
+    m_tagFlowLayout->activate();
+
     int totalRows = m_tagFlowLayout->rowCount();
     bool needsCollapse = totalRows > kMaxTagRows;
 
     m_moreTagsBtn->setVisible(needsCollapse);
 
     if (!needsCollapse) {
-        for (int i = 0; i < m_tagFlowLayout->count(); ++i) {
-            QLayoutItem *it = m_tagFlowLayout->itemAt(i);
-            if (it && it->widget() && it->widget() != m_moreTagsBtn)
-                it->widget()->setVisible(true);
-        }
         m_inTagCollapse = false;
         return;
     }
@@ -671,9 +677,6 @@ bool SearchPanel::eventFilter(QObject *obj, QEvent *event)
                 return true;
             }
         }
-    }
-    if (obj == m_tagButtonContainer && event->type() == QEvent::Resize) {
-        // No-op: resize-driven collapse is handled in resizeEvent()
     }
     return QWidget::eventFilter(obj, event);
 }
