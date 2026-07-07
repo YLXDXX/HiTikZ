@@ -84,6 +84,10 @@ static int test_options_contain_new_entries()
         {"nonzero rule", "fill rule nonzero"},
         {"even odd rule", "fill rule even odd"},
         {"information text", "information text style"},
+        {"angle radius", "angles library radius"},
+        {"angle eccentricity", "angles library eccentricity"},
+        {"right angle", "angles library right angle pic"},
+        {"pic text", "angles library pic text"},
     };
 
     for (const auto &e : entries) {
@@ -478,6 +482,29 @@ static int test_key_handlers()
     return failed;
 }
 
+static int test_value_hints_angles_library()
+{
+    int failed = 0;
+    const auto hints = TikzWords::tikzValueHints();
+
+    bool hasRadius = false, hasEcc = false;
+    for (const auto &pair : hints) {
+        if (pair.first == QStringLiteral("angle radius")) {
+            hasRadius = true;
+            if (pair.second.isEmpty()) { fprintf(stderr, "FAIL: VH-AG1\n"); failed++; }
+        }
+        if (pair.first == QStringLiteral("angle eccentricity")) {
+            hasEcc = true;
+            if (pair.second.isEmpty()) { fprintf(stderr, "FAIL: VH-AG2\n"); failed++; }
+        }
+    }
+    if (!hasRadius) { fprintf(stderr, "FAIL: VH-AG3\n"); failed++; }
+    if (!hasEcc)    { fprintf(stderr, "FAIL: VH-AG4\n"); failed++; }
+
+    if (failed == 0) fprintf(stderr, "PASS: angles library value hints\n");
+    return failed;
+}
+
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
@@ -494,6 +521,7 @@ int main(int argc, char *argv[])
     failed += test_colors_in_options();
     failed += test_value_hints_arc_angles();
     failed += test_value_hints_curve_angles();
+    failed += test_value_hints_angles_library();
     failed += test_path_keywords_completable();
     failed += test_key_handlers();
 

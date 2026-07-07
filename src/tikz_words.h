@@ -474,6 +474,10 @@ inline const QStringList tikzOptions() {
         "name intersections",
         "of", "by", "sort by", "total",
 
+        // ── Angles library (\\usetikzlibrary{angles}) ──
+        "angle radius", "angle eccentricity",
+        "right angle", "pic text",
+
         // ── Named colors (valid as direct bracket keys, e.g. \\draw[red]) ──
         "red", "green", "blue", "cyan", "magenta", "yellow",
         "black", "white", "gray", "darkgray", "lightgray",
@@ -685,6 +689,11 @@ inline QVector<WordPair> tikzValueHints() {
         // ── Arc ──
         {"start angle", {"0","30","45","60","90","120","135","150","180","210","225","240","270","300","315","330"}},
         {"end angle", {"0","30","45","60","90","120","135","150","180","210","225","240","270","300","315","330","360"}},
+
+        // ── Angles library ──
+        {"angle radius", {"0.3cm","0.5cm","0.8cm","1cm","1.5cm","2cm","3cm"}},
+        {"angle eccentricity", {"0.3","0.5","0.6","0.8","1.0","1.2","1.5"}},
+        {"pic text", {}},
 
         // ── Curve to-path ──
         {"in", {"0","30","45","60","90","120","135","150","180","-135","-120","-90","-60","-45","-30"}},
