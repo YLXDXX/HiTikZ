@@ -711,7 +711,10 @@ QStringList SnippetManager::importSnippetsZip(const QString &zipPath)
                 break;
             }
         }
-        if (!importOk) continue;
+        if (!importOk) {
+            QDir(destDir).removeRecursively();
+            continue;
+        }
 
         if (QFile::exists(destDir + "meta.json")) {
             QFile metaFile(destDir + "meta.json");

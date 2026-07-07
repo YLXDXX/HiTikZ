@@ -339,6 +339,12 @@ void SettingsDialog::createTemplate()
         QStringLiteral("模板名称 (不含扩展名):"), QLineEdit::Normal, "", &ok);
     if (!ok || name.isEmpty()) return;
 
+    if (name.contains('/') || name.contains('\\')) {
+        QMessageBox::warning(this, QStringLiteral("错误"),
+            QStringLiteral("模板名称不能包含斜杠或反斜杠"));
+        return;
+    }
+
     QString path = templateDir() + name + ".tex";
     if (QFile::exists(path)) {
         QMessageBox::warning(this, QStringLiteral("错误"),

@@ -1901,9 +1901,15 @@ void MainWindow::generateAllPreviews()
 
             if (ok && !pdfPath.isEmpty()) {
                 QString previewPdf = basePath + "/preview.pdf";
+                QString tempPdf = basePath + "/preview.tmp.pdf";
+
+                if (QFile::exists(tempPdf))
+                    QFile::remove(tempPdf);
+                QFile::copy(pdfPath, tempPdf);
+
                 if (QFile::exists(previewPdf))
                     QFile::remove(previewPdf);
-                QFile::copy(pdfPath, previewPdf);
+                QFile::rename(tempPdf, previewPdf);
 
                 QProcess pngProc;
                 QStringList args;
@@ -2432,14 +2438,21 @@ void MainWindow::startAutoSave()
 
 void MainWindow::performAutoSave()
 {
+    QString draftDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/drafts/";
+    {
+        QDir dir(draftDir);
+        QStringList oldScratches = dir.entryList(QStringList() << "scratch_*.json", QDir::Files);
+        for (const QString &f : oldScratches)
+            QFile::remove(draftDir + f);
+    }
+    QDir().mkpath(draftDir);
+
     for (int i = 0; i < tabWidget->count(); ++i) {
         CodeEditor *ed = qobject_cast<CodeEditor*>(tabWidget->widget(i));
         if (!ed || ed->toPlainText().trimmed().isEmpty())
             continue;
 
         QString sid = tabWidget->tabBar()->tabData(i).toString();
-        QString draftDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/drafts/";
-        QDir().mkpath(draftDir);
 
         QString draftPath = draftDir + (sid.isEmpty()
             ? QStringLiteral("scratch_%1").arg(i) : sid) + ".json";

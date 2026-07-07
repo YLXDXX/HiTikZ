@@ -132,7 +132,12 @@ bool LatexCompiler::checkInkscapeAvailable()
 
 QString LatexCompiler::loadTemplate(const QString &templateId) const
 {
-    if (templateDir.isEmpty()) {
+    if (templateDir.isEmpty() || templateId.isEmpty()) {
+        return QString();
+    }
+
+    if (templateId.contains('/') || templateId.contains('\\')
+        || templateId.contains("..")) {
         return QString();
     }
 

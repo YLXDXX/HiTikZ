@@ -8,6 +8,11 @@
 #include <QDebug>
 #include <QString>
 #include <QSettings>
+#include <QDir>
+#include <QFile>
+#include <QStandardPaths>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <cstdio>
 
 static int test_line_number_regex() {
@@ -322,6 +327,145 @@ static int test_parse_line_short_cmds() {
     return failed;
 }
 
+static int test_atomic_file_rename()
+{
+    int failed = 0;
+
+    QString testDir = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + "/hifiz_fix_test/";
+    QDir().mkpath(testDir);
+
+    QString tempFile = testDir + "test.tmp";
+    QString finalFile = testDir + "test.final";
+
+    const char *content = "hello atomic world";
+    {
+        QFile f(tempFile);
+        if (f.open(QIODevice::WriteOnly)) {
+            f.write(content);
+            f.close();
+        }
+    }
+
+    if (QFile::exists(finalFile))
+        QFile::remove(finalFile);
+    bool renamed = QFile::rename(tempFile, finalFile);
+
+    if (!renamed) {
+        fprintf(stderr, "FAIL: FIX-AR1 - atomic rename failed\n");
+        failed++;
+    } else if (!QFile::exists(finalFile)) {
+        fprintf(stderr, "FAIL: FIX-AR2 - final file does not exist after rename\n");
+        failed++;
+    } else if (QFile::exists(tempFile)) {
+        fprintf(stderr, "FAIL: FIX-AR3 - temp file should not exist after rename\n");
+        failed++;
+    } else {
+        QFile f(finalFile);
+        if (f.open(QIODevice::ReadOnly)) {
+            QString readBack = QString::fromUtf8(f.readAll());
+            f.close();
+            if (readBack != QString::fromLatin1(content)) {
+                fprintf(stderr, "FAIL: FIX-AR4 - content mismatch after rename\n");
+                failed++;
+            }
+        }
+    }
+
+    QDir(testDir).removeRecursively();
+
+    if (failed == 0) fprintf(stderr, "PASS: atomic file rename test\n");
+    return failed;
+}
+
+static int test_scratch_file_cleanup()
+{
+    int failed = 0;
+
+    QString testDir = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + "/hifiz_scratch_test/";
+    QDir().mkpath(testDir);
+
+    for (int i = 0; i < 5; ++i) {
+        QFile f(testDir + QString("scratch_%1.json").arg(i));
+        bool opened = f.open(QIODevice::WriteOnly | QIODevice::Truncate);
+        if (opened) {
+            f.write("{}");
+            f.close();
+        }
+    }
+
+    QDir dir(testDir);
+    QStringList oldScratches = dir.entryList(QStringList() << "scratch_*.json", QDir::Files);
+    for (const QString &f : oldScratches)
+        QFile::remove(testDir + f);
+
+    QStringList remaining = dir.entryList(QStringList() << "scratch_*.json", QDir::Files);
+    if (!remaining.isEmpty()) {
+        fprintf(stderr, "FAIL: FIX-SC1 - scratch files not properly cleaned (%d remaining)\n", remaining.size());
+        failed++;
+    }
+
+    QDir(testDir).removeRecursively();
+
+    if (failed == 0) fprintf(stderr, "PASS: scratch file cleanup test\n");
+    return failed;
+}
+
+static int test_path_contains_dangerous_chars()
+{
+    int failed = 0;
+
+    auto hasDangerousChars = [](const QString &s) -> bool {
+        return s.contains('/') || s.contains('\\') || s.contains("..");
+    };
+
+    if (!hasDangerousChars("/etc/passwd")) {
+        fprintf(stderr, "FAIL: FIX-PT1 - '/etc/passwd' should be rejected\n"); failed++;
+    }
+    if (!hasDangerousChars("../../../evil.tex")) {
+        fprintf(stderr, "FAIL: FIX-PT2 - '../../../evil.tex' should be rejected\n"); failed++;
+    }
+    if (!hasDangerousChars("foo\\bar")) {
+        fprintf(stderr, "FAIL: FIX-PT3 - 'foo\\\\bar' should be rejected\n"); failed++;
+    }
+    if (!hasDangerousChars("..hidden")) {
+        fprintf(stderr, "FAIL: FIX-PT4 - '..hidden' contains '..' and should be rejected\n"); failed++;
+    }
+    if (hasDangerousChars("default_math")) {
+        fprintf(stderr, "FAIL: FIX-PT5 - 'default_math' should be accepted\n"); failed++;
+    }
+    if (hasDangerousChars("my_template_test")) {
+        fprintf(stderr, "FAIL: FIX-PT6 - 'my_template_test' should be accepted\n"); failed++;
+    }
+
+    if (failed == 0) fprintf(stderr, "PASS: dangerous path character detection\n");
+    return failed;
+}
+
+static int test_dir_removal_on_failure()
+{
+    int failed = 0;
+
+    QString testDir = QStandardPaths::writableLocation(QStandardPaths::TempLocation) + "/hifiz_rollback_test/";
+    QDir().mkpath(testDir);
+
+    QString orphanDir = testDir + "orphan_folder/";
+    QDir().mkpath(orphanDir);
+
+    if (!QDir(orphanDir).exists()) {
+        fprintf(stderr, "FAIL: FIX-DR1 - directory not created\n"); failed++;
+    } else {
+        QDir(orphanDir).removeRecursively();
+        if (QDir(orphanDir).exists()) {
+            fprintf(stderr, "FAIL: FIX-DR2 - directory not removed after rollback\n"); failed++;
+        }
+    }
+
+    QDir(testDir).removeRecursively();
+
+    if (failed == 0) fprintf(stderr, "PASS: directory removal on failure (rollback)\n");
+    return failed;
+}
+
 int main(int argc, char *argv[]) {
     QCoreApplication app(argc, argv);
     int failed = 0;
@@ -333,6 +477,10 @@ int main(int argc, char *argv[]) {
     failed += test_stream_status_check();
     failed += test_auto_compile_on_save();
     failed += test_parse_line_short_cmds();
+    failed += test_atomic_file_rename();
+    failed += test_scratch_file_cleanup();
+    failed += test_path_contains_dangerous_chars();
+    failed += test_dir_removal_on_failure();
 
     if (failed > 0) {
         fprintf(stderr, "\n%d test(s) failed!\n", failed);
