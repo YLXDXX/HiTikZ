@@ -231,6 +231,10 @@ static int test_detect_context()
     };
 
     TestCase tests[] = {
+        {QStringLiteral("\\draw[even odd"), TikzCompleter::TkzCtxBrk, "even odd fill rule in bracket"},
+        {QStringLiteral("\\draw[nonzero ru"), TikzCompleter::TkzCtxBrk, "nonzero fill rule in bracket"},
+        {QStringLiteral("\\filldraw [even odd"), TikzCompleter::TkzCtxBrk, "filldraw bracket even odd"},
+        {QStringLiteral("\\filldraw [even"), TikzCompleter::TkzCtxBrk, "filldraw bracket even"},
         {QStringLiteral("\\draw["), TikzCompleter::TkzCtxBrk, "open bracket"},
         {QStringLiteral("\\draw[help lines"), TikzCompleter::TkzCtxBrk, "help lines option"},
         {QStringLiteral("\\draw[help lin"), TikzCompleter::TkzCtxBrk, "partial help lines"},
