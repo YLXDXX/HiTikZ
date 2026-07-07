@@ -50,6 +50,11 @@ SnippetPropertiesDialog::SnippetPropertiesDialog(const QString &snippetId,
     m_templateCombo = new QComboBox;
     form->addRow(QStringLiteral("模板:"), m_templateCombo);
 
+    m_compileCmdEdit = new QLineEdit;
+    m_compileCmdEdit->setPlaceholderText(
+        QStringLiteral("留空使用默认: xelatex -interaction=nonstopmode -halt-on-error -shell-escape"));
+    form->addRow(QStringLiteral("编译命令:"), m_compileCmdEdit);
+
     mainLayout->addLayout(form);
 
     QHBoxLayout *btnLayout = new QHBoxLayout;
@@ -87,6 +92,7 @@ void SnippetPropertiesDialog::loadSnippet()
     m_tagsEdit->setText(s.tags.join(", "));
     m_packagesEdit->setText(s.packages);
     m_tikzLibrariesEdit->setText(s.tikzLibraries);
+    m_compileCmdEdit->setText(s.compileCommand);
 
     m_templateCombo->clear();
     QString tplDirPath = QStandardPaths::writableLocation(
@@ -114,6 +120,7 @@ void SnippetPropertiesDialog::onSave()
     s.templateId = m_templateCombo->currentData().toString();
     s.packages = m_packagesEdit->text();
     s.tikzLibraries = m_tikzLibrariesEdit->text();
+    s.compileCommand = m_compileCmdEdit->text().trimmed();
 
     QStringList tags;
     for (const QString &tag : m_tagsEdit->text().split(',')) {

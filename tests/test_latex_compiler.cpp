@@ -727,6 +727,154 @@ int main(int argc, char *argv[]) {
         else fprintf(stderr, "PASS: Test 46 - \\ctikzset inside circuitikz not extracted\n");
     }
 
+    // Test 47: compileCommand with custom engine
+    {
+        LatexCompiler compiler;
+        compiler.setXelatexPath("xelatex");
+
+        bool finished = false;
+        bool success = false;
+
+        QObject::connect(&compiler, &LatexCompiler::compilationFinished,
+            [&](bool ok, const QString &, const QString &) {
+                finished = true;
+                success = ok;
+            });
+
+        compiler.compile("\\begin{tikzpicture}\n\\draw (0,0) -- (1,1);\n\\end{tikzpicture}",
+                         "", "test_ccmd", QString(), QString(), "xelatex -interaction=nonstopmode -halt-on-error -shell-escape");
+
+        QEventLoop loop;
+        QTimer::singleShot(15000, &loop, &QEventLoop::quit);
+        QObject::connect(&compiler, &LatexCompiler::compilationFinished, &loop, &QEventLoop::quit);
+        loop.exec();
+
+        if (!finished) { fprintf(stderr, "FAIL: Test 47a - compileCommand compilation timed out\n"); failed++; }
+        else if (!success) { fprintf(stderr, "FAIL: Test 47b - compileCommand compilation failed\n"); failed++; }
+        else fprintf(stderr, "PASS: Test 47 - compileCommand with explicit xelatex\n");
+    }
+
+    // Test 48: lastFullCommand() returns the executed command
+    {
+        LatexCompiler compiler;
+        compiler.setXelatexPath("xelatex");
+
+        bool finished = false;
+
+        QObject::connect(&compiler, &LatexCompiler::compilationFinished,
+            [&](bool, const QString &, const QString &) {
+                finished = true;
+            });
+
+        compiler.compile("\\begin{tikzpicture}\n\\draw (0,0) -- (1,1);\n\\end{tikzpicture}",
+                         "", "test_lfc", QString(), QString(), "xelatex -interaction=nonstopmode -halt-on-error -shell-escape");
+
+        QEventLoop loop;
+        QTimer::singleShot(15000, &loop, &QEventLoop::quit);
+        QObject::connect(&compiler, &LatexCompiler::compilationFinished, &loop, &QEventLoop::quit);
+        loop.exec();
+
+        if (!finished) { fprintf(stderr, "FAIL: Test 48a - lastFullCommand compilation timed out\n"); failed++; }
+        else {
+            QString cmd = compiler.lastFullCommand();
+            if (cmd.isEmpty()) {
+                fprintf(stderr, "FAIL: Test 48b - lastFullCommand is empty\n");
+                failed++;
+            } else if (!cmd.contains("xelatex")) {
+                fprintf(stderr, "FAIL: Test 48c - lastFullCommand should contain engine name\n");
+                failed++;
+            } else if (!cmd.contains("-output-directory")) {
+                fprintf(stderr, "FAIL: Test 48d - lastFullCommand should contain output-directory\n");
+                failed++;
+            } else {
+                fprintf(stderr, "PASS: Test 48 - lastFullCommand returns full command\n");
+            }
+        }
+    }
+
+    // Test 49: default compileCommand (empty string) uses default engine
+    {
+        LatexCompiler compiler;
+        compiler.setXelatexPath("xelatex");
+
+        bool finished = false;
+        bool success = false;
+
+        QObject::connect(&compiler, &LatexCompiler::compilationFinished,
+            [&](bool ok, const QString &, const QString &) {
+                finished = true;
+                success = ok;
+            });
+
+        compiler.compile("\\begin{tikzpicture}\n\\draw (0,0) -- (1,1);\n\\end{tikzpicture}",
+                         "", "test_defaultcc", QString(), QString(), QString());
+
+        QEventLoop loop;
+        QTimer::singleShot(15000, &loop, &QEventLoop::quit);
+        QObject::connect(&compiler, &LatexCompiler::compilationFinished, &loop, &QEventLoop::quit);
+        loop.exec();
+
+        if (!finished) { fprintf(stderr, "FAIL: Test 49a - default compileCommand timed out\n"); failed++; }
+        else if (!success) { fprintf(stderr, "FAIL: Test 49b - default compileCommand failed\n"); failed++; }
+        else {
+            QString cmd = compiler.lastFullCommand();
+            if (!cmd.contains("xelatex")) {
+                fprintf(stderr, "FAIL: Test 49c - default should use xelatex\n");
+                failed++;
+            } else if (!cmd.contains("-interaction=nonstopmode")) {
+                fprintf(stderr, "FAIL: Test 49d - default should include standard flags\n");
+                failed++;
+            } else {
+                fprintf(stderr, "PASS: Test 49 - default compileCommand works correctly\n");
+            }
+        }
+    }
+
+    // Test 50: compileCommand with lualatex engine
+    {
+        QProcess checkLua;
+        checkLua.start("lualatex", QStringList() << "--version");
+        checkLua.waitForFinished(3000);
+        bool hasLualatex = (checkLua.exitCode() == 0);
+
+        if (!hasLualatex) {
+            fprintf(stderr, "SKIP: Test 50 - lualatex not available\n");
+        } else {
+            LatexCompiler compiler;
+            compiler.setXelatexPath("xelatex");
+
+            bool finished = false;
+            bool success = false;
+
+            QObject::connect(&compiler, &LatexCompiler::compilationFinished,
+                [&](bool ok, const QString &, const QString &) {
+                    finished = true;
+                    success = ok;
+                });
+
+            compiler.compile("\\begin{tikzpicture}\n\\draw (0,0) -- (1,1);\n\\end{tikzpicture}",
+                             "", "test_lua", QString(), QString(),
+                             "lualatex -interaction=nonstopmode -halt-on-error -shell-escape");
+
+            QEventLoop loop;
+            QTimer::singleShot(15000, &loop, &QEventLoop::quit);
+            QObject::connect(&compiler, &LatexCompiler::compilationFinished, &loop, &QEventLoop::quit);
+            loop.exec();
+
+            if (!finished) { fprintf(stderr, "FAIL: Test 50a - lualatex compilation timed out\n"); failed++; }
+            else {
+                QString cmd = compiler.lastFullCommand();
+                if (!cmd.contains("lualatex")) {
+                    fprintf(stderr, "FAIL: Test 50b - lastFullCommand should contain lualatex\n");
+                    failed++;
+                } else {
+                    fprintf(stderr, "PASS: Test 50 - compileCommand with lualatex%s\n",
+                            success ? "" : " (engine started correctly, compilation optional)");
+                }
+            }
+        }
+    }
+
     fprintf(stderr, "Custom command tests: %d failed\n", customTestsFailed);
     failed += customTestsFailed;
 

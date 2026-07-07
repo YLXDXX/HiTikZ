@@ -64,5 +64,7 @@ private:
     QPushButton *m_moreTagsBtn = nullptr;
     QStringList m_allTagNames;
     bool m_suppressSelectEmit = false;
+    QTimer *m_tagCollapseTimer = nullptr;
+    bool m_inTagCollapse = false;
     static const int kMaxTagRows = 2;
 };

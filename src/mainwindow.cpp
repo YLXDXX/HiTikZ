@@ -523,6 +523,9 @@ void MainWindow::setupUI()
     applyParamsAct = toolBar->addAction(QStringLiteral("应用参数"));
     saveAct = toolBar->addAction(QStringLiteral("保存"));
 
+    forceStopAct = toolBar->addAction(QStringLiteral("⛔ 强制结束"));
+    forceStopAct->setEnabled(false);
+
     toolBar->addSeparator();
 
     QAction *copyCodeAct = toolBar->addAction(QStringLiteral("复制代码"));
@@ -1414,11 +1417,13 @@ void MainWindow::setupConnections()
         m_compiling = true;
         compileAct->setEnabled(false);
         applyParamsAct->setEnabled(false);
+        forceStopAct->setEnabled(true);
     };
     auto endCompile = [this]() {
         m_compiling = false;
         compileAct->setEnabled(true);
         applyParamsAct->setEnabled(true);
+        forceStopAct->setEnabled(false);
     };
 
     connect(compileAct, &QAction::triggered, this, [this, startCompile, endCompile]() {
@@ -1434,6 +1439,7 @@ void MainWindow::setupConnections()
         QString snippetId = currentSnippetId;
         QString packages;
         QString tikzLibraries;
+        QString compileCommand;
 
         if (currentSnippetId.isEmpty()) {
             CodeEditor *ed = currentEditor();
@@ -1447,6 +1453,7 @@ void MainWindow::setupConnections()
             templateId = s.templateId;
             packages = s.packages;
             tikzLibraries = s.tikzLibraries;
+            compileCommand = s.compileCommand;
         }
 
         if (code.trimmed().isEmpty()) {
@@ -1456,7 +1463,7 @@ void MainWindow::setupConnections()
         }
 
         logPanel->clear();
-        compiler->compile(code, templateId, snippetId, packages, tikzLibraries);
+        compiler->compile(code, templateId, snippetId, packages, tikzLibraries, compileCommand);
     });
 
     connect(applyParamsAct, &QAction::triggered, this, [this, startCompile, endCompile]() {
@@ -1470,7 +1477,7 @@ void MainWindow::setupConnections()
         Snippet s = snippetMgr->loadSnippet(currentSnippetId);
         QString code = applyParams(s.code);
         logPanel->clear();
-        compiler->compile(code, s.templateId, currentSnippetId, s.packages, s.tikzLibraries);
+        compiler->compile(code, s.templateId, currentSnippetId, s.packages, s.tikzLibraries, s.compileCommand);
     });
 
     connect(saveAct, &QAction::triggered, this, [this]() {
@@ -1482,17 +1489,22 @@ void MainWindow::setupConnections()
         }
     });
 
+    connect(forceStopAct, &QAction::triggered, this, [this]() {
+        if (m_batchGenerating) {
+            m_batchCancelFlag.storeRelaxed(1);
+            statusBar()->showMessage(QStringLiteral("正在终止批量生成..."), kStatusBarShortMs);
+        } else if (m_compiling) {
+            compiler->cancelCompile();
+            statusBar()->showMessage(QStringLiteral("编译已强制中断"), kStatusBarLongMs);
+        }
+    });
+
     connect(compiler, &LatexCompiler::compilationFinished,
         this, [this, endCompile](bool success, const QString &pdfPath, const QString &log) {
             if (m_batchGenerating) return;
             endCompile();
-            QString sid = currentSnippetId.isEmpty() ? QStringLiteral("scratch") : currentSnippetId;
-            QString cmd = compiler->xelatexCommand()
-                + " -interaction=nonstopmode -halt-on-error -shell-escape "
-                + "-output-directory " + compiler->tempDirPath() + sid
-                + " " + compiler->tempDirPath() + sid + "/output.tex";
             m_userCodeStartLine = compiler->userCodeStartLine();
-            setFormattedLog(success, cmd, log, m_userCodeStartLine);
+            setFormattedLog(success, compiler->lastFullCommand(), log, m_userCodeStartLine);
             if (success) {
                 pdfPreview->reloadDocument(QFileInfo(pdfPath).absoluteFilePath());
                 QTimer::singleShot(kZoomApplyDelayMs, pdfPreview, &PdfPreviewWidget::applyZoomPreference);
@@ -1801,9 +1813,11 @@ void MainWindow::generateAllPreviews()
     m_batchSubmitted.storeRelaxed(0);
     m_batchFailures.clear();
     m_batchGenerating = true;
+    m_batchCancelFlag.storeRelaxed(0);
     m_compiling = true;
     compileAct->setEnabled(false);
     applyParamsAct->setEnabled(false);
+    forceStopAct->setEnabled(true);
     statusBar()->showMessage(QStringLiteral("正在生成所有预览..."), 0);
 
     int threadCount = QSettings("HiTikZ", "TikzManager").value("behavior/threadCount", 6).toInt();
@@ -1814,6 +1828,13 @@ void MainWindow::generateAllPreviews()
     for (const Snippet &s : all) {
         m_batchSubmitted.fetchAndAddRelaxed(1);
         QThreadPool::globalInstance()->start([this, s] {
+            if (m_batchCancelFlag.loadRelaxed()) {
+                QMetaObject::invokeMethod(this, "onBatchTaskFinished", Qt::QueuedConnection,
+                    Q_ARG(Snippet, s), Q_ARG(bool, false), Q_ARG(QString, QString()),
+                    Q_ARG(QString, QStringLiteral("用户取消编译")));
+                return;
+            }
+
             QString code = resolveParamsFromCode(s.code);
 
             LatexCompiler localCompiler;
@@ -1821,7 +1842,7 @@ void MainWindow::generateAllPreviews()
 
             QString pdfPath, log;
             bool ok = localCompiler.compileBlocking(code, s.templateId, s.id,
-                s.packages, s.tikzLibraries, kBatchCompileTimeoutMs, pdfPath, log);
+                s.packages, s.tikzLibraries, kBatchCompileTimeoutMs, pdfPath, log, s.compileCommand);
 
             if (ok && !pdfPath.isEmpty()) {
                 QString basePath = snippetDataPath(s.id);
@@ -1865,8 +1886,16 @@ void MainWindow::onBatchTaskFinished(const Snippet &snippet, bool success, const
         m_compiling = false;
         compileAct->setEnabled(true);
         applyParamsAct->setEnabled(true);
-        statusBar()->showMessage(
-            QStringLiteral("预览生成完毕: %1 个条目").arg(m_previewTotal), kStatusBarLongMs);
+        forceStopAct->setEnabled(false);
+
+        if (m_batchCancelFlag.loadRelaxed()) {
+            statusBar()->showMessage(
+                QStringLiteral("批量生成已取消: 完成 %1/%2").arg(done).arg(m_previewTotal),
+                kStatusBarLongMs);
+        } else {
+            statusBar()->showMessage(
+                QStringLiteral("预览生成完毕: %1 个条目").arg(m_previewTotal), kStatusBarLongMs);
+        }
         refreshSearch();
         showBatchPreviewSummary();
         emit batchPreviewFinished();

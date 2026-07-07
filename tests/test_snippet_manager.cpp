@@ -166,6 +166,41 @@ int main(int argc, char *argv[]) {
         mgr.deleteSnippet(id);
     }
 
+    // Test 11: compileCommand field serialization/deserialization
+    {
+        QString id = mgr.createSnippet("CompileCmd Test", "test");
+        CHECK(!id.isEmpty(), "Should create snippet for compileCommand test");
+
+        Snippet s = mgr.loadSnippet(id);
+        CHECK(s.compileCommand.isEmpty(), "Default compileCommand should be empty");
+
+        s.compileCommand = "lualatex -interaction=nonstopmode -shell-escape";
+        bool saved = mgr.saveSnippet(s);
+        CHECK(saved, "Save with compileCommand should succeed");
+
+        Snippet s2 = mgr.loadSnippet(id);
+        CHECK(s2.compileCommand == "lualatex -interaction=nonstopmode -shell-escape",
+              "compileCommand should survive JSON roundtrip");
+        qDebug() << "PASS: Test 11 - compileCommand JSON serialization";
+
+        mgr.deleteSnippet(id);
+    }
+
+    // Test 12: compileCommand with special characters
+    {
+        QString id = mgr.createSnippet("CompileCmd Special", "test");
+        Snippet s = mgr.loadSnippet(id);
+        s.compileCommand = "/usr/bin/xelatex -interaction=nonstopmode -halt-on-error -shell-escape";
+        mgr.saveSnippet(s);
+
+        Snippet s2 = mgr.loadSnippet(id);
+        CHECK(s2.compileCommand == "/usr/bin/xelatex -interaction=nonstopmode -halt-on-error -shell-escape",
+              "compileCommand with path should survive roundtrip");
+        qDebug() << "PASS: Test 12 - compileCommand with full path";
+
+        mgr.deleteSnippet(id);
+    }
+
     if (g_failed > 0) {
         qDebug() << "\n" << g_failed << "test(s) FAILED!";
         return 1;

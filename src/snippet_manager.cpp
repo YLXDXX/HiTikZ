@@ -214,6 +214,7 @@ QJsonObject SnippetManager::snippetToJson(const Snippet &s) const
     obj["templateId"] = s.templateId;
     obj["packages"] = s.packages;
     obj["tikzLibraries"] = s.tikzLibraries;
+    obj["compileCommand"] = s.compileCommand;
     QJsonArray tagsArr;
     for (const QString &tag : s.tags)
         tagsArr.append(tag);
@@ -231,6 +232,7 @@ Snippet SnippetManager::jsonToSnippet(const QJsonObject &obj) const
     s.templateId = obj.value("templateId").toString();
     s.packages = obj.value("packages").toString();
     s.tikzLibraries = obj.value("tikzLibraries").toString();
+    s.compileCommand = obj.value("compileCommand").toString();
     QJsonArray tagsArr = obj.value("tags").toArray();
     for (const QJsonValue &v : tagsArr)
         s.tags.append(v.toString());

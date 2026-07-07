@@ -695,7 +695,8 @@ void LatexCompiler::cancelCompile()
 
 bool LatexCompiler::compileBlocking(const QString &texCode, const QString &templateId, const QString &snippetId,
                                      const QString &packages, const QString &tikzLibraries,
-                                     int timeoutMs, QString &outPdfPath, QString &outLog)
+                                     int timeoutMs, QString &outPdfPath, QString &outLog,
+                                     const QString &compileCommand)
 {
     QEventLoop loop;
     QTimer timer;
@@ -713,7 +714,7 @@ bool LatexCompiler::compileBlocking(const QString &texCode, const QString &templ
         });
     connect(&timer, &QTimer::timeout, &loop, &QEventLoop::quit);
 
-    compile(texCode, templateId, snippetId, packages, tikzLibraries);
+    compile(texCode, templateId, snippetId, packages, tikzLibraries, compileCommand);
     timer.start(timeoutMs);
     loop.exec();
 
@@ -738,7 +739,8 @@ int LatexCompiler::userCodeStartLine() const
 }
 
 void LatexCompiler::compile(const QString &texCode, const QString &templateId, const QString &snippetId,
-                            const QString &packages, const QString &tikzLibraries)
+                            const QString &packages, const QString &tikzLibraries,
+                            const QString &compileCommand)
 {
     if (!process) {
         process = new QProcess(this);
@@ -825,14 +827,35 @@ void LatexCompiler::compile(const QString &texCode, const QString &templateId, c
                 ? QStringLiteral("Process failed to start") : logOutput);
         });
 
-    QStringList args;
-    args << "-interaction=nonstopmode"
-         << "-halt-on-error"
-          << "-shell-escape"
-         << "-output-directory" << currentCompileDir
+    QString program;
+    QStringList userArgs;
+
+    QString trimmedCmd = compileCommand.trimmed();
+    if (!trimmedCmd.isEmpty()) {
+        QStringList parts = QProcess::splitCommand(trimmedCmd);
+        if (!parts.isEmpty()) {
+            program = parts.takeFirst();
+            userArgs = parts;
+        }
+    }
+
+    if (program.isEmpty()) {
+        program = xelatexPath;
+        userArgs = QStringList() << "-interaction=nonstopmode"
+                                 << "-halt-on-error"
+                                 << "-shell-escape";
+    }
+
+    QStringList args = userArgs;
+    args << "-output-directory" << currentCompileDir
          << texFilePath;
 
-    process->start(xelatexPath, args);
+    m_lastFullCommand = program;
+    for (const QString &a : args) {
+        m_lastFullCommand += " " + a;
+    }
+
+    process->start(program, args);
 }
 
 void LatexCompiler::convertToPng(int dpi)

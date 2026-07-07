@@ -149,6 +149,7 @@ private:
     QAction *applyParamsAct;
     QAction *saveAct;
 
+    QAction *forceStopAct;
     QSystemTrayIcon *trayIcon;
     QMenu *trayMenu;
 
@@ -164,6 +165,7 @@ private:
     int m_previewTotal = 0;
     QAtomicInt m_batchCompleted{0};
     QAtomicInt m_batchSubmitted{0};
+    QAtomicInt m_batchCancelFlag{0};
     QList<QPair<Snippet, QString>> m_batchFailures;
     QMutex m_batchMutex;
     QTimer *searchDebounceTimer = nullptr;

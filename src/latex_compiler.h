@@ -11,10 +11,12 @@ public:
     ~LatexCompiler();
 
     void compile(const QString &texCode, const QString &templateId, const QString &snippetId,
-                 const QString &packages = QString(), const QString &tikzLibraries = QString());
+                 const QString &packages = QString(), const QString &tikzLibraries = QString(),
+                 const QString &compileCommand = QString());
     bool compileBlocking(const QString &texCode, const QString &templateId, const QString &snippetId,
                          const QString &packages, const QString &tikzLibraries,
-                         int timeoutMs, QString &outPdfPath, QString &outLog);
+                         int timeoutMs, QString &outPdfPath, QString &outLog,
+                         const QString &compileCommand = QString());
     void cancelCompile();
     void setTemplateDir(const QString &dir);
     void setXelatexPath(const QString &path);
@@ -38,6 +40,7 @@ public:
     QString pdfToCairoCommand() const;
     QString inkscapeCommand() const;
     QString svgTool() const;
+    QString lastFullCommand() const { return m_lastFullCommand; }
 
     static bool checkXelatexAvailable();
     static bool checkPdfToCairoAvailable();
@@ -66,6 +69,7 @@ private:
     QString svgTool_;
     QString texInputs;
     int m_userCodeStartLine = 1;
+    QString m_lastFullCommand;
 
     QString loadTemplate(const QString &templateId) const;
 };

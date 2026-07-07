@@ -30,6 +30,11 @@ SearchPanel::SearchPanel(SnippetManager *mgr, QWidget *parent)
 {
     setupUI();
 
+    m_tagCollapseTimer = new QTimer(this);
+    m_tagCollapseTimer->setSingleShot(true);
+    m_tagCollapseTimer->setInterval(150);
+    connect(m_tagCollapseTimer, &QTimer::timeout, this, &SearchPanel::applyTagRowCollapse);
+
     searchDebounceTimer = new QTimer(this);
     searchDebounceTimer->setSingleShot(true);
     searchDebounceTimer->setInterval(150);
@@ -348,14 +353,16 @@ void SearchPanel::refreshTagFilter()
 
     m_tagButtonContainer->installEventFilter(this);
 
-    QTimer::singleShot(0, this, [this]() {
-        applyTagRowCollapse();
-    });
+    if (m_tagCollapseTimer)
+        m_tagCollapseTimer->start();
 }
 
 void SearchPanel::applyTagRowCollapse()
 {
+    if (m_inTagCollapse) return;
     if (!m_tagButtonContainer || !m_tagFlowLayout || !m_moreTagsBtn) return;
+
+    m_inTagCollapse = true;
 
     int totalRows = m_tagFlowLayout->rowCount();
     bool needsCollapse = totalRows > kMaxTagRows;
@@ -368,6 +375,7 @@ void SearchPanel::applyTagRowCollapse()
             if (it && it->widget() && it->widget() != m_moreTagsBtn)
                 it->widget()->setVisible(true);
         }
+        m_inTagCollapse = false;
         return;
     }
 
@@ -391,6 +399,8 @@ void SearchPanel::applyTagRowCollapse()
         }
         w->setVisible(rows <= kMaxTagRows);
     }
+
+    m_inTagCollapse = false;
 }
 
 void SearchPanel::refreshThumbnailList()
@@ -664,7 +674,8 @@ bool SearchPanel::eventFilter(QObject *obj, QEvent *event)
         }
     }
     if (obj == m_tagButtonContainer && event->type() == QEvent::Resize) {
-        QTimer::singleShot(0, this, [this]() { applyTagRowCollapse(); });
+        if (m_tagCollapseTimer)
+            m_tagCollapseTimer->start();
     }
     return QWidget::eventFilter(obj, event);
 }

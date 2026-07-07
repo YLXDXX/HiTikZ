@@ -32,6 +32,7 @@ private:
     QLineEdit *m_packagesEdit;
     QLineEdit *m_tikzLibrariesEdit;
     QComboBox *m_templateCombo;
+    QLineEdit *m_compileCmdEdit;
     QPushButton *m_saveBtn;
     QPushButton *m_deleteBtn;
     QPushButton *m_exportBtn;
