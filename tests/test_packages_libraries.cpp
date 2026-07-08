@@ -192,6 +192,38 @@ int main(int argc, char *argv[]) {
         qDebug() << "PASS: Test 9 - mixed optional and non-optional packages";
     }
 
+    // --- Test 10: Malformed package (missing ']') is not silently dropped ---
+    {
+        LatexCompiler compiler;
+        QString result = compiler.wrapCode(
+            "\\begin{tikzpicture}\\draw(0,0)--(1,1);\\end{tikzpicture}",
+            QString(),
+            "[european circuitikz",   // missing closing ']'
+            QString()
+        );
+
+        // The package must still appear (as a plain package) rather than vanish.
+        assert(result.contains("\\usepackage{european circuitikz}"));
+        assert(result.indexOf("\\usepackage{european circuitikz}")
+               < result.indexOf("\\begin{document}"));
+        qDebug() << "PASS: Test 10 - malformed package (missing ']') falls back to plain package";
+    }
+
+    // --- Test 11: A malformed package after a valid one keeps the valid one ---
+    {
+        LatexCompiler compiler;
+        QString result = compiler.wrapCode(
+            "\\begin{tikzpicture}\\draw(0,0)--(1,1);\\end{tikzpicture}",
+            QString(),
+            "amsmath,[european circuitikz",  // valid, then malformed (missing ']')
+            QString()
+        );
+
+        assert(result.contains("\\usepackage{amsmath}"));
+        assert(result.contains("\\usepackage{european circuitikz}"));
+        qDebug() << "PASS: Test 11 - valid package kept alongside a trailing malformed one";
+    }
+
     if (failed > 0) {
         qDebug() << "\n" << failed << "test(s) failed!";
         return 1;

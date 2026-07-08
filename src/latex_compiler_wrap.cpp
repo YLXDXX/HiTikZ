@@ -98,8 +98,24 @@ QString LatexCompiler::wrapCode(const QString &texCode, const QString &templateI
                 }
                 if (closeBracket > 0) {
                     QString options = item.mid(1, closeBracket - 1);
-                    QString pkgName = item.mid(closeBracket + 1);
-                    extraPreamble += QStringLiteral("\\usepackage[%1]{%2}\n").arg(options, pkgName);
+                    QString pkgName = item.mid(closeBracket + 1).trimmed();
+                    if (pkgName.isEmpty()) {
+                        // "[opts]" with no package name — nothing usable to emit.
+                        qWarning() << "Malformed package (options without a package "
+                                      "name), skipping:" << item;
+                    } else {
+                        extraPreamble += QStringLiteral("\\usepackage[%1]{%2}\n")
+                                             .arg(options, pkgName);
+                    }
+                } else {
+                    // Unbalanced '[' (missing ']'): don't silently drop the
+                    // package — treat the remainder after '[' as a plain package
+                    // name so the failure is at least visible/compilable.
+                    QString pkgName = item.mid(1).trimmed();
+                    qWarning() << "Malformed package syntax (missing ']'), treating "
+                                  "as plain package:" << item;
+                    if (!pkgName.isEmpty())
+                        extraPreamble += QStringLiteral("\\usepackage{%1}\n").arg(pkgName);
                 }
             } else {
                 extraPreamble += QStringLiteral("\\usepackage{%1}\n").arg(item);
