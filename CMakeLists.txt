@@ -37,6 +37,13 @@ if(NOT HAS_KGLOBALACCEL AND WITH_QHOTKEY)
     FetchContent_MakeAvailable(qhotkey)
 endif()
 
+# Snippet manager sources (split into modules for maintainability)
+set(SNIPPET_MANAGER_SOURCES
+    src/snippet_manager.cpp
+    src/snippet_manager_search.cpp
+    src/snippet_manager_io.cpp
+)
+
 # LaTeX compiler sources (split into modules for maintainability)
 set(LATEX_COMPILER_SOURCES
     src/latex_compiler.cpp
@@ -59,7 +66,7 @@ set(TIKZ_KEYWORDS_SOURCES
 add_executable(TikzManager
     src/main.cpp
     src/mainwindow.cpp
-    src/snippet_manager.cpp
+    ${SNIPPET_MANAGER_SOURCES}
     ${LATEX_COMPILER_SOURCES}
     src/code_editor.cpp
     src/tikz_highlighter.cpp
@@ -94,7 +101,7 @@ enable_testing()
 
 add_executable(test_snippet_manager
     tests/test_snippet_manager.cpp
-    src/snippet_manager.cpp
+    ${SNIPPET_MANAGER_SOURCES}
 )
 target_include_directories(test_snippet_manager PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_snippet_manager PRIVATE Qt6::Core)
@@ -110,7 +117,7 @@ add_test(NAME LatexCompiler COMMAND test_latex_compiler)
 
 add_executable(test_search
     tests/test_search.cpp
-    src/snippet_manager.cpp
+    ${SNIPPET_MANAGER_SOURCES}
 )
 target_include_directories(test_search PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_search PRIVATE Qt6::Core)
@@ -119,7 +126,7 @@ add_test(NAME Search COMMAND test_search)
 add_executable(test_packages_libraries
     tests/test_packages_libraries.cpp
     ${LATEX_COMPILER_SOURCES}
-    src/snippet_manager.cpp
+    ${SNIPPET_MANAGER_SOURCES}
 )
 target_include_directories(test_packages_libraries PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_packages_libraries PRIVATE Qt6::Core)
@@ -143,7 +150,7 @@ add_executable(test_multitab
     src/kde_global_shortcut.cpp
     src/pdf_preview_widget.cpp
     src/flow_layout.cpp
-    src/snippet_manager.cpp
+    ${SNIPPET_MANAGER_SOURCES}
     ${LATEX_COMPILER_SOURCES}
     ${TIKZ_KEYWORDS_SOURCES}
     src/tikz_document_state.cpp
