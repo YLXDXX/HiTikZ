@@ -293,7 +293,7 @@ void TikzKeywordDB::initBuiltins()
         "profiler","shadings","transparency",
         "arrows.meta","trees",
         "topaths","graphs.standard","babel",
-        "cd","circuitikz",
+        "cd","circuitikz","tkz-euclide",
         "shapes.gates.logic","shapes.gates.logic.IEC","shapes.gates.logic.US",
         nullptr};
     for (int i = 0; libs[i]; i++)
@@ -445,6 +445,112 @@ void TikzKeywordDB::initBuiltins()
     addBuiltin(db, "xnor port",       C::Command, ctikzEnvs, {"draw","path","to"});
     addBuiltin(db, "buffer port",     C::Command, ctikzEnvs, {"draw","path","to"});
     addBuiltin(db, "inverter port",   C::Command, ctikzEnvs, {"draw","path","to"});
+
+    // ═══════════════════════════════════════════════════════════════
+    //  tkz-euclide v5 commands
+    //  Activated by \usepackage{tkz-euclide}
+    // ═══════════════════════════════════════════════════════════════
+    auto tkeEnvs = {"tikzpicture","scope"};
+
+    addBuiltin(db, "tkzDefPoint",            C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+    addBuiltin(db, "tkzDefPoints",           C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+    addBuiltin(db, "tkzDefMidPoint",         C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+    addBuiltin(db, "tkzDefBarycentricPoint", C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+    addBuiltin(db, "tkzDefShiftPoint",       C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+    addBuiltin(db, "tkzDefPointBy",          C::Command, tkeEnvs, {},
+               {"translation","rotation","homothety","reflection","symmetry","projection","inversion"},
+               {"tkz-euclide"});
+    addBuiltin(db, "tkzDefPointWith",        C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+
+    addBuiltin(db, "tkzGetPoint",            C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+    addBuiltin(db, "tkzGetPoints",           C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+    addBuiltin(db, "tkzGetLength",           C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+    addBuiltin(db, "tkzGetAngle",            C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+
+    addBuiltin(db, "tkzDefLine",             C::Command, tkeEnvs, {},
+               {"parallel","perpendicular","mediator","bisector"},
+               {"tkz-euclide"});
+    addBuiltin(db, "tkzDefCircle",           C::Command, tkeEnvs, {},
+               {"through","R","diameter","in","circum","ex","apollonius"},
+               {"tkz-euclide"});
+
+    addBuiltin(db, "tkzDefSquare",           C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+    addBuiltin(db, "tkzDefRegPolygon",       C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+    addBuiltin(db, "tkzDefTriangle",         C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+    addBuiltin(db, "tkzDefTriangleCenter",   C::Command, tkeEnvs, {},
+               {"centroid","in","circum","ortho","euler","nine","ex"},
+               {"tkz-euclide"});
+    addBuiltin(db, "tkzDefPolygonCenter",    C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+
+    addBuiltin(db, "tkzDrawPoint",           C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+    addBuiltin(db, "tkzDrawPoints",          C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+
+    addBuiltin(db, "tkzDrawLine",            C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+    addBuiltin(db, "tkzDrawLines",           C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+    addBuiltin(db, "tkzDrawSegment",         C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+    addBuiltin(db, "tkzDrawSegments",        C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+    addBuiltin(db, "tkzDrawHalfLine",        C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+    addBuiltin(db, "tkzDrawHalfLines",       C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+
+    addBuiltin(db, "tkzDrawPolygon",         C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+    addBuiltin(db, "tkzDrawPolygons",        C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+    addBuiltin(db, "tkzFillPolygon",         C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+    addBuiltin(db, "tkzFillPolygons",        C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+
+    addBuiltin(db, "tkzDrawSquare",          C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+    addBuiltin(db, "tkzDrawRegPolygon",      C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+    addBuiltin(db, "tkzFillSquare",          C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+    addBuiltin(db, "tkzFillRegPolygon",      C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+
+    addBuiltin(db, "tkzDrawTriangle",        C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+    addBuiltin(db, "tkzFillTriangle",        C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+
+    addBuiltin(db, "tkzDrawCircle",          C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+    addBuiltin(db, "tkzDrawCircles",         C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+    addBuiltin(db, "tkzFillCircle",          C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+    addBuiltin(db, "tkzFillCircles",         C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+
+    addBuiltin(db, "tkzDrawArc",             C::Command, tkeEnvs, {},
+               {"R","delta"}, {"tkz-euclide"});
+    addBuiltin(db, "tkzFillArc",             C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+
+    addBuiltin(db, "tkzDrawAngle",           C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+    addBuiltin(db, "tkzFillAngle",           C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+    addBuiltin(db, "tkzFillAngles",          C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+    addBuiltin(db, "tkzLabelAngle",          C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+    addBuiltin(db, "tkzLabelAngles",         C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+    addBuiltin(db, "tkzMarkAngle",           C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+    addBuiltin(db, "tkzMarkAngles",          C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+    addBuiltin(db, "tkzMarkRightAngle",      C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+    addBuiltin(db, "tkzMarkRightAngles",     C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+
+    addBuiltin(db, "tkzLabelPoint",          C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+    addBuiltin(db, "tkzLabelPoints",         C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+    addBuiltin(db, "tkzLabelSegment",        C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+    addBuiltin(db, "tkzLabelSegments",       C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+    addBuiltin(db, "tkzLabelLine",           C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+    addBuiltin(db, "tkzLabelCircle",         C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+
+    addBuiltin(db, "tkzInterLL",             C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+    addBuiltin(db, "tkzInterLC",             C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+    addBuiltin(db, "tkzInterCC",             C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+    addBuiltin(db, "tkzGetFirstPoint",       C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+    addBuiltin(db, "tkzGetSecondPoint",      C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+
+    addBuiltin(db, "tkzTangent",             C::Command, tkeEnvs, {},
+               {"from","at","external"}, {"tkz-euclide"});
+
+    addBuiltin(db, "tkzDrawBisector",        C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+    addBuiltin(db, "tkzDrawMedian",          C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+    addBuiltin(db, "tkzDrawAltitude",        C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+    addBuiltin(db, "tkzDrawEulerLine",       C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+
+    addBuiltin(db, "tkzClipCircle",          C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+    addBuiltin(db, "tkzClipLine",            C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+
+    addBuiltin(db, "tkzSetUpPoint",          C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+    addBuiltin(db, "tkzSetUpLine",           C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
+    addBuiltin(db, "tkzSetUpLabel",          C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
 
     // Bipole prefix combinations (10 prefixes × 9 types = 90 commands)
     addBipolePrefixes(db, "R",  ctikzEnvs);

@@ -153,6 +153,8 @@ void TikzDocumentState::parseLine(const QString &text, int blockStartPos,
                             m_activeLibs.insert("3d");
                         if (trimmed == QLatin1String("tikz-cd"))
                             m_activeLibs.insert("cd");
+                        if (trimmed == QLatin1String("tkz-euclide"))
+                            m_activeLibs.insert("tkz-euclide");
                     }
                 }
                 pos = up.capturedEnd();
