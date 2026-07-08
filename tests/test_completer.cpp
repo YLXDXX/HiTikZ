@@ -271,6 +271,9 @@ static int test_detect_context()
         {QStringLiteral("\\begin{tikzpictu"), TikzCompleter::TkzCtxBeg, "inside begin"},
         {QStringLiteral("\\draw[help lines] (0,0) gr"), TikzCompleter::TkzCtxWord, "keyword after bracket"},
         {QStringLiteral("\\node[draw] at (0.5,"), TikzCompleter::TkzCtxNone, "coordinates"},
+        {QStringLiteral("\\usetikzlibrary{"), TikzCompleter::TkzCtxLib, "empty usetikzlibrary brace"},
+        {QStringLiteral("\\usetikzlibrary{inters"), TikzCompleter::TkzCtxLib, "single library typing"},
+        {QStringLiteral("\\usetikzlibrary{intersections,angles,quo"), TikzCompleter::TkzCtxLib, "library after commas"},
     };
 
     for (const auto &tc : tests) {
@@ -745,6 +748,57 @@ static int test_no_bogus_commands()
     return failed;
 }
 
+// Verifies that \usetikzlibrary{...} completion resolves to the library context
+// through the full pipeline (textBeforeForContext -> detectContext). This is the
+// real-world path: the completer first back-tracks to the enclosing '{', which
+// previously dropped the "\usetikzlibrary" keyword and misdetected the context
+// as a generic word (offering wrong singular names like "intersection"), or gave
+// nothing at all. Also covers the same fix for \begin{...} environment context.
+static int test_usetikzlibrary_context()
+{
+    int failed = 0;
+    QPlainTextEdit editor;
+    TikzCompleter completer(&editor);
+
+    struct { const char *text; TikzCompleter::Context ctx; const char *desc; } cases[] = {
+        { "\\usetikzlibrary{",                           TikzCompleter::TkzCtxLib, "empty brace" },
+        { "\\usetikzlibrary{inters",                     TikzCompleter::TkzCtxLib, "single lib" },
+        { "\\usetikzlibrary{intersections,angles,quo",   TikzCompleter::TkzCtxLib, "after commas" },
+        { "\\usetikzlibrary{intersections, angles, quo", TikzCompleter::TkzCtxLib, "after commas w/ spaces" },
+        { "\\begin{tikzpictu",                           TikzCompleter::TkzCtxBeg, "begin env" },
+        { nullptr, TikzCompleter::TkzCtxNone, nullptr }
+    };
+
+    for (int i = 0; cases[i].text != nullptr; ++i) {
+        editor.setPlainText(QString::fromUtf8(cases[i].text));
+        editor.moveCursor(QTextCursor::End);
+        // Full pipeline: back-track to the enclosing brace, then classify.
+        QString tb = completer.textBeforeForContext();
+        TikzCompleter::Context got = completer.detectContext(tb);
+        if (got != cases[i].ctx) {
+            fprintf(stderr, "FAIL: UTL-%d (%s) - '%s' via pipeline: expected ctx %d, got %d (textBefore='%s')\n",
+                    i, cases[i].desc, cases[i].text, static_cast<int>(cases[i].ctx),
+                    static_cast<int>(got), tb.toUtf8().constData());
+            failed++;
+        }
+    }
+
+    // The back-tracked context must retain the command keyword so the library
+    // context can be recognised (the crux of the reported bug).
+    editor.setPlainText(QStringLiteral("\\usetikzlibrary{intersections,angles,quo"));
+    editor.moveCursor(QTextCursor::End);
+    QString tb = completer.textBeforeForContext();
+    if (!tb.contains(QStringLiteral("\\usetikzlibrary"))) {
+        fprintf(stderr, "FAIL: UTL-KEEP - textBeforeForContext dropped the \\usetikzlibrary keyword (got '%s')\n",
+                tb.toUtf8().constData());
+        failed++;
+    }
+
+    if (failed == 0)
+        fprintf(stderr, "PASS: \\usetikzlibrary / \\begin completion context via full pipeline\n");
+    return failed;
+}
+
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
@@ -769,6 +823,7 @@ int main(int argc, char *argv[])
     failed += test_command_for_option_context();
     failed += test_multiline_context();
     failed += test_no_bogus_commands();
+    failed += test_usetikzlibrary_context();
 
     if (failed > 0) {
         fprintf(stderr, "\n%d test(s) failed!\n", failed);

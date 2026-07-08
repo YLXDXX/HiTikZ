@@ -96,7 +96,24 @@ QString TikzCompleter::textBeforeForContext() const
         } else if (ch == QLatin1Char('}')) {
             braceDepth++;
         } else if (ch == QLatin1Char('{')) {
-            if (braceDepth == 0) { scan--; break; } // include the unclosed '{'
+            if (braceDepth == 0) {
+                scan--; // include the unclosed '{'
+                // Also pull in a preceding "\command" (e.g. \usetikzlibrary or
+                // \begin) so brace-based contexts that key off the command name
+                // still resolve — otherwise only "{...}" survives and the
+                // context is misdetected as a generic word.
+                int p = scan; // index of the '{'
+                while (p > limitPos && doc->characterAt(p - 1).isSpace())
+                    p--;
+                int wordEnd = p;
+                while (p > limitPos && doc->characterAt(p - 1).isLetter())
+                    p--;
+                if (p < wordEnd && p > limitPos
+                    && doc->characterAt(p - 1) == QLatin1Char('\\')) {
+                    scan = p - 1; // start at the backslash of the command
+                }
+                break;
+            }
             braceDepth--;
         }
         scan--;
