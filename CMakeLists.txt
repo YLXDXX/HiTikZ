@@ -37,6 +37,14 @@ if(NOT HAS_KGLOBALACCEL AND WITH_QHOTKEY)
     FetchContent_MakeAvailable(qhotkey)
 endif()
 
+# LaTeX compiler sources (split into modules for maintainability)
+set(LATEX_COMPILER_SOURCES
+    src/latex_compiler.cpp
+    src/latex_compiler_wrap.cpp
+    src/latex_compiler_extract.cpp
+    src/latex_compiler_convert.cpp
+)
+
 # Keyword database sources (split into modules for maintainability)
 set(TIKZ_KEYWORDS_SOURCES
     src/tikz_keywords.cpp
@@ -52,7 +60,7 @@ add_executable(TikzManager
     src/main.cpp
     src/mainwindow.cpp
     src/snippet_manager.cpp
-    src/latex_compiler.cpp
+    ${LATEX_COMPILER_SOURCES}
     src/code_editor.cpp
     src/tikz_highlighter.cpp
     src/tikz_completer.cpp
@@ -94,7 +102,7 @@ add_test(NAME SnippetManager COMMAND test_snippet_manager)
 
 add_executable(test_latex_compiler
     tests/test_latex_compiler.cpp
-    src/latex_compiler.cpp
+    ${LATEX_COMPILER_SOURCES}
 )
 target_include_directories(test_latex_compiler PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_latex_compiler PRIVATE Qt6::Core)
@@ -110,7 +118,7 @@ add_test(NAME Search COMMAND test_search)
 
 add_executable(test_packages_libraries
     tests/test_packages_libraries.cpp
-    src/latex_compiler.cpp
+    ${LATEX_COMPILER_SOURCES}
     src/snippet_manager.cpp
 )
 target_include_directories(test_packages_libraries PRIVATE ${CMAKE_SOURCE_DIR}/src)
@@ -136,7 +144,7 @@ add_executable(test_multitab
     src/pdf_preview_widget.cpp
     src/flow_layout.cpp
     src/snippet_manager.cpp
-    src/latex_compiler.cpp
+    ${LATEX_COMPILER_SOURCES}
     ${TIKZ_KEYWORDS_SOURCES}
     src/tikz_document_state.cpp
 )
