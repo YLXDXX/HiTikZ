@@ -92,6 +92,7 @@ private:
     QRegularExpression m_nodeRe;
     QRegularExpression m_styleInTikzsetRe;
     QRegularExpression m_commentRe;
+    QRegularExpression m_usepackageRe;
 
     QVector<Scope> m_scopeStack;
     QSet<QString> m_activeLibs;

@@ -69,6 +69,18 @@ inline const QStringList &pgfKeysPathCommands() {
         "/pgf/number format",
         "/pgfplots/legend",
         "/circuitikz",
+        "/tikz/circuitikz",
+        "/tikz/bipoles", "/tikz/tripoles", "/tikz/quadpoles",
+        "/tikz/bipoles/generic", "/tikz/bipoles/resistor",
+        "/tikz/bipoles/capacitor", "/tikz/bipoles/inductor",
+        "/tikz/bipoles/diode", "/tikz/bipoles/source",
+        "/tikz/bipoles/meter", "/tikz/bipoles/switch",
+        "/tikz/bipoles/mechanical", "/tikz/bipoles/transistor",
+        "/tikz/tripoles/op amp", "/tikz/tripoles/bjt",
+        "/tikz/tripoles/igbt", "/tikz/tripoles/mos",
+        "/tikz/tripoles/jfet", "/tikz/tripoles/tube",
+        "/tikz/quadpoles/transformer", "/tikz/quadpoles/fourport",
+        "/tikz/quadpoles/gyrator", "/tikz/quadpoles/coupling",
     };
     return list;
 }

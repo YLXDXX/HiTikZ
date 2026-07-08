@@ -25,6 +25,8 @@ TikzDocumentState::TikzDocumentState()
         QStringLiteral("([\\w\\s]+)/\\.(style|code|pic|append style|prefix style)"
                        "\\s*=\\s*\\{"));
     m_commentRe = QRegularExpression(QStringLiteral("%"));
+    m_usepackageRe = QRegularExpression(
+        QStringLiteral("\\\\usepackage\\s*(?:\\[[^\\]]*\\]\\s*)?\\{([^}]*)\\}"));
 
     m_tikzEnvSet = {
         "tikzpicture","scope","pgfonlayer",
@@ -135,6 +137,25 @@ void TikzDocumentState::parseLine(const QString &text, int blockStartPos,
                     if (!lib.trimmed().isEmpty())
                         m_activeLibs.insert(lib.trimmed());
                 pos = ul.capturedEnd();
+                continue;
+            }
+
+            // \usepackage{circuitikz} etc.
+            QRegularExpressionMatch up = m_usepackageRe.match(text, pos);
+            if (up.hasMatch() && up.capturedStart() == pos) {
+                QString pkgs = up.captured(1);
+                for (const QString &pkg : pkgs.split(QLatin1Char(','), Qt::SkipEmptyParts)) {
+                    QString trimmed = pkg.trimmed().toLower();
+                    if (!trimmed.isEmpty()) {
+                        if (trimmed == QLatin1String("circuitikz"))
+                            m_activeLibs.insert("circuitikz");
+                        if (trimmed == QLatin1String("tikz-3dplot"))
+                            m_activeLibs.insert("3d");
+                        if (trimmed == QLatin1String("tikz-cd"))
+                            m_activeLibs.insert("cd");
+                    }
+                }
+                pos = up.capturedEnd();
                 continue;
             }
 

@@ -25,6 +25,34 @@ static void addBuiltin(Vec &db, const char *name, Category cat,
 
 #define E(...) __VA_ARGS__
 
+static void addBipolePrefixes(Vec &db, const char *bipole,
+                              std::initializer_list<const char *> envs)
+{
+    static const char *prefixes[] = {
+        "p","v","i","ld","s","q","o","vq","iq","qq", nullptr
+    };
+    for (int p = 0; prefixes[p]; p++) {
+        QByteArray name = QByteArray(prefixes[p]) + bipole;
+        addBuiltin(db, name.constData(), C::Command, envs,
+                   {"draw","path","to"}, {}, {}, nullptr);
+    }
+}
+
+static void addCtikzShapes(Vec &db, std::initializer_list<const char *> names,
+                           std::initializer_list<const char *> envs)
+{
+    for (auto &n : names) {
+        QByteArray shapeName = QByteArray(n) + "shape";
+        addBuiltin(db, shapeName.constData(), C::Shape, envs, {"node"});
+    }
+}
+
+static void addCtikzShape(Vec &db, const char *shapeName,
+                          std::initializer_list<const char *> envs)
+{
+    addBuiltin(db, shapeName, C::Shape, envs, {"node"});
+}
+
 void TikzKeywordDB::initBuiltins()
 {
     Vec &db = m_builtin;
@@ -120,8 +148,33 @@ void TikzKeywordDB::initBuiltins()
     addBuiltin(db, "saw",      C::Decoration, {}, {"draw","path"}, {}, {"decorations.pathmorphing"});
     addBuiltin(db, "zigzag",   C::Decoration, {}, {"draw","path"}, {}, {"decorations.pathmorphing"});
     addBuiltin(db, "bumps",    C::Decoration, {}, {"draw","path"}, {}, {"decorations.pathmorphing"});
-    addBuiltin(db, "brace",    C::Decoration, {}, {"draw","path"}, {}, {"decorations.pathreplacing"});
+    addBuiltin(db, "random steps", C::Decoration, {}, {"draw","path"}, {}, {"decorations.pathmorphing"});
+    addBuiltin(db, "lineto",   C::Decoration, {}, {"draw","path"}, {}, {"decorations.pathmorphing"});
+    addBuiltin(db, "curveto",  C::Decoration, {}, {"draw","path"}, {}, {"decorations.pathmorphing"});
+    addBuiltin(db, "straight zigzag", C::Decoration, {}, {"draw","path"}, {}, {"decorations.pathmorphing"});
+    addBuiltin(db, "ticks",    C::Decoration, {}, {"draw","path"}, {}, {"decorations.pathmorphing"});
+    addBuiltin(db, "crosses",  C::Decoration, {}, {"draw","path"}, {}, {"decorations.pathmorphing"});
+    addBuiltin(db, "brace",        C::Decoration, {}, {"draw","path"}, {}, {"decorations.pathreplacing"});
+    addBuiltin(db, "brace mirrored", C::Decoration, {}, {"draw","path"}, {}, {"decorations.pathreplacing"});
+    addBuiltin(db, "curly brace",  C::Decoration, {}, {"draw","path"}, {}, {"decorations.pathreplacing"});
+    addBuiltin(db, "triangle",     C::Decoration, {}, {"draw","path"}, {}, {"decorations.pathreplacing"});
+    addBuiltin(db, "angle",        C::Decoration, {}, {"draw","path"}, {}, {"decorations.pathreplacing"});
+    addBuiltin(db, "trapezium brace", C::Decoration, {}, {"draw","path"}, {}, {"decorations.pathreplacing"});
     addBuiltin(db, "markings", C::Decoration, {}, {"draw","path"}, {}, {"decorations.markings"});
+    addBuiltin(db, "Koch snowflake",  C::Decoration, {}, {"draw","path"}, {}, {"decorations.fractals"});
+    addBuiltin(db, "Koch curve",      C::Decoration, {}, {"draw","path"}, {}, {"decorations.fractals"});
+    addBuiltin(db, "Koch curve type 2", C::Decoration, {}, {"draw","path"}, {}, {"decorations.fractals"});
+    addBuiltin(db, "Hilbert curve",   C::Decoration, {}, {"draw","path"}, {}, {"decorations.fractals"});
+    addBuiltin(db, "Sierpinski triangle", C::Decoration, {}, {"draw","path"}, {}, {"decorations.fractals"});
+    addBuiltin(db, "Cantor set",      C::Decoration, {}, {"draw","path"}, {}, {"decorations.fractals"});
+    addBuiltin(db, "Peano curve",     C::Decoration, {}, {"draw","path"}, {}, {"decorations.fractals"});
+    addBuiltin(db, "Moore curve",     C::Decoration, {}, {"draw","path"}, {}, {"decorations.fractals"});
+    addBuiltin(db, "Levy curve",      C::Decoration, {}, {"draw","path"}, {}, {"decorations.fractals"});
+    addBuiltin(db, "text along path", C::Decoration, {}, {"draw","path"}, {}, {"decorations.text"});
+    addBuiltin(db, "footprints",      C::Decoration, {}, {"draw","path"}, {}, {"decorations.footprints"});
+    addBuiltin(db, "stars",           C::Decoration, {}, {"draw","path"}, {}, {"decorations.shapes"});
+    addBuiltin(db, "triangles",       C::Decoration, {}, {"draw","path"}, {}, {"decorations.shapes"});
+    addBuiltin(db, "shape backgrounds", C::Decoration, {}, {"draw","path"}, {}, {"decorations.shapes"});
 
     // ── Anchors ──
     const char *anchors[] = {
@@ -132,9 +185,21 @@ void TikzKeywordDB::initBuiltins()
         "apex","corner 1","corner 2","tail",
         "input","output","input 1","input 2","output 1","output 2",
         "angle","150","120","90","60","30","0","210","240","270","300","330",
-        "wiper","W","cathode","anode","gate","G",
+        "wiper","W",
+        "cathode","anode","gate","G",
         "in","in 1","in 2","out","out 1","out 2",
         "tap","tap down","tap up","v+","v-","tip",
+        "B","C","E","S","D",
+        "collector","emitter","base",
+        "source","drain","bulk","substrate",
+        "primary","secondary",
+        "primary left","primary right",
+        "secondary left","secondary right",
+        "+","-",
+        "A","B","C","Y","O",
+        "text split one","text split two",
+        "part one","part two","part three","part four",
+        "lower","upper",
         nullptr};
     for (int i = 0; anchors[i]; i++)
         addBuiltin(db, anchors[i], C::Anchor, {}, {"node"});
@@ -173,6 +238,31 @@ void TikzKeywordDB::initBuiltins()
     addBuiltin(db, "/pgf/number format",        C::PGFKeyPath);
     addBuiltin(db, "/pgfplots/legend",          C::PGFKeyPath);
     addBuiltin(db, "/circuitikz",               C::PGFKeyPath);
+    // CircuiTikZ specific key paths
+    addBuiltin(db, "/tikz/circuitikz",          C::PGFKeyPath);
+    addBuiltin(db, "/tikz/bipoles",             C::PGFKeyPath);
+    addBuiltin(db, "/tikz/tripoles",            C::PGFKeyPath);
+    addBuiltin(db, "/tikz/quadpoles",           C::PGFKeyPath);
+    addBuiltin(db, "/tikz/bipoles/generic",     C::PGFKeyPath);
+    addBuiltin(db, "/tikz/bipoles/resistor",    C::PGFKeyPath);
+    addBuiltin(db, "/tikz/bipoles/capacitor",   C::PGFKeyPath);
+    addBuiltin(db, "/tikz/bipoles/inductor",    C::PGFKeyPath);
+    addBuiltin(db, "/tikz/bipoles/diode",       C::PGFKeyPath);
+    addBuiltin(db, "/tikz/bipoles/source",      C::PGFKeyPath);
+    addBuiltin(db, "/tikz/bipoles/meter",       C::PGFKeyPath);
+    addBuiltin(db, "/tikz/bipoles/switch",      C::PGFKeyPath);
+    addBuiltin(db, "/tikz/bipoles/mechanical",  C::PGFKeyPath);
+    addBuiltin(db, "/tikz/bipoles/transistor",  C::PGFKeyPath);
+    addBuiltin(db, "/tikz/tripoles/op amp",     C::PGFKeyPath);
+    addBuiltin(db, "/tikz/tripoles/bjt",        C::PGFKeyPath);
+    addBuiltin(db, "/tikz/tripoles/igbt",       C::PGFKeyPath);
+    addBuiltin(db, "/tikz/tripoles/mos",        C::PGFKeyPath);
+    addBuiltin(db, "/tikz/tripoles/jfet",       C::PGFKeyPath);
+    addBuiltin(db, "/tikz/tripoles/tube",       C::PGFKeyPath);
+    addBuiltin(db, "/tikz/quadpoles/transformer", C::PGFKeyPath);
+    addBuiltin(db, "/tikz/quadpoles/fourport",  C::PGFKeyPath);
+    addBuiltin(db, "/tikz/quadpoles/gyrator",   C::PGFKeyPath);
+    addBuiltin(db, "/tikz/quadpoles/coupling",  C::PGFKeyPath);
 
     // ── Libraries ──
     const char *libs[] = {
@@ -233,6 +323,140 @@ void TikzKeywordDB::initBuiltins()
         addBuiltin(db, envs[i], C::Environment);
 
     // ── Commands ── (LaTeX/TikZ/PGF commands)
+    // ── CircuiTikZ component commands (with environment context) ──
+    auto ctikzEnvs = {"tikzpicture","scope","circuitikz"};
+
+    // Passive components
+    addBuiltin(db, "elmech",           C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "elco",             C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "pvarcapacitor",    C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "vvarcapacitor",    C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "cute_inductor",    C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "american_inductor",C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "coils",            C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "vcoils",           C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "cute_coil",        C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "american_coil",    C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "fullgeneric",      C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "emptygeneric",     C::Command, ctikzEnvs, {"draw","path","to"});
+
+    // Power sources
+    addBuiltin(db, "vsourcesin",       C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "isourcesin",       C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "vsourceDC",        C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "isourceDC",        C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "solarcell",        C::Command, ctikzEnvs, {"draw","path","to"});
+
+    // Diodes
+    addBuiltin(db, "zdiode",           C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "schottky",         C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "photodiode",       C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "varactor",         C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "tunneldiode",      C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "thyristor",        C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "triac",            C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "diac",             C::Command, ctikzEnvs, {"draw","path","to"});
+
+    // Transistors
+    addBuiltin(db, "nigfet",           C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "pigfet",           C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "nigfete",          C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "pigfete",          C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "nmosfete",         C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "pmosfete",         C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "njfet",            C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "pjfet",            C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "nchenh",           C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "nchdep",           C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "pchdep",           C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "nch",              C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "pch",              C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "nigmfet",          C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "pigmfet",          C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "Lnigfet",          C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "Lpigfet",          C::Command, ctikzEnvs, {"draw","path","to"});
+
+    // Measurement instruments
+    addBuiltin(db, "rmeter",           C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "rmeterwa",         C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "smeter",           C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "qiprobe",          C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "qvprobe",          C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "qprobe",           C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "iloop2",           C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "iloop",            C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "viscoe",           C::Command, ctikzEnvs, {"draw","path","to"});
+
+    // Switches
+    addBuiltin(db, "cspst",            C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "ospt",             C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "cswitch",          C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "oswitch",          C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "pushbutton",       C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "nopb",             C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "ncpb",             C::Command, ctikzEnvs, {"draw","path","to"});
+
+    // Mechanical
+    addBuiltin(db, "motor",            C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "motor2",           C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "gear",             C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "twoport",          C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "fourport",         C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "transformer",      C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "transformercore",  C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "gyrator",          C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "ctline",           C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "delayline",        C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "tline",            C::Command, ctikzEnvs, {"draw","path","to"});
+
+    // Connection/terminal
+    addBuiltin(db, "ocirc",            C::Command, ctikzEnvs, {"draw","path","to","node"});
+    addBuiltin(db, "fcirc",            C::Command, ctikzEnvs, {"draw","path","to","node"});
+    addBuiltin(db, "ccirc",            C::Command, ctikzEnvs, {"draw","path","to","node"});
+    addBuiltin(db, "ocorner",          C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "icorner",          C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "ground",           C::Command, ctikzEnvs, {"draw","path","to","node"});
+    addBuiltin(db, "rground",          C::Command, ctikzEnvs, {"draw","path","to","node"});
+    addBuiltin(db, "cground",          C::Command, ctikzEnvs, {"draw","path","to","node"});
+    addBuiltin(db, "sground",          C::Command, ctikzEnvs, {"draw","path","to","node"});
+    addBuiltin(db, "tground",          C::Command, ctikzEnvs, {"draw","path","to","node"});
+    addBuiltin(db, "noground",         C::Command, ctikzEnvs, {"draw","path","to","node"});
+    addBuiltin(db, "node ground",      C::Command, ctikzEnvs, {"draw","path","to","node"});
+    addBuiltin(db, "crossover",        C::Command, ctikzEnvs, {"draw","path","to"});
+
+    // Logic gates (US style)
+    addBuiltin(db, "american and gate",     C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "american or gate",      C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "american not gate",     C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "american nand gate",    C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "american nor gate",     C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "american xor gate",     C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "american xnor gate",    C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "american buffer gate",  C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "american inverter gate",C::Command, ctikzEnvs, {"draw","path","to"});
+
+    // Logic gates (IEC style)
+    addBuiltin(db, "and port",        C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "or port",         C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "not port",        C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "nand port",       C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "nor port",        C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "xor port",        C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "xnor port",       C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "buffer port",     C::Command, ctikzEnvs, {"draw","path","to"});
+    addBuiltin(db, "inverter port",   C::Command, ctikzEnvs, {"draw","path","to"});
+
+    // Bipole prefix combinations (10 prefixes × 9 types = 90 commands)
+    addBipolePrefixes(db, "R",  ctikzEnvs);
+    addBipolePrefixes(db, "L",  ctikzEnvs);
+    addBipolePrefixes(db, "C",  ctikzEnvs);
+    addBipolePrefixes(db, "D",  ctikzEnvs);
+    addBipolePrefixes(db, "V",  ctikzEnvs);
+    addBipolePrefixes(db, "I",  ctikzEnvs);
+    addBipolePrefixes(db, "Q",  ctikzEnvs);
+    addBipolePrefixes(db, "Ty", ctikzEnvs);
+    addBipolePrefixes(db, "Tr", ctikzEnvs);
+
     const char *cmds[] = {
         "addplot","addplot3","addlegendentry","addlegendimage",
         "anchor","arc","arrow",
@@ -865,6 +1089,99 @@ void TikzKeywordDB::initBuiltins()
     addBuiltin(db, "strike out",    C::Shape, {"tikzpicture","scope"}, {"node"},
                {}, {"shapes.misc"});
     addBuiltin(db, "rounded rectangle", C::Shape, {"tikzpicture","scope"}, {"node"});
+
+    // ── CircuiTikZ node shapes ──
+    auto ctikzShapeEnvs = {"tikzpicture","scope","circuitikz"};
+
+    // Passive shapes
+    addCtikzShapes(db, {
+        "resistor","potentiometer","thermistor","varistor","photoresistor",
+        "capacitor","elmech","elco","pvarcapacitor","vvarcapacitor",
+        "inductor","cute_inductor","american_inductor","coils","cute_coil","american_coil",
+        "memristor","generic","emptygeneric","fullgeneric",
+    }, ctikzShapeEnvs);
+    addCtikzShape(db, "vresistorsshape", ctikzShapeEnvs);
+    addCtikzShape(db, "vcapacitorshape", ctikzShapeEnvs);
+    addCtikzShape(db, "vcoilsshape", ctikzShapeEnvs);
+
+    // Power shapes
+    addCtikzShapes(db, {
+        "vsourcesin","isourcesin","vsource","isource","vsourceDC","isourceDC",
+        "battery1","battery2","solarcell",
+    }, ctikzShapeEnvs);
+
+    // Diode shapes
+    addCtikzShapes(db, {
+        "diode","led","zdiode","schottky","photodiode","varactor",
+        "tunneldiode","thyristor","triac","diac",
+    }, ctikzShapeEnvs);
+
+    // Transistor shapes
+    addCtikzShapes(db, {
+        "npn","pnp",
+        "nigfet","pigfet","nigfete","pigfete",
+        "nmos","pmos","nmosfete","pmosfete",
+        "njfet","pjfet",
+        "nchenh","nchdep","pchdep","nch","pch",
+        "nigmfet","pigmfet",
+        "Lnigfet","Lpigfet",
+    }, ctikzShapeEnvs);
+
+    // Instrument shapes
+    addCtikzShapes(db, {
+        "ammeter","voltmeter","ohmmeter",
+        "rmeter","rmeterwa","smeter",
+        "qiprobe","qvprobe","qprobe",
+        "iloop2","iloop","viscoe",
+    }, ctikzShapeEnvs);
+
+    // Switch shapes
+    addCtikzShapes(db, {
+        "switch","cspst","ospt",
+        "cswitch","oswitch",
+        "pushbutton","nopb","ncpb",
+    }, ctikzShapeEnvs);
+
+    // Mechanical shapes
+    addCtikzShapes(db, {
+        "motor","motor2","gear",
+        "short","open",
+        "twoport","fourport",
+        "transformer","transformercore","gyrator",
+        "ctline","delayline","tline",
+    }, ctikzShapeEnvs);
+
+    // Terminal shapes
+    addCtikzShapes(db, {
+        "ocirc","fcirc","ccirc",
+        "ocorner","icorner",
+        "ground","rground","cground","sground","tground","noground",
+    }, ctikzShapeEnvs);
+
+    // Logic gate shapes
+    addCtikzShapes(db, {
+        "american and gate","american or gate","american not gate",
+        "american nand gate","american nor gate","american xor gate","american xnor gate",
+        "american buffer gate","american inverter gate",
+        "and port","or port","not port",
+        "nand port","nor port","xor port","xnor port",
+        "buffer port","inverter port",
+    }, ctikzShapeEnvs);
+
+    // Bipole prefix shapes (90 combinations)
+    {
+        static const char *prefixes[] = {
+            "p","v","i","ld","s","q","o","vq","iq","qq", nullptr
+        };
+        static const char *bipoles[] = {
+            "R","L","C","D","V","I","Q","Ty","Tr", nullptr
+        };
+        for (int p = 0; prefixes[p]; p++)
+            for (int b = 0; bipoles[b]; b++) {
+                QByteArray sn = QByteArray(prefixes[p]) + bipoles[b] + "shape";
+                addCtikzShape(db, sn.constData(), ctikzShapeEnvs);
+            }
+    }
 
     // ── Decorations ──
     addBuiltin(db, "random steps",       C::Decoration, {}, {"draw","path"}, {},
