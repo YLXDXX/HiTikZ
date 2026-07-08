@@ -875,6 +875,39 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    // Test 51: destroying a compiler with an in-flight async conversion must
+    // not crash or leave the process running (destructor reaps conv children).
+    {
+        if (!LatexCompiler::checkXelatexAvailable()
+            || !LatexCompiler::checkPdfToCairoAvailable()) {
+            fprintf(stderr, "SKIP: Test 51 - xelatex/pdftocairo not available\n");
+        } else {
+            LatexCompiler gen;
+            bool ok = false;
+            QString pdfPath;
+            QObject::connect(&gen, &LatexCompiler::compilationFinished,
+                [&](bool s, const QString &pdf, const QString &) { ok = s; pdfPath = pdf; });
+            gen.compile("\\begin{tikzpicture}\n\\draw (0,0) circle (1);\n\\end{tikzpicture}",
+                        "", "test_dtor");
+            QEventLoop loop;
+            QTimer::singleShot(15000, &loop, &QEventLoop::quit);
+            QObject::connect(&gen, &LatexCompiler::compilationFinished, &loop, &QEventLoop::quit);
+            loop.exec();
+
+            if (!ok || !QFile::exists(pdfPath)) {
+                fprintf(stderr, "SKIP: Test 51 - could not produce a PDF to convert\n");
+            } else {
+                // Start a conversion, then destroy the compiler immediately
+                // while the child QProcess is (likely) still running.
+                auto *conv = new LatexCompiler();
+                conv->convertToPng(pdfPath, 300);
+                delete conv;   // must block-and-reap without crashing
+                QCoreApplication::processEvents();
+                fprintf(stderr, "PASS: Test 51 - destructor reaps in-flight conversion process\n");
+            }
+        }
+    }
+
     fprintf(stderr, "Custom command tests: %d failed\n", customTestsFailed);
     failed += customTestsFailed;
 

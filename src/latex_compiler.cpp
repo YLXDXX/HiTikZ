@@ -25,9 +25,25 @@ LatexCompiler::~LatexCompiler()
     if (process) {
         if (process->state() != QProcess::NotRunning) {
             process->kill();
+            process->waitForFinished(1000);
         }
         process->disconnect(this);
         process->deleteLater();
+    }
+
+    // convertToPng()/convertToSvg() spawn async QProcess children. If the
+    // compiler is destroyed while one is still running, Qt warns ("QProcess:
+    // Destroyed while process still running") and the child may be orphaned.
+    // Kill and reap any that remain.
+    const QList<QProcess*> convProcs = findChildren<QProcess*>();
+    for (QProcess *p : convProcs) {
+        if (p == process) continue;
+        p->disconnect(this);
+        if (p->state() != QProcess::NotRunning) {
+            p->kill();
+            p->waitForFinished(1000);
+        }
+        p->deleteLater();
     }
 }
 
