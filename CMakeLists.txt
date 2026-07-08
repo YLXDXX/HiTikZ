@@ -37,6 +37,13 @@ if(NOT HAS_KGLOBALACCEL AND WITH_QHOTKEY)
     FetchContent_MakeAvailable(qhotkey)
 endif()
 
+# TikZ completer sources (split into modules for maintainability)
+set(TIKZ_COMPLETER_SOURCES
+    src/tikz_completer.cpp
+    src/tikz_completer_context.cpp
+    src/tikz_completer_models.cpp
+)
+
 # Snippet manager sources (split into modules for maintainability)
 set(SNIPPET_MANAGER_SOURCES
     src/snippet_manager.cpp
@@ -70,7 +77,7 @@ add_executable(TikzManager
     ${LATEX_COMPILER_SOURCES}
     src/code_editor.cpp
     src/tikz_highlighter.cpp
-    src/tikz_completer.cpp
+    ${TIKZ_COMPLETER_SOURCES}
     ${TIKZ_KEYWORDS_SOURCES}
     src/tikz_document_state.cpp
     src/settings_dialog.cpp
@@ -143,7 +150,7 @@ add_executable(test_multitab
     src/mainwindow.cpp
     src/code_editor.cpp
     src/tikz_highlighter.cpp
-    src/tikz_completer.cpp
+    ${TIKZ_COMPLETER_SOURCES}
     src/settings_dialog.cpp
     src/search_panel.cpp
     src/snippet_properties_dialog.cpp
@@ -188,7 +195,7 @@ add_test(NAME Fixes COMMAND test_fixes)
 
 add_executable(test_completer
     tests/test_completer.cpp
-    src/tikz_completer.cpp
+    ${TIKZ_COMPLETER_SOURCES}
     ${TIKZ_KEYWORDS_SOURCES}
     src/tikz_document_state.cpp
 )
