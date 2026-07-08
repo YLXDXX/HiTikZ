@@ -37,6 +37,17 @@ if(NOT HAS_KGLOBALACCEL AND WITH_QHOTKEY)
     FetchContent_MakeAvailable(qhotkey)
 endif()
 
+# Keyword database sources (split into modules for maintainability)
+set(TIKZ_KEYWORDS_SOURCES
+    src/tikz_keywords.cpp
+    src/tikz_keywords_data.cpp
+    src/tikz_keywords_basic.cpp
+    src/tikz_keywords_commands.cpp
+    src/tikz_keywords_options.cpp
+    src/tikz_keywords_pgfplots.cpp
+    src/tikz_keywords_extended.cpp
+)
+
 add_executable(TikzManager
     src/main.cpp
     src/mainwindow.cpp
@@ -45,7 +56,7 @@ add_executable(TikzManager
     src/code_editor.cpp
     src/tikz_highlighter.cpp
     src/tikz_completer.cpp
-    src/tikz_keywords.cpp
+    ${TIKZ_KEYWORDS_SOURCES}
     src/tikz_document_state.cpp
     src/settings_dialog.cpp
     src/search_panel.cpp
@@ -126,7 +137,7 @@ add_executable(test_multitab
     src/flow_layout.cpp
     src/snippet_manager.cpp
     src/latex_compiler.cpp
-    src/tikz_keywords.cpp
+    ${TIKZ_KEYWORDS_SOURCES}
     src/tikz_document_state.cpp
 )
 target_include_directories(test_multitab PRIVATE ${CMAKE_SOURCE_DIR}/src)
@@ -163,7 +174,7 @@ add_test(NAME Fixes COMMAND test_fixes)
 add_executable(test_completer
     tests/test_completer.cpp
     src/tikz_completer.cpp
-    src/tikz_keywords.cpp
+    ${TIKZ_KEYWORDS_SOURCES}
     src/tikz_document_state.cpp
 )
 target_include_directories(test_completer PRIVATE ${CMAKE_SOURCE_DIR}/src)
