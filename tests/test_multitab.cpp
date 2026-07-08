@@ -7,6 +7,7 @@
 #include "../src/mainwindow.h"
 #include "../src/snippet_manager.h"
 #include "../src/search_panel.h"
+#include "../src/code_editor.h"
 
 static int g_testsPassed = 0;
 static int g_testsFailed = 0;
@@ -226,12 +227,34 @@ static void cleanup_snippets(SnippetManager *mgr)
     }
 }
 
+static void test_word_wrap_toggle()
+{
+    CodeEditor editor;
+    editor.setPlainText(QStringLiteral(
+        "\\draw (0,0) -- (1,0) -- (1,1) to[in=0,out=180] (0,0) -- cycle; "
+        "% a very long line that should wrap when word wrap is enabled"));
+
+    editor.setWordWrap(true);
+    TEST_ASSERT(editor.lineWrapMode() == QPlainTextEdit::WidgetWidth,
+                "setWordWrap(true) should enable widget-width wrapping");
+
+    editor.setWordWrap(false);
+    TEST_ASSERT(editor.lineWrapMode() == QPlainTextEdit::NoWrap,
+                "setWordWrap(false) should disable wrapping");
+
+    // Toggling back on must restore wrapping (idempotent, no crash).
+    editor.setWordWrap(true);
+    TEST_ASSERT(editor.lineWrapMode() == QPlainTextEdit::WidgetWidth,
+                "setWordWrap(true) again should re-enable wrapping");
+}
+
 int main(int argc, char *argv[])
 {
     QApplication::setAttribute(Qt::AA_UseSoftwareOpenGL);
     QApplication app(argc, argv);
-
     fprintf(stderr, "=== Testing Multi-Tab Functionality ===\n");
+
+    test_word_wrap_toggle();
 
     QTabWidget *tabWidget = nullptr;
     SnippetManager *snippetMgr = nullptr;

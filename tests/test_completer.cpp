@@ -533,11 +533,62 @@ static int test_value_hints_angles_library()
     return failed;
 }
 
+static int test_eq_color_completion()
+{
+    int failed = 0;
+    QPlainTextEdit editor;
+    TikzCompleter completer(&editor);
+
+    // Colors that are in the full palette but were previously missing from
+    // the hardcoded fill/draw/color hint subset.
+    const char *colors[] = {
+        "violet", "teal", "olive", "purple", "pink", "lime",
+        "darkgray", "lightgray", "brown", "red", "blue", "orange", nullptr
+    };
+
+    const char *colorKeys[] = { "fill", "draw", "color", "left color",
+                                "ball color", "pattern color", nullptr };
+
+    for (int k = 0; colorKeys[k] != nullptr; k++) {
+        const QStringList vals =
+            completer.eqCandidatesForKey(QString::fromLatin1(colorKeys[k]));
+        for (int i = 0; colors[i] != nullptr; i++) {
+            if (!vals.contains(QString::fromLatin1(colors[i]))) {
+                fprintf(stderr, "FAIL: EQC-1 - '%s=' completion should offer color '%s'\n",
+                        colorKeys[k], colors[i]);
+                failed++;
+            }
+        }
+    }
+
+    // Non-color curated keys must keep their intentional value hints
+    // (and must NOT be flooded with colors).
+    const QStringList lw = completer.eqCandidatesForKey(QStringLiteral("line width"));
+    if (!lw.contains(QStringLiteral("1pt"))) {
+        fprintf(stderr, "FAIL: EQC-2 - 'line width=' should offer '1pt'\n");
+        failed++;
+    }
+    if (lw.contains(QStringLiteral("violet"))) {
+        fprintf(stderr, "FAIL: EQC-3 - 'line width=' should not offer colors\n");
+        failed++;
+    }
+
+    // Opacity keeps its numeric hints.
+    const QStringList op = completer.eqCandidatesForKey(QStringLiteral("fill opacity"));
+    if (!op.contains(QStringLiteral("0.5")) || op.contains(QStringLiteral("violet"))) {
+        fprintf(stderr, "FAIL: EQC-4 - 'fill opacity=' should offer numeric hints, not colors\n");
+        failed++;
+    }
+
+    if (failed == 0)
+        fprintf(stderr, "PASS: fill/draw/color value completion offers full palette\n");
+    return failed;
+}
+
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
     int failed = 0;
-
     failed += test_options_contain_help_lines();
     failed += test_options_contain_new_entries();
     failed += test_options_existing_entries_preserved();
@@ -553,6 +604,7 @@ int main(int argc, char *argv[])
     failed += test_path_keywords_completable();
     failed += test_model_clearing_on_empty_list();
     failed += test_key_handlers();
+    failed += test_eq_color_completion();
 
     if (failed > 0) {
         fprintf(stderr, "\n%d test(s) failed!\n", failed);

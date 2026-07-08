@@ -36,6 +36,10 @@ public:
 
     void setModelForContext(Context ctx, const QStringList &words);
 
+    // Candidate values offered after "key=" in an options bracket.
+    // Exposed for testing.
+    QStringList eqCandidatesForKey(const QString &keyName) const;
+
     void setDocumentState(TikzDocumentState *state);
 
 private:
