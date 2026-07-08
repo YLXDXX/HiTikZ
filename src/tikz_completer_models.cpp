@@ -164,33 +164,49 @@ void TikzCompleter::updateBrkModel()
     setModelForContext(TkzCtxBrk, buildBrkCandidates(TkzCtxBrk));
 }
 
-void TikzCompleter::updateEqModel(const QString &keyName)
+QStringList TikzCompleter::eqCandidatesForKey(const QString &keyName) const
 {
     QStringList vals;
-    const auto *kw = TikzKeywords::TikzKeywordDB::instance().find(
-        keyName, TikzKeywords::Category::Option);
-    if (kw && !kw->valueHints.isEmpty()) {
-        vals = kw->valueHints;
+    const QString lower = keyName.toLower();
+
+    // Color-valued keys must offer the full palette (built-in colors +
+    // user \definecolor/\colorlet), never a hardcoded subset. Keys such as
+    // "color", "draw", "fill", "left color", "ball color", ... all match.
+    const bool isColorKey = lower.contains("color")
+                            || lower == "draw" || lower == "fill";
+
+    if (isColorKey) {
+        vals << TikzWords::tikzColors();
+        if (m_docState) {
+            const auto colorKeys = m_docState->definedColors().keys();
+            for (const auto &c : colorKeys)
+                vals << c;
+        }
     } else {
-        QString lower = keyName.toLower();
-        if (lower.contains("color") || lower == "draw" || lower == "fill"
-            || lower == "left color" || lower == "right color"
-            || lower == "top color" || lower == "bottom color")
-            vals << TikzWords::tikzColors();
-        else if (lower.contains("width") || lower.contains("sep")
-                 || lower.contains("distance") || lower.contains("size")
-                 || lower.contains("radius"))
+        const auto *kw = TikzKeywords::TikzKeywordDB::instance().find(
+            keyName, TikzKeywords::Category::Option);
+        if (kw && !kw->valueHints.isEmpty()) {
+            vals = kw->valueHints;
+        } else if (lower.contains("width") || lower.contains("sep")
+                   || lower.contains("distance") || lower.contains("size")
+                   || lower.contains("radius")) {
             vals << TikzWords::tikzLineWidthValues();
-        else if (lower.contains("arrow") || lower == ">" || lower == ">=")
+        } else if (lower.contains("arrow") || lower == ">" || lower == ">=") {
             vals << TikzWords::tikzArrows();
-        else if (lower == "pattern")
+        } else if (lower == "pattern") {
             vals << TikzWords::tikzPatternNames();
-        else if (lower == "decoration")
+        } else if (lower == "decoration") {
             vals << TikzWords::tikzDecorationNames();
+        }
     }
     vals.removeDuplicates();
     vals.sort(Qt::CaseInsensitive);
-    setModelForContext(TkzCtxEq, vals);
+    return vals;
+}
+
+void TikzCompleter::updateEqModel(const QString &keyName)
+{
+    setModelForContext(TkzCtxEq, eqCandidatesForKey(keyName));
 }
 
 void TikzCompleter::updateUserModels()

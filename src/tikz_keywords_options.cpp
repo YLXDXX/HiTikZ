@@ -44,12 +44,9 @@ void registerGeneralOptions(Vec &db)
     addBuiltin(db, "shift",           C::Option, {});
 
     // Color / opacity
-    addBuiltin(db, "color",           C::Option, {}, {"draw","path","fill","node"},
-               {"red","green","blue","cyan","magenta","yellow","black","white","gray","orange"});
-    addBuiltin(db, "draw",            C::Option, {}, {"draw","path","node","edge"},
-               {"red","green","blue","cyan","magenta","yellow","black","white","gray","orange"});
-    addBuiltin(db, "fill",            C::Option, {}, {"draw","path","node"},
-               {"red","green","blue","cyan","magenta","yellow","black","white","gray","orange"});
+    addBuiltin(db, "color",           C::Option, {}, {"draw","path","fill","node"});
+    addBuiltin(db, "draw",            C::Option, {}, {"draw","path","node","edge"});
+    addBuiltin(db, "fill",            C::Option, {}, {"draw","path","node"});
     addBuiltin(db, "draw opacity",    C::Option, {}, {"draw","path"},
                {"0.3","0.5","0.7","1.0"});
     addBuiltin(db, "fill opacity",    C::Option, {}, {"draw","path","node"},
