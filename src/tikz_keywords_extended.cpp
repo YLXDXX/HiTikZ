@@ -353,22 +353,13 @@ void registerExtended(Vec &db)
     addBuiltin(db, "pgfplots.fillbetween", C::Library);
 
     // ── Additional commands ──
+    // Only genuine \backslash commands belong here. Parameter-type keywords
+    // ("table"/"coordinates"/"graphics"), path operations ("plot") and syntax
+    // fragments ("at") are NOT standalone commands, and mis-cased/duplicate
+    // entries were removed.
     addBuiltin(db, "addplot+",           C::Command, {"axis","groupplot"});
-    addBuiltin(db, "addplot table",      C::Command, {"axis","groupplot"});
-    addBuiltin(db, "addplot coordinates",C::Command, {"axis","groupplot"});
-    addBuiltin(db, "addplot graphics",   C::Command, {"axis","groupplot"});
-    addBuiltin(db, "addplot3 table",     C::Command, {"axis","groupplot"});
     addBuiltin(db, "pgfplotstableset",   C::Command);
-    addBuiltin(db, "pgfplotstabletypeset", C::Command);
-    addBuiltin(db, "draw plot",          C::Command);
-    addBuiltin(db, "node at",            C::Command);
-    addBuiltin(db, "coordinate at",      C::Command);
     addBuiltin(db, "tikzmath",           C::Command);
-    addBuiltin(db, "Pgfmathsetmacro",    C::Command);
-    addBuiltin(db, "Pgfmathsetlength",   C::Command);
-    addBuiltin(db, "pgfmathparse",       C::Command);
-    addBuiltin(db, "pgfmathresult",      C::Command);
-    addBuiltin(db, "pgfplotstableread",  C::Command);
 }
 
 } // namespace TikzKeywords

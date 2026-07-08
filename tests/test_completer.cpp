@@ -7,6 +7,7 @@
 #include <cstdio>
 #include "tikz_words.h"
 #include "tikz_completer.h"
+#include "tikz_keywords.h"
 
 static int test_options_contain_help_lines()
 {
@@ -683,6 +684,67 @@ static int test_multiline_context()
     return failed;
 }
 
+// Verifies path operations/options/environments and CircuiTikZ components are
+// NOT offered as \backslash commands, while genuine commands remain, and path
+// operations stay completable as bare words.
+static int test_no_bogus_commands()
+{
+    int failed = 0;
+    using TikzKeywords::TikzKeywordDB;
+    const QStringList cmds = TikzKeywordDB::instance().allCommandNames();
+    const QStringList words = TikzKeywordDB::instance().allCompletableWords();
+
+    // Must NOT be registered as \backslash commands.
+    // (Note: "arrow" is intentionally excluded — \arrow is a genuine tikz-cd
+    // command, gated to the tikzcd environment.)
+    const char *bogus[] = {
+        "anchor","arc","ball","bend","circle","coordinates","cycle",
+        "dataset","drawplot","forest","getref","lineto","pattern",
+        "pgfmathsetmacroglobal","pin","plot","scope","tabular","vertex","edge",
+        // CircuiTikZ components (belong in to[...]/node[...], gated by circuitikz)
+        "resistor","capacitor","inductor","voltmeter","ammeter","ohmmeter",
+        "battery","lamp","buzzer","oscope","memristor","varistor",
+        // space pseudo-commands / case errors from the extended file
+        "addplot table","addplot coordinates","addplot graphics","addplot3 table",
+        "draw plot","node at","coordinate at","Pgfmathsetmacro","Pgfmathsetlength",
+        nullptr
+    };
+    for (int i = 0; bogus[i]; ++i) {
+        if (cmds.contains(QString::fromLatin1(bogus[i]))) {
+            fprintf(stderr, "FAIL: NBC-1 - '%s' should not be a \\command\n", bogus[i]);
+            failed++;
+        }
+    }
+
+    // Genuine commands must remain.
+    const char *valid[] = {
+        "draw","node","coordinate","clip","fill","path","foreach","matrix",
+        "sin","cos","to","closedcycle","flat","protected","tikzset",
+        "pgfmathsetmacro","pgfmathsetlength","pgfmathresult",
+        "pgfplotstabletypeset","tikzmath","addplot+", nullptr
+    };
+    for (int i = 0; valid[i]; ++i) {
+        if (!cmds.contains(QString::fromLatin1(valid[i]))) {
+            fprintf(stderr, "FAIL: NBC-2 - valid command '%s' is missing\n", valid[i]);
+            failed++;
+        }
+    }
+
+    // Path operations must still be completable as bare words.
+    const char *pathOps[] = { "arc", "plot", "edge", "circle", "cycle", nullptr };
+    for (int i = 0; pathOps[i]; ++i) {
+        if (!words.contains(QString::fromLatin1(pathOps[i]), Qt::CaseInsensitive)) {
+            fprintf(stderr, "FAIL: NBC-3 - path op '%s' should stay a completable word\n",
+                    pathOps[i]);
+            failed++;
+        }
+    }
+
+    fprintf(stderr, "%s: bogus commands removed, valid commands & path words kept\n",
+            failed == 0 ? "PASS" : "FAIL");
+    return failed;
+}
+
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
@@ -706,6 +768,7 @@ int main(int argc, char *argv[])
     failed += test_eq_key_name_extraction();
     failed += test_command_for_option_context();
     failed += test_multiline_context();
+    failed += test_no_bogus_commands();
 
     if (failed > 0) {
         fprintf(stderr, "\n%d test(s) failed!\n", failed);

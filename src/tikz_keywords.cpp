@@ -148,6 +148,7 @@ QStringList TikzKeywordDB::allCompletableWords() const
     appendUnique(allLineTypeNames());
     appendUnique(allLineWidthNames());
     appendUnique(allMathFuncNames());
+    appendUnique(names(Category::PathOperation));
     result.sort(Qt::CaseInsensitive);
     return result;
 }

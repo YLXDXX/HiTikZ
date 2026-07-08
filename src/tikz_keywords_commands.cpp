@@ -181,31 +181,30 @@ void registerCommands(Vec &db)
 
     const char *cmds[] = {
         "addplot","addplot3","addlegendentry","addlegendimage",
-        "anchor","arc","arrow",
-        "ball","begin","bend",
-        "caption","circle","clip","closedcycle","coordinate",
-        "coordinates","cos","cycle",
-        "dataset","datavisualization",
-        "definecolor","def","draw","drawplot",
-        "edef","edge","else","end","exp","expandafter",
-        "fill","filldraw","flat","foreach","forest",
-        "getref","gdef","global","graph",
+        "begin",
+        "caption","clip","closedcycle","coordinate",
+        "cos",
+        "datavisualization",
+        "definecolor","def","draw",
+        "edef","else","end","exp","expandafter",
+        "fill","filldraw","flat","foreach",
+        "gdef","global","graph",
         "hbox","hfil","hfill","hline","hrule","hskip","hspace",
         "if","ifdim","ifnum","ifodd","ifx",
         "input","item",
-        "label","let","line","lineto","ln",
+        "label","let","line","ln",
         "matrix","max","min","moveleft","moveright",
         "newcommand","newcount","newdimen","newif","newwrite",
         "node",
-        "par","parbox","path","pattern","pgfkeys","pgfmathsetmacro",
+        "par","parbox","path","pgfkeys","pgfmathsetmacro","pgfmathsetlength",
         "pgfplotstableread","pgfplotstabletypeset",
-        "pic","pin","plot","protected",
+        "pic","protected",
         "relax","renewcommand","repeat",
-        "scope","setlength","shade","shadedraw",
+        "setlength","shade","shadedraw",
         "sin","sqrt",
-        "tabular","text","tikzset","tikzstyle","to",
+        "text","tikzset","tikzstyle","to",
         "usebox","usepackage","usetikzlibrary",
-        "vbox","vertex","vfil","vfill","vrule","vskip","vspace",
+        "vbox","vfil","vfill","vrule","vskip","vspace",
         "xdef",
         "tdplotsetmaincoords","tdplotsetrotatedcoords",
         "tdplotsetrotatedcoordsorigin","tdplotresetrotatedcoordsorigin",
@@ -221,7 +220,7 @@ void registerCommands(Vec &db)
         "tdplotcrossprod","tdplotsinandcos","tdplotmult","tdplotdiv",
         "pgfmathtruncatemacro","pgfmathparse","pgfmathresult",
         "pgfmathprintnumber","pgfmathrandominteger","pgfmathsetseed",
-        "pgfmathsetmacroglobal","pgfkeysvalueof","pgfkeysgetvalue",
+        "pgfkeysvalueof","pgfkeysgetvalue",
         "pgfkeyssetvalue","pgfplotsset",
         "pgfdeclarelayer","pgfsetlayers","pgfonlayer","endpgfonlayer",
         "pgfdeclareshape","pgfdeclareplotmark","pgfdeclarepattern",
@@ -299,22 +298,16 @@ void registerCommands(Vec &db)
         "chapter","section","subsection","subsubsection",
         "emph","url","href","includegraphics",
         "color","textcolor","colorbox","fcolorbox",
-        // CircuitikZ
-        "resistor","vresistor","potentiometer",
-        "thermistor","thermistorptc","thermistorntc",
-        "varistor","mov","memristor","photoresistor",
-        "generic","ageneric","tgeneric",
-        "short","open",
-        "capacitor","ecapacitor","ccapacitor","vcapacitor",
-        "ferrocap","piezoelectric","cpe",
-        "inductor",
-        "battery","battery1","battery2",
-        "lamp","bulb","fuse","relais","squid","barrier",
-        "thermocouple","loudspeaker","mic","buzzer",
-        "ammeter","voltmeter","ohmmeter","oscope",
         nullptr};
     for (int i = 0; cmds[i]; i++)
         addBuiltin(db, cmds[i], C::Command);
+
+    // Path operations: completable as bare words inside a path (e.g. "arc",
+    // "plot", "edge") but NOT valid as \backslash commands, so they live under
+    // PathOperation rather than Command (which would offer a bogus "\arc").
+    const char *pathOps[] = { "arc", "plot", "edge", nullptr };
+    for (int i = 0; pathOps[i]; i++)
+        addBuiltin(db, pathOps[i], C::PathOperation);
 }
 
 void registerMathFunctions(Vec &db)
