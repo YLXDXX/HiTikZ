@@ -54,6 +54,13 @@ public:
 
     static void copyPresetsFromResources(const QString &resourceDir, const QString &destDir);
     static int fuzzyMatchScore(const QString &query, const QString &target);
+
+    // Returns true when a snippet whose category is `snippetCategory` should be
+    // shown under the category-tree node `filterCategory`. A node matches its own
+    // category and any descendant (prefix followed by '/'), but NOT sibling
+    // categories that merely share a textual prefix (e.g. "数学" vs "数学分析").
+    static bool categoryMatches(const QString &snippetCategory,
+                                const QString &filterCategory);
     QList<SearchResult> searchSnippets(const QString &query, bool includePresets = true) const;
     QStringList getAllCategories(bool includePresets = true) const;
     QMap<QString, int> getCategoryCounts(bool includePresets = true) const;

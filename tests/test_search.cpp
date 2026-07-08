@@ -162,6 +162,36 @@ int main(int argc, char *argv[]) {
         mgr.deleteSnippet(id3);
     }
 
+    // Test 10: categoryMatches — node matches itself and descendants, but not
+    // sibling categories that merely share a textual prefix.
+    {
+        struct { const char *snip; const char *filter; bool expect; } cases[] = {
+            { "数学",     "数学", true  },   // exact match
+            { "数学/几何", "数学", true  },   // descendant
+            { "数学分析",  "数学", false },   // sibling sharing prefix — must NOT match
+            { "数学/几何", "数学/几何", true },
+            { "数学/几何/圆", "数学/几何", true },
+            { "数学/代数", "数学/几何", false },
+            { "physics", "math", false },
+            { "math",    "",     true  },   // empty filter matches everything
+            { "",        "",     true  },
+            { nullptr, nullptr, false }
+        };
+        int localFail = 0;
+        for (int i = 0; cases[i].snip != nullptr; ++i) {
+            bool got = SnippetManager::categoryMatches(
+                QString::fromUtf8(cases[i].snip), QString::fromUtf8(cases[i].filter));
+            if (got != cases[i].expect) {
+                fprintf(stderr, "FAIL: Test 10 - categoryMatches('%s','%s')=%d expected=%d\n",
+                    cases[i].snip, cases[i].filter, got, cases[i].expect);
+                localFail++;
+            }
+        }
+        fprintf(stderr, "%s: Test 10 - categoryMatches prefix-boundary handling\n",
+            localFail == 0 ? "PASS" : "FAIL");
+        failed += localFail;
+    }
+
     if (failed > 0) {
         fprintf(stderr, "\n%d test(s) failed!\n", failed);
         return 1;

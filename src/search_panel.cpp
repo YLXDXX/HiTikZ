@@ -253,7 +253,8 @@ void SearchPanel::refreshSearch()
 
         if (currentCat == "__uncategorized__") {
             if (!r.snippet.category.isEmpty()) continue;
-        } else if (!currentCat.isEmpty() && !r.snippet.category.startsWith(currentCat)) {
+        } else if (!currentCat.isEmpty()
+                   && !SnippetManager::categoryMatches(r.snippet.category, currentCat)) {
             continue;
         }
 
@@ -303,7 +304,8 @@ void SearchPanel::refreshThumbnailList()
     for (const SearchResult &r : results) {
         if (category == "__uncategorized__") {
             if (!r.snippet.category.isEmpty()) continue;
-        } else if (!category.isEmpty() && !r.snippet.category.startsWith(category)) {
+        } else if (!category.isEmpty()
+                   && !SnippetManager::categoryMatches(r.snippet.category, category)) {
             continue;
         }
         QString label = r.snippet.isPreset ? QStringLiteral("[预设] ") + r.snippet.name : r.snippet.name;

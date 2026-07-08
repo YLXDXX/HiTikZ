@@ -26,6 +26,14 @@ QString SnippetManager::getBasePath() const
     return basePath;
 }
 
+bool SnippetManager::categoryMatches(const QString &snippetCategory,
+                                     const QString &filterCategory)
+{
+    if (filterCategory.isEmpty())
+        return true;
+    return snippetCategory == filterCategory
+        || snippetCategory.startsWith(filterCategory + QLatin1Char('/'));
+}
 QString SnippetManager::getPresetPath() const
 {
     return presetPath;
