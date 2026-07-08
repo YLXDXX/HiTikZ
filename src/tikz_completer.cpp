@@ -6,6 +6,7 @@
 #include <QScrollBar>
 #include <QKeyEvent>
 #include <QTextCursor>
+#include <QTextDocument>
 #include <QRegularExpression>
 #include <QWindow>
 
@@ -72,18 +73,47 @@ QString TikzCompleter::eqKeyName(const QString &textBefore)
     return beforeKey.mid(keyStart + 1).trimmed();
 }
 
+QString TikzCompleter::textBeforeForContext() const
+{
+    QTextCursor cur = m_editor->textCursor();
+    const int cursorAbsPos = cur.position();
+    QTextDocument *doc = m_editor->document();
+
+    // Walk backwards to the nearest unclosed '[' or '{' so that option ([...])
+    // and argument ({...}) contexts still resolve when they span several lines.
+    // Bounded look-back keeps this cheap on very large documents.
+    int scan = cursorAbsPos;
+    const int limitPos = qMax(0, cursorAbsPos - 5000);
+    int bracketDepth = 0;
+    int braceDepth = 0;
+    while (scan > limitPos) {
+        const QChar ch = doc->characterAt(scan - 1);
+        if (ch == QLatin1Char(']')) {
+            bracketDepth++;
+        } else if (ch == QLatin1Char('[')) {
+            if (bracketDepth == 0) { scan--; break; } // include the unclosed '['
+            bracketDepth--;
+        } else if (ch == QLatin1Char('}')) {
+            braceDepth++;
+        } else if (ch == QLatin1Char('{')) {
+            if (braceDepth == 0) { scan--; break; } // include the unclosed '{'
+            braceDepth--;
+        }
+        scan--;
+    }
+
+    QTextCursor sel = m_editor->textCursor();
+    sel.setPosition(scan);
+    sel.setPosition(cursorAbsPos, QTextCursor::KeepAnchor);
+    QString textBefore = sel.selectedText();
+    // QTextCursor uses U+2029 as the line separator; normalise to '\n'.
+    textBefore.replace(QChar::ParagraphSeparator, QLatin1Char('\n'));
+    return textBefore;
+}
+
 void TikzCompleter::tryComplete()
 {
-    QTextCursor cursor = m_editor->textCursor();
-    cursor.movePosition(QTextCursor::StartOfBlock, QTextCursor::KeepAnchor);
-    QString lineBefore = cursor.selectedText();
-
-    QString textBefore;
-    int cursorPos = m_editor->textCursor().positionInBlock();
-    if (cursorPos < lineBefore.length())
-        textBefore = lineBefore.left(cursorPos);
-    else
-        textBefore = lineBefore;
+    QString textBefore = textBeforeForContext();
 
     // Update user models from document state
     updateUserModels();

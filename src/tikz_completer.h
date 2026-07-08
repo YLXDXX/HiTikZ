@@ -32,6 +32,12 @@ public:
 
     Context detectContext(const QString &textBeforeCursor) const;
 
+    // Text from the cursor back to the nearest unclosed '[' or '{' (or up to a
+    // bounded look-back), used as the context for completion. Unlike the current
+    // line alone, this lets option/brace contexts work when written across
+    // multiple lines. Exposed for testing.
+    QString textBeforeForContext() const;
+
     void refreshParamWords(const QStringList &params);
 
     void setModelForContext(Context ctx, const QStringList &words);

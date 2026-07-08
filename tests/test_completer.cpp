@@ -642,6 +642,47 @@ static int test_command_for_option_context()
     return failed;
 }
 
+// Verifies textBeforeForContext back-tracks across newlines to the enclosing
+// bracket, so completion works for options written on multiple lines.
+static int test_multiline_context()
+{
+    int failed = 0;
+    QPlainTextEdit editor;
+    TikzCompleter completer(&editor);
+
+    // Option list split across two lines; cursor on the 2nd line, in the bracket.
+    editor.setPlainText(QStringLiteral("\\draw[red,\n      line "));
+    editor.moveCursor(QTextCursor::End);
+
+    QString tb = completer.textBeforeForContext();
+    if (!tb.startsWith(QLatin1Char('['))) {
+        fprintf(stderr, "FAIL: MLC-1 - context should start at the unclosed '[' (got: '%s')\n",
+                tb.toUtf8().constData());
+        failed++;
+    }
+    if (!tb.contains(QLatin1Char('\n'))) {
+        fprintf(stderr, "FAIL: MLC-2 - context should span multiple lines\n");
+        failed++;
+    }
+    if (completer.detectContext(tb) != TikzCompleter::TkzCtxBrk) {
+        fprintf(stderr, "FAIL: MLC-3 - multi-line option context should be TkzCtxBrk\n");
+        failed++;
+    }
+
+    // Sanity: a plain single-line command context still resolves correctly.
+    editor.setPlainText(QStringLiteral("\\dr"));
+    editor.moveCursor(QTextCursor::End);
+    QString tb2 = completer.textBeforeForContext();
+    if (completer.detectContext(tb2) != TikzCompleter::TkzCtxCmd) {
+        fprintf(stderr, "FAIL: MLC-4 - '\\dr' should resolve to command context\n");
+        failed++;
+    }
+
+    fprintf(stderr, "%s: multi-line completion context back-tracking\n",
+            failed == 0 ? "PASS" : "FAIL");
+    return failed;
+}
+
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
@@ -664,6 +705,7 @@ int main(int argc, char *argv[])
     failed += test_eq_color_completion();
     failed += test_eq_key_name_extraction();
     failed += test_command_for_option_context();
+    failed += test_multiline_context();
 
     if (failed > 0) {
         fprintf(stderr, "\n%d test(s) failed!\n", failed);
