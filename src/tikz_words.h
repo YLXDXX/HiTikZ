@@ -37,6 +37,15 @@ inline const QStringList tikzLineWidths() {
 inline const QStringList tikzMathFunctions() {
     return TikzKeywords::TikzKeywordDB::instance().allMathFuncNames();
 }
+inline const QStringList tikzLibraries() {
+    return TikzKeywords::TikzKeywordDB::instance().allLibNames();
+}
+inline const QStringList tikzPatternNames() {
+    return TikzKeywords::TikzKeywordDB::instance().allPatternNames();
+}
+inline const QStringList tikzDecorationNames() {
+    return TikzKeywords::TikzKeywordDB::instance().allDecorationNames();
+}
 
 inline QStringList tikzLineWidthValues() {
     return {"0.2pt","0.4pt","0.5pt","0.6pt","0.8pt","1pt","1.2pt","1.5pt","2pt","2.5pt","3pt","4pt","5pt","6pt","8pt","10pt"};
@@ -60,29 +69,8 @@ inline QStringList allCompletableWords() {
     return TikzKeywords::TikzKeywordDB::instance().allCompletableWords();
 }
 
-inline const QStringList &pgfKeysPathCommands() {
-    static const QStringList list = {
-        "/tikz", "/pgf", "/pgfplots", "/graph",
-        "/tikz/every picture", "/tikz/every node", "/tikz/every path",
-        "/tikz/every edge", "/tikz/every label", "/tikz/every pin",
-        "/tikz/every graph", "/tikz/every plot",
-        "/pgf/number format",
-        "/pgfplots/legend",
-        "/circuitikz",
-        "/tikz/circuitikz",
-        "/tikz/bipoles", "/tikz/tripoles", "/tikz/quadpoles",
-        "/tikz/bipoles/generic", "/tikz/bipoles/resistor",
-        "/tikz/bipoles/capacitor", "/tikz/bipoles/inductor",
-        "/tikz/bipoles/diode", "/tikz/bipoles/source",
-        "/tikz/bipoles/meter", "/tikz/bipoles/switch",
-        "/tikz/bipoles/mechanical", "/tikz/bipoles/transistor",
-        "/tikz/tripoles/op amp", "/tikz/tripoles/bjt",
-        "/tikz/tripoles/igbt", "/tikz/tripoles/mos",
-        "/tikz/tripoles/jfet", "/tikz/tripoles/tube",
-        "/tikz/quadpoles/transformer", "/tikz/quadpoles/fourport",
-        "/tikz/quadpoles/gyrator", "/tikz/quadpoles/coupling",
-    };
-    return list;
+inline const QStringList pgfKeysPathCommands() {
+    return TikzKeywords::TikzKeywordDB::instance().names(TikzKeywords::Category::PGFKeyPath);
 }
 
 } // namespace TikzWords

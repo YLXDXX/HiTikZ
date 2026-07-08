@@ -323,128 +323,58 @@ void TikzKeywordDB::initBuiltins()
         addBuiltin(db, envs[i], C::Environment);
 
     // ── Commands ── (LaTeX/TikZ/PGF commands)
-    // ── CircuiTikZ component commands (with environment context) ──
-    auto ctikzEnvs = {"tikzpicture","scope","circuitikz"};
-
-    // Passive components
-    addBuiltin(db, "elmech",           C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "elco",             C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "pvarcapacitor",    C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "vvarcapacitor",    C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "cute_inductor",    C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "american_inductor",C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "coils",            C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "vcoils",           C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "cute_coil",        C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "american_coil",    C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "fullgeneric",      C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "emptygeneric",     C::Command, ctikzEnvs, {"draw","path","to"});
-
-    // Power sources
-    addBuiltin(db, "vsourcesin",       C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "isourcesin",       C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "vsourceDC",        C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "isourceDC",        C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "solarcell",        C::Command, ctikzEnvs, {"draw","path","to"});
-
-    // Diodes
-    addBuiltin(db, "zdiode",           C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "schottky",         C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "photodiode",       C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "varactor",         C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "tunneldiode",      C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "thyristor",        C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "triac",            C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "diac",             C::Command, ctikzEnvs, {"draw","path","to"});
-
-    // Transistors
-    addBuiltin(db, "nigfet",           C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "pigfet",           C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "nigfete",          C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "pigfete",          C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "nmosfete",         C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "pmosfete",         C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "njfet",            C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "pjfet",            C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "nchenh",           C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "nchdep",           C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "pchdep",           C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "nch",              C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "pch",              C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "nigmfet",          C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "pigmfet",          C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "Lnigfet",          C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "Lpigfet",          C::Command, ctikzEnvs, {"draw","path","to"});
-
-    // Measurement instruments
-    addBuiltin(db, "rmeter",           C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "rmeterwa",         C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "smeter",           C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "qiprobe",          C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "qvprobe",          C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "qprobe",           C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "iloop2",           C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "iloop",            C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "viscoe",           C::Command, ctikzEnvs, {"draw","path","to"});
-
-    // Switches
-    addBuiltin(db, "cspst",            C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "ospt",             C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "cswitch",          C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "oswitch",          C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "pushbutton",       C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "nopb",             C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "ncpb",             C::Command, ctikzEnvs, {"draw","path","to"});
-
-    // Mechanical
-    addBuiltin(db, "motor",            C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "motor2",           C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "gear",             C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "twoport",          C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "fourport",         C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "transformer",      C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "transformercore",  C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "gyrator",          C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "ctline",           C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "delayline",        C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "tline",            C::Command, ctikzEnvs, {"draw","path","to"});
-
-    // Connection/terminal
-    addBuiltin(db, "ocirc",            C::Command, ctikzEnvs, {"draw","path","to","node"});
-    addBuiltin(db, "fcirc",            C::Command, ctikzEnvs, {"draw","path","to","node"});
-    addBuiltin(db, "ccirc",            C::Command, ctikzEnvs, {"draw","path","to","node"});
-    addBuiltin(db, "ocorner",          C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "icorner",          C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "ground",           C::Command, ctikzEnvs, {"draw","path","to","node"});
-    addBuiltin(db, "rground",          C::Command, ctikzEnvs, {"draw","path","to","node"});
-    addBuiltin(db, "cground",          C::Command, ctikzEnvs, {"draw","path","to","node"});
-    addBuiltin(db, "sground",          C::Command, ctikzEnvs, {"draw","path","to","node"});
-    addBuiltin(db, "tground",          C::Command, ctikzEnvs, {"draw","path","to","node"});
-    addBuiltin(db, "noground",         C::Command, ctikzEnvs, {"draw","path","to","node"});
-    addBuiltin(db, "node ground",      C::Command, ctikzEnvs, {"draw","path","to","node"});
-    addBuiltin(db, "crossover",        C::Command, ctikzEnvs, {"draw","path","to"});
-
-    // Logic gates (US style)
-    addBuiltin(db, "american and gate",     C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "american or gate",      C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "american not gate",     C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "american nand gate",    C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "american nor gate",     C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "american xor gate",     C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "american xnor gate",    C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "american buffer gate",  C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "american inverter gate",C::Command, ctikzEnvs, {"draw","path","to"});
-
-    // Logic gates (IEC style)
-    addBuiltin(db, "and port",        C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "or port",         C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "not port",        C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "nand port",       C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "nor port",        C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "xor port",        C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "xnor port",       C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "buffer port",     C::Command, ctikzEnvs, {"draw","path","to"});
-    addBuiltin(db, "inverter port",   C::Command, ctikzEnvs, {"draw","path","to"});
+    // ── CircuiTikZ path components (as Options, not Commands) ──
+    // These are used in to[...] or node[...] as keys, not as \ backslash commands.
+    // Filtering is done via requiredLibs = {"circuitikz"}.
+    const char *ctikzComponents[] = {
+        "R","V","I","C","L","D","short","open",
+        "resistor","vresistor","capacitor","vcapacitor","inductor",
+        "battery","battery1","battery2",
+        "diode","Zdiode","Sdiode","Tdiode","led","pD",
+        "varistor","thermistor","photoresistor","memristor",
+        "fuse","lamp","bulb",
+        "spring","mass",
+        "switch","closingswitch","openingswitch",
+        "ammeter","voltmeter","ohmmeter",
+        "isource","vsource","dcvsource","dcisource",
+        "acsource","vsourceAC","isourceAC",
+        "generic","tgeneric","ageneric","emptygeneric","fullgeneric",
+        "potentiometer",
+        "capacitive","polarcapacitor","ecapacitor",
+        "transformer","coreless transformer","transducer",
+        "elmech","elco","pvarcapacitor","vvarcapacitor",
+        "cute_inductor","american_inductor","coils","vcoils","cute_coil","american_coil",
+        "vsourcesin","isourcesin","vsourceDC","isourceDC","solarcell",
+        "zdiode","schottky","photodiode","varactor","tunneldiode",
+        "thyristor","triac","diac",
+        "nigfet","pigfet","nigfete","pigfete","nmosfete","pmosfete",
+        "njfet","pjfet","nchenh","nchdep","pchdep","nch","pch",
+        "nigmfet","pigmfet","Lnigfet","Lpigfet",
+        "rmeter","rmeterwa","smeter","qiprobe","qvprobe","qprobe",
+        "iloop2","iloop","viscoe",
+        "cspst","ospt","cswitch","oswitch","pushbutton","nopb","ncpb",
+        "motor","motor2","gear",
+        "twoport","fourport","transformercore","gyrator","ctline","delayline","tline",
+        "ocirc","fcirc","ccirc","ocorner","icorner",
+        "ground","rground","cground","sground","tground","noground",
+        "node ground","crossover",
+        "pnp","npn","pnp alt","npn alt",
+        "pmos","nmos","pmos alt","nmos alt",
+        "pigfete","nigfete","pigfetd","nigfetd",
+        "pfet","nfet",
+        "op amp","tlmop amp","put",
+        "tube","tube triode","tube tetrode","tube pentode","barrier",
+        "american and gate","american or gate","american not gate",
+        "american nand gate","american nor gate","american xor gate","american xnor gate",
+        "american buffer gate","american inverter gate",
+        "and port","or port","not port",
+        "nand port","nor port","xor port","xnor port",
+        "buffer port","inverter port",
+        nullptr
+    };
+    for (int i = 0; ctikzComponents[i]; i++) {
+        addBuiltin(db, ctikzComponents[i], C::Option, {}, {"draw","path","to"}, {}, {"circuitikz"});
+    }
 
     // ═══════════════════════════════════════════════════════════════
     //  tkz-euclide v5 commands
@@ -552,16 +482,20 @@ void TikzKeywordDB::initBuiltins()
     addBuiltin(db, "tkzSetUpLine",           C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
     addBuiltin(db, "tkzSetUpLabel",          C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
 
-    // Bipole prefix combinations (10 prefixes × 9 types = 90 commands)
-    addBipolePrefixes(db, "R",  ctikzEnvs);
-    addBipolePrefixes(db, "L",  ctikzEnvs);
-    addBipolePrefixes(db, "C",  ctikzEnvs);
-    addBipolePrefixes(db, "D",  ctikzEnvs);
-    addBipolePrefixes(db, "V",  ctikzEnvs);
-    addBipolePrefixes(db, "I",  ctikzEnvs);
-    addBipolePrefixes(db, "Q",  ctikzEnvs);
-    addBipolePrefixes(db, "Ty", ctikzEnvs);
-    addBipolePrefixes(db, "Tr", ctikzEnvs);
+    // Bipole prefix combinations (10 prefixes × 9 types = 90 options)
+    {
+        static const char *prefixes[] = {
+            "p","v","i","ld","s","q","o","vq","iq","qq", nullptr
+        };
+        static const char *bipoles[] = {
+            "R","L","C","D","V","I","Q","Ty","Tr", nullptr
+        };
+        for (int p = 0; prefixes[p]; p++)
+            for (int b = 0; bipoles[b]; b++) {
+                QByteArray sn = QByteArray(prefixes[p]) + bipoles[b];
+                addBuiltin(db, sn.constData(), C::Option, {}, {"draw","path","to"}, {}, {"circuitikz"});
+            }
+    }
 
     const char *cmds[] = {
         "addplot","addplot3","addlegendentry","addlegendimage",
@@ -1449,39 +1383,7 @@ void TikzKeywordDB::initBuiltins()
     addBuiltin(db, "const plot mark right", C::Option, {"axis"});
     addBuiltin(db, "const plot mark mid",   C::Option, {"axis"});
 
-    // ── CircuitikZ path components ──
-    const char *circBipoles[] = {
-        "R","V","I","C","L","D","short","open",
-        "resistor","capacitor","inductor",
-        "battery","battery1","battery2",
-        "diode","Zdiode","Sdiode","Tdiode",
-        "led","pD","varistor",
-        "fuse","lamp","bulb",
-        "spring","mass",
-        "switch","closingswitch","openingswitch",
-        "ammeter","voltmeter","ohmmeter",
-        "isource","vsource","dcvsource","dcisource",
-        "acsource","vsourceAC","isourceAC",
-        "generic","tgeneric","ageneric",
-        "photoresistor","thermistor",
-        "potentiometer","vresistor",
-        "capacitive","polarcapacitor","ecapacitor",
-        "transformer","coreless transformer","transducer",nullptr};
-    for (int i = 0; circBipoles[i]; i++)
-        addBuiltin(db, circBipoles[i], C::Option, {"circuitikz"}, {"draw","path"});
-
-    const char *circTripoles[] = {
-        "pnp","npn","pnp alt","npn alt",
-        "pmos","nmos","pmos alt","nmos alt",
-        "pigfete","nigfete","pigfetd","nigfetd",
-        "pfet","nfet",
-        "op amp","tlmop amp",
-        "gyrator",
-        "triac","thyristor","put",
-        "tube","tube triode","tube tetrode","tube pentode",
-        "barrier",nullptr};
-    for (int i = 0; circTripoles[i]; i++)
-        addBuiltin(db, circTripoles[i], C::Shape, {"circuitikz"}, {"node"});
+    // ── CircuitikZ options (using requiredLibs filtering) ──
 
     // ── CircuitikZ options ──
     addBuiltin(db, "bipoles/length",     C::Option, {"circuitikz"});
@@ -1631,9 +1533,17 @@ QVector<const TikzKeyword*> TikzKeywordDB::filter(
         if (!kw.environments.isEmpty() && !kw.environments.contains(envLower)
             && !kw.environments.contains("tikzpicture") && !kw.environments.contains("scope"))
             return false;
-        if (!kw.commands.isEmpty() && !cmdLower.isEmpty()
-            && !kw.commands.contains(cmdLower) && !kw.commands.contains("draw"))
-            return false;
+        if (!kw.commands.isEmpty() && !cmdLower.isEmpty()) {
+            bool cmdMatch = kw.commands.contains(cmdLower);
+            if (!cmdMatch) {
+                static const QSet<QString> pathCmds = {"draw","path","fill","filldraw","shade","shadedraw","edge","to"};
+                static const QSet<QString> nodeCmds = {"node","pic"};
+                bool isPathCmd = pathCmds.contains(cmdLower);
+                bool hasNodeCmd = kw.commands.intersects(nodeCmds);
+                if (!(isPathCmd && hasNodeCmd))
+                    return false;
+            }
+        }
         if (!kw.requiredLibs.isEmpty()) {
             bool found = false;
             for (const QString &lib : kw.requiredLibs) {

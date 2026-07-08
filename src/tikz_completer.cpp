@@ -35,10 +35,8 @@ void TikzCompleter::initCompleters()
         m_completers[ctx] = comp;
     };
 
-    QStringList cmdWords;
-    for (const QString &c : TikzWords::tikzCommands())
-        cmdWords << ("\\" + c);
-    makeCompleter(TkzCtxCmd, cmdWords);
+    // Commands are dynamically populated in updateUserModels
+    makeCompleter(TkzCtxCmd, {});
     makeCompleter(TkzCtxBeg, TikzWords::tikzEnvironments());
     makeCompleter(TkzCtxBrk, TikzWords::tikzOptions());
 
@@ -49,35 +47,7 @@ void TikzCompleter::initCompleters()
         makeCompleter(TkzCtxDot, dotWords);
     }
 
-    makeCompleter(TkzCtxLib, {
-        "calc","arrows","shapes","positioning","patterns",
-        "decorations","intersections","through","angles",
-        "quotes","math","spy","shadows","fadings","fit",
-        "backgrounds","scopes","petri","er","automata",
-        "graphs","graphdrawing","lindenmayersystems",
-        "matrix","mindmap","folding","calendar",
-        "turtle","datavisualization","external","rdf",
-        "shapes.geometric","shapes.misc","shapes.arrows",
-        "shapes.symbols","shapes.multipart","shapes.callouts",
-        "decorations.pathmorphing","decorations.pathreplacing",
-        "decorations.markings","decorations.fractals",
-        "decorations.text","decorations.footprints",
-        "plotmarks","chains","circuits","circuits.logic",
-        "circuits.logic.IEC","circuits.logic.US",
-        "circuits.ee","circuits.ee.IEC","circuits.pid",
-        "circuits.pid.IEC","pgfplots.units",
-        "pgfplots.colorbrewer","3d","perspective",
-        "bending","svg.path","tikzmark","calligraphy",
-        "animations","fixedpointarithmetic","fpu",
-        "nonlineartransformations","optics","patterns.meta",
-        "pgfplots.groupplots","pgfplots.dateplot",
-        "pgfplots.polar","pgfplots.smithchart",
-        "pgfplots.statistics","pgfplots.ternary",
-        "profiler","shadings","transparency",
-        "arrows.meta","trees","topaths","graphs.standard",
-        "babel","cd","circuitikz","shapes.gates.logic",
-        "shapes.gates.logic.IEC","shapes.gates.logic.US"
-    });
+    makeCompleter(TkzCtxLib, TikzWords::tikzLibraries());
 
     QStringList arrowVals = TikzWords::tikzArrows();
     arrowVals.erase(std::remove_if(arrowVals.begin(), arrowVals.end(),
@@ -156,8 +126,11 @@ TikzCompleter::Context TikzCompleter::detectContext(const QString &textBefore) c
     }
 
     if (lastChar == '.') {
-        if (len >= 2 && textBefore.at(len - 2).isLetterOrNumber())
-            return TkzCtxDot;
+        if (len >= 2) {
+            QChar prev = textBefore.at(len - 2);
+            if (prev.isLetter() || prev == '/')
+                return TkzCtxDot;
+        }
     }
 
     {
@@ -336,29 +309,37 @@ void TikzCompleter::updateEqModel(const QString &keyName)
     QStringList vals;
     const auto *kw = TikzKeywords::TikzKeywordDB::instance().find(
         keyName, TikzKeywords::Category::Option);
-    if (kw && !kw->valueHints.isEmpty())
+    if (kw && !kw->valueHints.isEmpty()) {
         vals = kw->valueHints;
-
-    QStringList extraHints = TikzKeywords::TikzKeywordDB::instance().valueHintsFor(keyName);
-    vals << extraHints;
-
-    vals << TikzWords::tikzColors();
-    vals << TikzWords::tikzLineWidths();
-    {
-        auto arrVals = TikzWords::tikzArrows();
-        arrVals.erase(std::remove_if(arrVals.begin(), arrVals.end(),
-            [](const QString &s) { return s.contains(' '); }), arrVals.end());
-        vals << arrVals;
+    } else {
+        QString lower = keyName.toLower();
+        if (lower.contains("color") || lower == "draw" || lower == "fill"
+            || lower == "left color" || lower == "right color"
+            || lower == "top color" || lower == "bottom color")
+            vals << TikzWords::tikzColors();
+        else if (lower.contains("width") || lower.contains("sep")
+                 || lower.contains("distance") || lower.contains("size")
+                 || lower.contains("radius"))
+            vals << TikzWords::tikzLineWidthValues();
+        else if (lower.contains("arrow") || lower == ">" || lower == ">=")
+            vals << TikzWords::tikzArrows();
+        else if (lower == "pattern")
+            vals << TikzWords::tikzPatternNames();
+        else if (lower == "decoration")
+            vals << TikzWords::tikzDecorationNames();
     }
-    vals << TikzWords::tikzLineTypes();
-    vals << TikzWords::tikzLineWidthValues();
     vals.removeDuplicates();
+    vals.sort(Qt::CaseInsensitive);
     setModelForContext(TkzCtxEq, vals);
 }
 
 void TikzCompleter::updateUserModels()
 {
     if (!m_docState) return;
+
+    QTextCursor cursor = m_editor->textCursor();
+    int pos = cursor.position();
+    QString env = m_docState->currentEnvName(pos);
 
     // Update TkzCtxCoord model with user coords and nodes
     QStringList coords;
@@ -378,18 +359,24 @@ void TikzCompleter::updateUserModels()
     ucmds.removeDuplicates();
     setModelForContext(TkzCtxUserCmd, ucmds);
 
-    // Merge user commands into TkzCtxCmd so they appear alongside standard
-    QStringList allCmds;
-    for (const QString &c : TikzWords::tikzCommands())
-        allCmds << (QLatin1String("\\") + c);
-    allCmds << ucmds;
-    allCmds.removeDuplicates();
-    setModelForContext(TkzCtxCmd, allCmds);
+    // Filter commands by environment and active libs
+    QStringList cmds;
+    auto cmdKws = TikzKeywords::TikzKeywordDB::instance().filter(
+        env, QString(), m_docState->activeLibs(), TikzKeywords::Category::Command);
+    for (auto *kw : cmdKws)
+        cmds << (QLatin1String("\\") + kw->name);
+    cmds << ucmds;
+    cmds.removeDuplicates();
+    cmds.sort(Qt::CaseInsensitive);
+    setModelForContext(TkzCtxCmd, cmds);
 
-    // Also update TkzCtxWord so foreach vars appear when typing \xyz
-    QStringList wordModel = TikzWords::allCompletableWords();
+    // Also update TkzCtxWord so typed words appear in completion
+    QStringList wordModel;
+    for (auto *kw : cmdKws) wordModel << kw->name;
+    wordModel << TikzWords::allCompletableWords();
     wordModel << ucmds;
     wordModel.removeDuplicates();
+    wordModel.sort(Qt::CaseInsensitive);
     setModelForContext(TkzCtxWord, wordModel);
 
     // Merge user styles into TkzCtxBrk
