@@ -259,6 +259,96 @@ static void test_metadata_dirty_detection(MainWindow *mw, SnippetManager *snippe
     snippetMgr->deleteSnippet(id);
 }
 
+// Reproduces the bug where switching between tabs (selecting different snippets
+// in the left panel's thumbnail list) failed to update the right-panel metadata
+// and corrupted tab titles (multiple tabs sharing one title / cross-contaminated
+// metadata). Verifies each tab shows its own snippet's metadata and title after
+// switching, and that background tab titles are never overwritten.
+static void test_tab_metadata_isolation(MainWindow *mw, SnippetManager *snippetMgr,
+                                        SearchPanel *searchPanel, QTabWidget *tabWidget)
+{
+    QString idA = snippetMgr->createSnippet("Alpha Snippet", "test/iso");
+    Snippet a = snippetMgr->loadSnippet(idA);
+    a.description = "Alpha description";
+    a.packages = "alphapkg";
+    a.tikzLibraries = "calc";
+    a.code = "\\draw (0,0) circle (1);";
+    snippetMgr->saveSnippet(a);
+
+    QString idB = snippetMgr->createSnippet("Beta Snippet", "test/iso");
+    Snippet b = snippetMgr->loadSnippet(idB);
+    b.description = "Beta description";
+    b.packages = "betapkg";
+    b.tikzLibraries = "patterns";
+    b.code = "\\draw (0,0) rectangle (2,2);";
+    snippetMgr->saveSnippet(b);
+
+    // Open both snippets in separate tabs.
+    emit searchPanel->snippetSelected(idA);
+    QApplication::processEvents();
+    emit searchPanel->snippetSelected(idB);
+    QApplication::processEvents();
+
+    int idxA = -1, idxB = -1;
+    for (int i = 0; i < tabWidget->count(); ++i) {
+        QString sid = tabWidget->tabBar()->tabData(i).toString();
+        if (sid == idA) idxA = i;
+        else if (sid == idB) idxB = i;
+    }
+    TEST_ASSERT(idxA >= 0 && idxB >= 0, "both isolation tabs should exist");
+    if (idxA < 0 || idxB < 0) { snippetMgr->deleteSnippet(idA); snippetMgr->deleteSnippet(idB); return; }
+
+    QLineEdit *nameEdit = mw->findChild<QLineEdit*>(QStringLiteral("metaNameEdit"));
+    QTextEdit *descEdit = mw->findChild<QTextEdit*>(QStringLiteral("metaDescEdit"));
+    QLineEdit *pkgEdit  = mw->findChild<QLineEdit*>(QStringLiteral("metaPackagesEdit"));
+    TEST_ASSERT(nameEdit && descEdit && pkgEdit, "metadata widgets should be found");
+    if (!nameEdit || !descEdit || !pkgEdit) { snippetMgr->deleteSnippet(idA); snippetMgr->deleteSnippet(idB); return; }
+
+    // Switch to A: right panel must reflect A's metadata.
+    tabWidget->setCurrentIndex(idxA);
+    QApplication::processEvents();
+    TEST_ASSERT(nameEdit->text() == "Alpha Snippet", "name should update to Alpha on switch");
+    TEST_ASSERT(descEdit->toPlainText() == "Alpha description", "desc should update to Alpha on switch");
+    TEST_ASSERT(pkgEdit->text() == "alphapkg", "packages should update to Alpha on switch");
+
+    // Switch to B: right panel must reflect B's metadata (the reported bug: it
+    // used to keep showing the previous snippet's info).
+    tabWidget->setCurrentIndex(idxB);
+    QApplication::processEvents();
+    TEST_ASSERT(nameEdit->text() == "Beta Snippet", "name should update to Beta on switch");
+    TEST_ASSERT(descEdit->toPlainText() == "Beta description", "desc should update to Beta on switch");
+    TEST_ASSERT(pkgEdit->text() == "betapkg", "packages should update to Beta on switch");
+
+    // Tab titles must remain distinct and correct (the reported bug: titles got
+    // duplicated / multiple tabs shared the same title).
+    TEST_ASSERT(tabWidget->tabText(idxA) == "Alpha Snippet",
+                "tab A title should stay 'Alpha Snippet'");
+    TEST_ASSERT(tabWidget->tabText(idxB) == "Beta Snippet",
+                "tab B title should stay 'Beta Snippet'");
+    TEST_ASSERT(tabWidget->tabText(idxA) != tabWidget->tabText(idxB),
+                "tab titles must not collide");
+
+    // Editing metadata on the active tab (B) must NOT leak into the background
+    // tab (A) or corrupt its title.
+    descEdit->setPlainText(QStringLiteral("Beta edited"));
+    QApplication::processEvents();
+    TEST_ASSERT(tabWidget->tabText(idxA) == "Alpha Snippet",
+                "editing active tab must not alter background tab title");
+
+    tabWidget->setCurrentIndex(idxA);
+    QApplication::processEvents();
+    TEST_ASSERT(descEdit->toPlainText() == "Alpha description",
+                "switching back to A must restore A's unedited description");
+
+    tabWidget->setCurrentIndex(idxB);
+    QApplication::processEvents();
+    TEST_ASSERT(descEdit->toPlainText() == "Beta edited",
+                "B's unsaved edit must survive the round-trip switch");
+
+    snippetMgr->deleteSnippet(idA);
+    snippetMgr->deleteSnippet(idB);
+}
+
 static void cleanup_snippets(SnippetManager *mgr)
 {
     QList<Snippet> all = mgr->getAllSnippets(true);
@@ -325,6 +415,8 @@ int main(int argc, char *argv[])
         test_reopen_snippet_after_close(snippetMgr, searchPanel, tabWidget);
         test_snippet_modified_sync(snippetMgr, searchPanel, tabWidget);
         test_metadata_dirty_detection(&mw, snippetMgr, searchPanel, tabWidget);
+
+        test_tab_metadata_isolation(&mw, snippetMgr, searchPanel, tabWidget);
 
         cleanup_snippets(snippetMgr);
     }

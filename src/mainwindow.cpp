@@ -1444,8 +1444,11 @@ void MainWindow::saveCurrentSnippet()
 
 void MainWindow::saveCurrentTabUiState()
 {
-    QString sid = currentTabSnippetId();
-    if (sid.isEmpty()) sid = currentSnippetId;
+    // Persist under the snippet whose metadata the shared widgets currently
+    // display, NOT tabWidget->currentIndex() — during a tab switch the current
+    // index already points at the arriving tab, which would misattribute the
+    // departing tab's edits to the wrong snippet.
+    QString sid = m_uiStateSnippetId;
     if (sid.isEmpty()) return;
 
     TabUiState st;
@@ -1476,6 +1479,9 @@ void MainWindow::restoreTabUiState(const QString &sid)
 
 void MainWindow::updateTabUiState()
 {
+    // Ignore programmatic widget updates during snippet/tab loading; only real
+    // user edits should mutate the cached per-tab state and tab title.
+    if (m_loadingDepth != 0) return;
     saveCurrentTabUiState();
     onCurrentSnippetChanged();
 }

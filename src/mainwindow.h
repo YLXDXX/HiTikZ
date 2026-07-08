@@ -190,6 +190,11 @@ private:
     QMutex m_batchMutex;
     // Per-tab metadata state so unsaved edits survive tab switches.
     QMap<QString, TabUiState> m_tabUiStates;
+    // Snippet id whose metadata is currently shown in the shared right-panel
+    // widgets. Used to persist the *departing* tab's edits under the correct id
+    // when switching tabs (QTabWidget::currentIndex() already points at the new
+    // tab by the time currentChanged fires).
+    QString m_uiStateSnippetId;
     QTimer *searchDebounceTimer = nullptr;
     QTimer *autoSaveTimer = nullptr;
     QTimer *m_parseParamsTimer = nullptr;

@@ -130,6 +130,9 @@ void MainWindow::setEditorForTab(int index)
         ? tabWidget->tabBar()->tabData(index).toString()
         : QString();
     currentSnippetId = sid;
+    // The shared metadata widgets now belong to this snippet; record it so a
+    // later tab switch persists these edits under the correct id.
+    m_uiStateSnippetId = sid;
 
     if (sid.isEmpty()) {
         nameEdit->clear();
@@ -161,10 +164,8 @@ void MainWindow::setEditorForTab(int index)
                     int ti = templateCombo->findData(s.templateId);
                     if (ti >= 0) templateCombo->setCurrentIndex(ti);
                 }
-                loadPreviewForSnippet(sid);
                 m_lastSavedCode = s.code;
             }
-            return;
         }
 
         loadPreviewForSnippet(sid);
