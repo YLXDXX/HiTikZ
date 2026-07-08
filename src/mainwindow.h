@@ -40,6 +40,15 @@ struct ParamInfo {
     QLineEdit *edit;
 };
 
+struct TabUiState {
+    QString name;
+    QString desc;
+    QString tags;
+    QString packages;
+    QString tikzLibraries;
+    QString templateId;
+};
+
 class MainWindow : public QMainWindow {
     Q_OBJECT
 public:
@@ -71,6 +80,11 @@ private:
     void applyShortcuts();
     void applyAppearanceSettings();
     void copyFullDocument();
+    // Isolate metadata edits across tabs: save the current tab's UI state before
+    // switching away, and restore it when switching back so unsaved edits survive.
+    void saveCurrentTabUiState();
+    void restoreTabUiState(const QString &sid);
+    void updateTabUiState();
     void setFitPageChecked(bool checked);
     void setFitWidthChecked(bool checked);
     void setFitHeightChecked(bool checked);
@@ -91,7 +105,7 @@ private:
     void startAutoSave();
     void performAutoSave();
     void recoverDrafts();
-    void clearDraft();
+    void clearDraft(int tabIndex = -1);
     void clearAllDrafts();
     void centerOnScreen();
     void saveWindowGeometry();
@@ -174,6 +188,8 @@ private:
     QAtomicInt m_batchCancelFlag{0};
     QList<QPair<Snippet, QString>> m_batchFailures;
     QMutex m_batchMutex;
+    // Per-tab metadata state so unsaved edits survive tab switches.
+    QMap<QString, TabUiState> m_tabUiStates;
     QTimer *searchDebounceTimer = nullptr;
     QTimer *autoSaveTimer = nullptr;
     QTimer *m_parseParamsTimer = nullptr;

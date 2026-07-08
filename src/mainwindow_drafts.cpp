@@ -125,18 +125,17 @@ void MainWindow::performAutoSave()
     }
 }
 
-void MainWindow::clearDraft()
+void MainWindow::clearDraft(int tabIndex)
 {
     QString draftDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/drafts/";
-    if (currentSnippetId.isEmpty()) {
-        for (int i = 0; i < tabWidget->count(); ++i) {
-            if (tabWidget->currentIndex() == i) {
-                QFile::remove(draftDir + QStringLiteral("scratch_%1.json").arg(i));
-                break;
-            }
-        }
+    int idx = (tabIndex >= 0) ? tabIndex : tabWidget->currentIndex();
+    if (idx < 0 || idx >= tabWidget->count()) return;
+
+    QString sid = tabWidget->tabBar()->tabData(idx).toString();
+    if (sid.isEmpty()) {
+        QFile::remove(draftDir + QStringLiteral("scratch_%1.json").arg(idx));
     } else {
-        QFile::remove(draftDir + currentSnippetId + ".json");
+        QFile::remove(draftDir + sid + ".json");
     }
 }
 

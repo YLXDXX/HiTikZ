@@ -14,7 +14,8 @@ TikzDocumentState::TikzDocumentState()
     m_coordinateRe = QRegularExpression(
         QStringLiteral("\\\\coordinate\\s*(?:\\[[^\\]]*\\]\\s*)?\\(([^)]+)\\)"));
     m_foreachRe = QRegularExpression(
-        QStringLiteral("\\\\foreach\\s+((?:\\\\[a-zA-Z]+\\s*(?:/\\s*)?)+)in"));
+        QStringLiteral("\\\\foreach\\s+((?:\\\\[a-zA-Z]+\\s*(?:/\\s*)?)+)"
+                       "(?:\\s*\\[[^\\]]*\\])?\\s*in"));
     m_newcmdRe = QRegularExpression(
         QStringLiteral("\\\\(?:new|renew|provide)command\\*?\\s*\\{?\\\\([a-zA-Z@]+)"));
     m_defRe = QRegularExpression(QStringLiteral("\\\\def\\s*\\\\([a-zA-Z]+)"));
@@ -235,12 +236,15 @@ void TikzDocumentState::parseLine(const QString &text, int blockStartPos,
                 continue;
             }
 
-            // \foreach \var / \var2 in ...
+            // \foreach \var / \var2 [...] in ...
             QRegularExpressionMatch fe = m_foreachRe.match(text, pos);
             if (fe.hasMatch() && fe.capturedStart() == pos) {
-                QString varsStr = fe.captured(1);
-                static const QRegularExpression varExtractRe(QStringLiteral("\\\\([a-zA-Z]+)"));
-                QRegularExpressionMatchIterator vit = varExtractRe.globalMatch(varsStr);
+                // Scan the full matched text (including optional brackets) for
+                // \variables — varExtractRe will then catch \i inside [count=\i].
+                static const QRegularExpression varExtractRe(
+                    QStringLiteral("\\\\([a-zA-Z]+)"));
+                QRegularExpressionMatchIterator vit =
+                    varExtractRe.globalMatch(fe.captured(0));
                 while (vit.hasNext()) {
                     QRegularExpressionMatch vm = vit.next();
                     QString varName = vm.captured(1);

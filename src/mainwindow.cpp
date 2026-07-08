@@ -434,6 +434,15 @@ void MainWindow::setupUI()
     templateCombo = new QComboBox;
     metaLayout->addWidget(templateCombo);
 
+    // Track metadata edits so the '*' tab suffix and tab-switch isolation work.
+    connect(nameEdit, &QLineEdit::textChanged, this, &MainWindow::updateTabUiState);
+    connect(descEdit, &QTextEdit::textChanged, this, &MainWindow::updateTabUiState);
+    connect(tagsEdit, &QLineEdit::textChanged, this, &MainWindow::updateTabUiState);
+    connect(packagesEdit, &QLineEdit::textChanged, this, &MainWindow::updateTabUiState);
+    connect(tikzLibrariesEdit, &QLineEdit::textChanged, this, &MainWindow::updateTabUiState);
+    connect(templateCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &MainWindow::updateTabUiState);
+
     paramsScrollArea = new QScrollArea;
     paramsScrollArea->setWidgetResizable(true);
     paramsScrollArea->setMaximumHeight(150);
@@ -1433,6 +1442,44 @@ void MainWindow::saveCurrentSnippet()
     clearDraft();
 }
 
+void MainWindow::saveCurrentTabUiState()
+{
+    QString sid = currentTabSnippetId();
+    if (sid.isEmpty()) sid = currentSnippetId;
+    if (sid.isEmpty()) return;
+
+    TabUiState st;
+    st.name          = nameEdit->text();
+    st.desc          = descEdit->toPlainText();
+    st.tags          = tagsEdit->text();
+    st.packages      = packagesEdit->text();
+    st.tikzLibraries = tikzLibrariesEdit->text();
+    st.templateId    = templateCombo->currentData().toString();
+    m_tabUiStates[sid] = st;
+}
+
+void MainWindow::restoreTabUiState(const QString &sid)
+{
+    if (!m_tabUiStates.contains(sid)) return;
+    const TabUiState &st = m_tabUiStates[sid];
+    nameEdit->setText(st.name);
+    descEdit->setPlainText(st.desc);
+    tagsEdit->setText(st.tags);
+    packagesEdit->setText(st.packages);
+    tikzLibrariesEdit->setText(st.tikzLibraries);
+    if (!st.templateId.isEmpty()) {
+        int ti = templateCombo->findData(st.templateId);
+        if (ti >= 0) templateCombo->setCurrentIndex(ti);
+    }
+    m_tabUiStates.remove(sid); // consumed; the active UI now holds this state
+}
+
+void MainWindow::updateTabUiState()
+{
+    saveCurrentTabUiState();
+    onCurrentSnippetChanged();
+}
+
 void MainWindow::onCurrentSnippetChanged()
 {
     CodeEditor *ed = currentEditor();
@@ -1444,6 +1491,21 @@ void MainWindow::onCurrentSnippetChanged()
                 : nameEdit->text();
 
             bool isDirty = (ed->toPlainText() != m_lastSavedCode);
+
+            // Also detect metadata-only edits so the '*' suffix appears.
+            if (!isDirty && !currentSnippetId.isEmpty()) {
+                Snippet s = snippetMgr->loadSnippet(currentSnippetId);
+                if (!s.id.isEmpty()) {
+                    if (nameEdit->text() != s.name) isDirty = true;
+                    else if (descEdit->toPlainText() != s.description) isDirty = true;
+                    else if (packagesEdit->text() != s.packages) isDirty = true;
+                    else if (tikzLibrariesEdit->text() != s.tikzLibraries) isDirty = true;
+                    else if (tagsEdit->text() != s.tags.join(QStringLiteral(", "))) isDirty = true;
+                    else if (!s.templateId.isEmpty()
+                             && templateCombo->currentData().toString() != s.templateId)
+                        isDirty = true;
+                }
+            }
 
             if (isDirty) {
                 if (!title.endsWith(QStringLiteral(" *")))

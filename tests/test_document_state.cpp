@@ -174,6 +174,25 @@ static int test_foreach_multiple_vars()
     return failed;
 }
 
+static int test_foreach_optional_bracket()
+{
+    int failed = 0;
+    QTextDocument doc;
+    doc.setPlainText(
+        "\\foreach \\x [count=\\i] in {a,b,c} {\n"
+        "  \\foreach \\y / \\z [evaluate=\\y as \\yy using int(\\y+1)] in {1/2,3/4} { }\n"
+        "}\n");
+    TikzDocumentState state;
+    state.reparse(&doc);
+    if (!state.foreachVars().contains("x")) { fprintf(stderr, "FAIL: FOB-1\n"); failed++; }
+    if (!state.foreachVars().contains("i")) { fprintf(stderr, "FAIL: FOB-2\n"); failed++; }
+    if (!state.foreachVars().contains("y")) { fprintf(stderr, "FAIL: FOB-3\n"); failed++; }
+    if (!state.foreachVars().contains("z")) { fprintf(stderr, "FAIL: FOB-4\n"); failed++; }
+    if (!state.foreachVars().contains("yy")) { fprintf(stderr, "FAIL: FOB-5\n"); failed++; }
+    if (failed == 0) fprintf(stderr, "PASS: foreach optional bracket support\n");
+    return failed;
+}
+
 static int test_color_parsing()
 {
     int failed = 0;
@@ -338,6 +357,7 @@ int main(int argc, char *argv[])
     failed += test_foreach_variable_parsing();
     failed += test_foreach_spaces_around_slash();
     failed += test_foreach_multiple_vars();
+    failed += test_foreach_optional_bracket();
     failed += test_color_parsing();
     failed += test_user_command_parsing();
     failed += test_current_env_name();

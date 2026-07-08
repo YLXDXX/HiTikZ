@@ -37,8 +37,9 @@ void SearchPanel::refreshTagFilter()
     }
 
     QSet<QString> allTags;
-    QList<Snippet> all = snippetMgr->getAllSnippets(true);
-    QList<Snippet> presets = snippetMgr->getAllPresets(true);
+    // false = only read meta.json (tags are stored in metadata, no need for .tex)
+    QList<Snippet> all = snippetMgr->getAllSnippets(false);
+    QList<Snippet> presets = snippetMgr->getAllPresets(false);
     all.append(presets);
     for (const Snippet &s : all) {
         for (const QString &tag : s.tags) {

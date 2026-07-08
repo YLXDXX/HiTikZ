@@ -259,6 +259,10 @@ void TikzCompleter::updateUserModels()
     cmds.removeDuplicates();
     cmds.sort(Qt::CaseInsensitive);
     setModelForContext(TkzCtxCmd, cmds);
+    // Keep TkzCtxUserCmd in sync so it is usable when detectContext ever
+    // chooses to route backslash+letter to TkzCtxUserCmd or when that context
+    // is activated programmatically.
+    setModelForContext(TkzCtxUserCmd, cmds);
 
     // Also update TkzCtxWord so typed words appear in completion
     QStringList wordModel;

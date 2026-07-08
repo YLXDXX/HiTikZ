@@ -149,15 +149,19 @@ void TikzHighlighter::highlightBlock(const QString &text)
 bool TikzHighlighter::applyOptionBrackets(const QString &text, bool startedInBracket)
 {
     int i = 0;
+    int cDepth = 0; // brace depth: [ / ] inside { ... } does not influence bDepth
 
     if (startedInBracket) {
-        // Continuation of an option list opened on a previous line.
-        int depth = 1;
+        int bDepth = 1;
         int j = 0;
         for (; j < text.length(); ++j) {
             const QChar c = text.at(j);
-            if (c == '[') depth++;
-            else if (c == ']') { if (--depth == 0) break; }
+            if (c == '{') cDepth++;
+            else if (c == '}') { if (cDepth > 0) cDepth--; }
+            else if (cDepth == 0) {
+                if (c == '[') bDepth++;
+                else if (c == ']') { if (--bDepth == 0) break; }
+            }
         }
         if (j >= text.length()) {
             setFormat(0, text.length(), m_optionFormat);
@@ -168,20 +172,29 @@ bool TikzHighlighter::applyOptionBrackets(const QString &text, bool startedInBra
     }
 
     for (; i < text.length(); ++i) {
-        if (text.at(i) != '[') continue;
-        int depth = 1;
+        const QChar ch = text.at(i);
+        if (ch == '{') { cDepth++; continue; }
+        if (ch == '}') { if (cDepth > 0) cDepth--; continue; }
+        if (cDepth != 0) continue;
+        if (ch != '[') continue;
+
+        int bDepth = 1;
         int j = i + 1;
         for (; j < text.length(); ++j) {
             const QChar c = text.at(j);
-            if (c == '[') depth++;
-            else if (c == ']') { if (--depth == 0) break; }
+            if (c == '{') cDepth++;
+            else if (c == '}') { if (cDepth > 0) cDepth--; }
+            else if (cDepth == 0) {
+                if (c == '[') bDepth++;
+                else if (c == ']') { if (--bDepth == 0) break; }
+            }
         }
         if (j >= text.length()) {
             setFormat(i, text.length() - i, m_optionFormat);
-            return true; // unclosed → the next block continues the option list
+            return true;
         }
         setFormat(i, j - i + 1, m_optionFormat);
-        i = j; // resume scanning after the closing ']'
+        i = j;
     }
     return false;
 }
@@ -276,11 +289,12 @@ void TikzHighlighter::highlightWord(const QString &text, const QString &word,
 void TikzHighlighter::applyKeyValueHighlight(const QString &text)
 {
     // Highlight key=value: key in keyFormat, value stays in optionFormat.
-    // Only apply inside option brackets ([...]) and at brace depth 0, so a '='
-    // nested inside a value's braces (e.g. [name/.style={a=b}]) is not mistaken
-    // for a new key/value separator.
-    int bracketDepth = 0;
+    // Carry bracket depth across block boundaries via the InBracket state so
+    // multi-line option lists get correct key=value coloring on every line.
+    int prevState = previousBlockState();
+    int bracketDepth = (prevState == InBracket) ? 1 : 0;
     int braceDepth = 0;
+
     for (int i = 0; i < text.length(); i++) {
         QChar ch = text.at(i);
         if (ch == '[') bracketDepth++;
@@ -288,7 +302,6 @@ void TikzHighlighter::applyKeyValueHighlight(const QString &text)
         else if (ch == '{') braceDepth++;
         else if (ch == '}') { if (braceDepth > 0) braceDepth--; }
         else if (bracketDepth > 0 && braceDepth == 0 && ch == '=') {
-            // Find key start
             int ks = i - 1;
             while (ks >= 0 && (text.at(ks).isLetterOrNumber()
                    || text.at(ks) == ' ' || text.at(ks) == '_'))

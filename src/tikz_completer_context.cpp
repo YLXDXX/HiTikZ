@@ -17,7 +17,9 @@ TikzCompleter::Context TikzCompleter::detectContext(const QString &textBefore) c
 
     QChar lastChar = textBefore.at(len - 1);
 
-    if (lastChar == '\\' && (len == 1 || textBefore.at(len - 2).isSpace()))
+    // Trigger command completion when \ is preceded by any non-letter char,
+    // not just whitespace — so {\draw and (\node also work.
+    if (lastChar == '\\' && (len == 1 || !textBefore.at(len - 2).isLetter()))
         return TkzCtxCmd;
 
     static const QRegularExpression beginRe(QStringLiteral("\\\\begin\\s*\\{"));
@@ -36,7 +38,9 @@ TikzCompleter::Context TikzCompleter::detectContext(const QString &textBefore) c
     }
 
     if (lastChar == '=') {
-        int eqIdx = textBefore.lastIndexOf('=');
+        // Use brace-depth-aware scanning so {a=b} inside a value doesn't
+        // falsely trigger Eq context.
+        int eqIdx = governingEqIndex(textBefore);
         if (eqIdx > 0 && textBefore.left(eqIdx).contains(QRegularExpression(QStringLiteral("[\\w\\s]"))))
             return TkzCtxEq;
     }

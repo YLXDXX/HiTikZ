@@ -120,6 +120,10 @@ void MainWindow::createNewTab(const QString &snippetId, const QString &code,
 
 void MainWindow::setEditorForTab(int index)
 {
+    // Snapshot the metadata widgets before they are overwritten so the tab we
+    // are leaving retains its unsaved edits.
+    saveCurrentTabUiState();
+
     m_loadingDepth++;
 
     QString sid = (index >= 0 && index < tabWidget->count())
@@ -140,21 +144,31 @@ void MainWindow::setEditorForTab(int index)
         else
             m_lastSavedCode.clear();
     } else {
-        Snippet s = snippetMgr->loadSnippet(sid);
-        if (!s.id.isEmpty()) {
-            nameEdit->setText(s.name);
-            descEdit->setPlainText(s.description);
-            tagsEdit->setText(s.tags.join(", "));
-            packagesEdit->setText(s.packages);
-            tikzLibrariesEdit->setText(s.tikzLibraries);
+        // Restore per-tab UI state first (may contain unsaved edits left over
+        // from a prior tab switch), then fall back to on-disk data.
+        if (m_tabUiStates.contains(sid)) {
+            restoreTabUiState(sid);
+        } else {
+            Snippet s = snippetMgr->loadSnippet(sid);
+            if (!s.id.isEmpty()) {
+                nameEdit->setText(s.name);
+                descEdit->setPlainText(s.description);
+                tagsEdit->setText(s.tags.join(", "));
+                packagesEdit->setText(s.packages);
+                tikzLibrariesEdit->setText(s.tikzLibraries);
 
-            if (!s.templateId.isEmpty()) {
-                int ti = templateCombo->findData(s.templateId);
-                if (ti >= 0) templateCombo->setCurrentIndex(ti);
+                if (!s.templateId.isEmpty()) {
+                    int ti = templateCombo->findData(s.templateId);
+                    if (ti >= 0) templateCombo->setCurrentIndex(ti);
+                }
+                loadPreviewForSnippet(sid);
+                m_lastSavedCode = s.code;
             }
-            loadPreviewForSnippet(sid);
-            m_lastSavedCode = s.code;
+            return;
         }
+
+        loadPreviewForSnippet(sid);
+        m_lastSavedCode = snippetMgr->loadSnippet(sid).code;
     }
 
     m_loadingDepth--;
@@ -270,6 +284,9 @@ bool MainWindow::maybeCloseTab(int index)
                 }
             }
         } else if (clicked == discardBtn) {
+            // Clean up draft and per-tab UI state on discard.
+            clearDraft(index);
+            if (!sid.isEmpty()) m_tabUiStates.remove(sid);
         } else {
             return false;
         }
