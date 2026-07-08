@@ -37,6 +37,16 @@ if(NOT HAS_KGLOBALACCEL AND WITH_QHOTKEY)
     FetchContent_MakeAvailable(qhotkey)
 endif()
 
+# Main window sources (split into modules for maintainability)
+set(MAINWINDOW_SOURCES
+    src/mainwindow.cpp
+    src/mainwindow_tabs.cpp
+    src/mainwindow_compile.cpp
+    src/mainwindow_params.cpp
+    src/mainwindow_shortcuts.cpp
+    src/mainwindow_drafts.cpp
+)
+
 # Search panel sources (split into modules for maintainability)
 set(SEARCH_PANEL_SOURCES
     src/search_panel.cpp
@@ -79,7 +89,7 @@ set(TIKZ_KEYWORDS_SOURCES
 
 add_executable(TikzManager
     src/main.cpp
-    src/mainwindow.cpp
+    ${MAINWINDOW_SOURCES}
     ${SNIPPET_MANAGER_SOURCES}
     ${LATEX_COMPILER_SOURCES}
     src/code_editor.cpp
@@ -154,7 +164,7 @@ add_test(NAME HighlighterRegex COMMAND test_highlighter_regex)
 
 add_executable(test_multitab
     tests/test_multitab.cpp
-    src/mainwindow.cpp
+    ${MAINWINDOW_SOURCES}
     src/code_editor.cpp
     src/tikz_highlighter.cpp
     ${TIKZ_COMPLETER_SOURCES}
