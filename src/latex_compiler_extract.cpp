@@ -423,7 +423,11 @@ QString LatexCompiler::extractCustomCommands(const QString &texCode, QString &ou
                 separator = QStringLiteral("\n");
             remaining = remaining.left(cleanEnd) + separator + remaining.mid(cleanStart);
         } else {
-            break;
+            // Skip this incomplete/unparseable definition (e.g. \newcommand{\foo}
+            // without a {body}) instead of breaking the loop, so subsequent
+            // custom commands are not silently discarded.
+            remaining = remaining.left(cmdStart)
+                        + remaining.mid(cmdStart + m.capturedLength());
         }
     }
 

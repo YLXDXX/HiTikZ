@@ -908,6 +908,26 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    // Test 52: incomplete definition is skipped, not breaking the parsing loop
+    {
+        QString outCode;
+        // First definition is incomplete (no {body}), second is valid.
+        QString cmds = LatexCompiler::extractCustomCommands(
+            QStringLiteral(
+                "\\newcommand{\\foo}\n"          // incomplete — must be skipped
+                "\\tikzset{mykey/.style={draw=red}}\n"
+                "\\begin{tikzpicture}\n"
+                "  \\draw (0,0) -- (1,1);\n"
+                "\\end{tikzpicture}"),
+            outCode);
+        if (!cmds.contains("tikzset")) {
+            fprintf(stderr, "FAIL: Test 52 - tikzset after incomplete newcommand must be extracted\n");
+            customTestsFailed++;
+        } else {
+            fprintf(stderr, "PASS: Test 52 - incomplete definition skipped, subsequent one extracted\n");
+        }
+    }
+
     fprintf(stderr, "Custom command tests: %d failed\n", customTestsFailed);
     failed += customTestsFailed;
 
