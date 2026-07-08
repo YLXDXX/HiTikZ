@@ -5,96 +5,44 @@ namespace TikzKeywords {
 void registerExtended(Vec &db)
 {
     // ── CircuiTikZ node shapes ──
-    auto ctikzShapeEnvs = {"tikzpicture","scope","circuitikz"};
-
-    // Passive shapes
-    addCtikzShapes(db, {
-        "resistor","potentiometer","thermistor","varistor","photoresistor",
-        "capacitor","elmech","elco","pvarcapacitor","vvarcapacitor",
-        "inductor","cute_inductor","american_inductor","coils","cute_coil","american_coil",
-        "memristor","generic","emptygeneric","fullgeneric",
-    }, ctikzShapeEnvs);
-    addCtikzShape(db, "vresistorsshape", ctikzShapeEnvs);
-    addCtikzShape(db, "vcapacitorshape", ctikzShapeEnvs);
-    addCtikzShape(db, "vcoilsshape", ctikzShapeEnvs);
-
-    // Power shapes
-    addCtikzShapes(db, {
-        "vsourcesin","isourcesin","vsource","isource","vsourceDC","isourceDC",
-        "battery1","battery2","solarcell",
-    }, ctikzShapeEnvs);
-
-    // Diode shapes
-    addCtikzShapes(db, {
-        "diode","led","zdiode","schottky","photodiode","varactor",
-        "tunneldiode","thyristor","triac","diac",
-    }, ctikzShapeEnvs);
-
-    // Transistor shapes
-    addCtikzShapes(db, {
-        "npn","pnp",
-        "nigfet","pigfet","nigfete","pigfete",
-        "nmos","pmos","nmosfete","pmosfete",
-        "njfet","pjfet",
-        "nchenh","nchdep","pchdep","nch","pch",
-        "nigmfet","pigmfet",
-        "Lnigfet","Lpigfet",
-    }, ctikzShapeEnvs);
-
-    // Instrument shapes
-    addCtikzShapes(db, {
-        "ammeter","voltmeter","ohmmeter",
-        "rmeter","rmeterwa","smeter",
-        "qiprobe","qvprobe","qprobe",
-        "iloop2","iloop","viscoe",
-    }, ctikzShapeEnvs);
-
-    // Switch shapes
-    addCtikzShapes(db, {
-        "switch","cspst","ospt",
-        "cswitch","oswitch",
-        "pushbutton","nopb","ncpb",
-    }, ctikzShapeEnvs);
-
-    // Mechanical shapes
-    addCtikzShapes(db, {
-        "motor","motor2","gear",
-        "short","open",
-        "twoport","fourport",
-        "transformer","transformercore","gyrator",
-        "ctline","delayline","tline",
-    }, ctikzShapeEnvs);
-
-    // Terminal shapes
-    addCtikzShapes(db, {
-        "ocirc","fcirc","ccirc",
-        "ocorner","icorner",
-        "ground","rground","cground","sground","tground","noground",
-    }, ctikzShapeEnvs);
-
-    // Logic gate shapes
-    addCtikzShapes(db, {
-        "american and gate","american or gate","american not gate",
-        "american nand gate","american nor gate","american xor gate","american xnor gate",
-        "american buffer gate","american inverter gate",
-        "and port","or port","not port",
-        "nand port","nor port","xor port","xnor port",
-        "buffer port","inverter port",
-    }, ctikzShapeEnvs);
-
-    // Bipole prefix shapes (90 combinations)
-    {
-        static const char *prefixes[] = {
-            "p","v","i","ld","s","q","o","vq","iq","qq", nullptr
-        };
-        static const char *bipoles[] = {
-            "R","L","C","D","V","I","Q","Ty","Tr", nullptr
-        };
-        for (int p = 0; prefixes[p]; p++)
-            for (int b = 0; bipoles[b]; b++) {
-                QByteArray sn = QByteArray(prefixes[p]) + bipoles[b] + "shape";
-                addCtikzShape(db, sn.constData(), ctikzShapeEnvs);
-            }
+    // Authoritative list of node shapes (logic ports, transistors, grounds,
+    // supplies, amplifiers, terminals, ...) extracted from the CircuiTikZ 1.7.1
+    // sources (\pgfdeclareshape, gate .style expansions and ground/supply
+    // declarations). Registered as genuine shapes usable via node[...] — no
+    // bogus 'shape'-suffixed or misspelled entries are generated.
+    auto ctikzNodeEnvs = {"tikzpicture","scope","circuitikz"};
+    const char *ctikzNodeShapes[] = {
+        "Lnigbt", "Lpigbt", "adder", "american and port", "american buffer port",
+        "american nand port", "american nor port", "american not port", "american or port", "american xnor port",
+        "american xor port", "and port", "antenna", "bare7seg", "bareRXantenna",
+        "bareTXantenna", "bareantenna", "blockbox", "bnc", "box",
+        "buffer", "buffer port", "cground", "circ", "circleinv",
+        "circulator", "clockwedge", "diamondpole", "dinantenna", "dipchip",
+        "dynode", "eground", "eground2", "elmech", "en amp",
+        "european and port", "european buffer port", "european nand port", "european nor port", "european not port",
+        "european or port", "european xnor port", "european xor port", "fd inst amp", "fd op amp",
+        "flipflop", "genericsplitter", "gm amp", "ground", "harmonics",
+        "hemt", "ieeestd and port", "ieeestd buffer port", "ieeestd nand port", "ieeestd nor port",
+        "ieeestd not port", "ieeestd or port", "ieeestd xnor port", "ieeestd xor port", "inst amp",
+        "inst amp ra", "invschmitt", "jump crossing", "magnetron", "match",
+        "mixer", "mslstub", "msport", "msrstub", "muxdemux",
+        "mzm", "nand port", "nfet", "nground", "nigbt",
+        "nigfetd", "nigfete", "nigfetebulk", "njfet", "nmos",
+        "nmosd", "nor port", "not port", "notcirc", "npn",
+        "ocirc", "odiamondpole", "op amp", "or port", "oscillator",
+        "osquarepole", "pfet", "pground", "pigbt", "pigfetd",
+        "pigfete", "pigfetebulk", "pjfet", "plain amp", "plain crossing",
+        "plain mono amp", "pmos", "pmosd", "pnp", "proximeter",
+        "qfpchip", "rground", "rotaryswitch", "rxantenna", "schmitt",
+        "schmitt symbol", "sground", "spdt", "splitter", "squarepole",
+        "tground", "tlground", "tlinestub", "txantenna", "vcc",
+        "vdd", "vee", "vss", "waves", "wedgeinv",
+        "wilkinson", "xnor port", "xor port",
+        nullptr
+    };
+    for (int i = 0; ctikzNodeShapes[i]; i++) {
+        addBuiltin(db, ctikzNodeShapes[i], C::Shape, ctikzNodeEnvs,
+                   {"node","path","draw","to"}, {}, {"circuitikz"});
     }
 
     // ── Decorations ──

@@ -748,6 +748,117 @@ static int test_no_bogus_commands()
     return failed;
 }
 
+// Verifies CircuiTikZ component/shape completion matches the CircuiTikZ 1.7.1
+// component set: the invalid entries reported by users (generated 'shape'-suffix
+// junk, misspellings, non-existent components) are gone, while genuine component
+// and node-shape names — including the ones that were wrongly "fixed" before
+// (rmeterwa, Tr, Ty, prefixed shortcuts) — are present.
+static int test_circuitikz_components_accurate()
+{
+    int failed = 0;
+    using TikzKeywords::TikzKeywordDB;
+    // The union that feeds bracket/value completion inside a circuitikz context.
+    QStringList combined = TikzKeywordDB::instance().allCompletableWords();
+    combined += TikzKeywordDB::instance().allOptionNames();
+    QSet<QString> set(combined.begin(), combined.end());
+
+    // These must NOT appear anymore — all are invalid CircuiTikZ names, most of
+    // them created by the old 'shape'-suffix generator or bogus prefix loop.
+    const char *bogus[] = {
+        "pvarcapacitor", "pvarcapacitorshape", "pV", "pVshape", "pRshape",
+        "american nor gate", "american and gate", "american_coil", "cute_coil",
+        "cute_inductor", "american_inductor", "vvarcapacitor", "elco",
+        "solarcell", "closingswitch", "openingswitch", "ospt", "noground",
+        "emptygeneric", "fourport", "transformercore", "delayline",
+        "nchenh", "nchdep", "pchdep", "coils", "vcoils", "resistorshape",
+        "capacitorshape", "pTy", "qqQ", "vQshape", "diacshape",
+        nullptr
+    };
+    for (int i = 0; bogus[i]; ++i) {
+        if (set.contains(QString::fromUtf8(bogus[i]))) {
+            fprintf(stderr, "FAIL: CTK-1 - invalid CircuiTikZ entry '%s' should be gone\n",
+                    bogus[i]);
+            failed++;
+        }
+    }
+
+    // No leftover generated '<name>shape' single-word junk (real shapes never end
+    // in a bare "shape" suffix like "resistorshape").
+    for (const QString &w : combined) {
+        if (w.endsWith(QLatin1String("shape")) && !w.contains(' ')
+            && w != QLatin1String("shape")
+            && w != QLatin1String("pgfdeclareshape")) {
+            fprintf(stderr, "FAIL: CTK-2 - leftover shape-suffix junk entry '%s'\n",
+                    w.toUtf8().constData());
+            failed++;
+        }
+    }
+
+    // Genuine CircuiTikZ path components / shortcuts must be present (these are
+    // exactly the ones a previous mis-"fix" would have wrongly removed/renamed).
+    const char *validComponents[] = {
+        "rmeterwa", "pR", "vR", "sR", "phR", "ldR", "thR", "Tr", "Ty",
+        "elko", "solar", "solarsource", "closing switch", "opening switch",
+        "cute choke", "cute inductor", "american inductor", "variable capacitor",
+        "polar capacitor", "thermistor ntc", "thermistor ptc", "cspst",
+        "R", "L", "C", "D", "V", "I", "pC", "pD",
+        nullptr
+    };
+    for (int i = 0; validComponents[i]; ++i) {
+        if (!set.contains(QString::fromUtf8(validComponents[i]))) {
+            fprintf(stderr, "FAIL: CTK-3 - valid CircuiTikZ component '%s' is missing\n",
+                    validComponents[i]);
+            failed++;
+        }
+    }
+
+    // Genuine CircuiTikZ node shapes must be present.
+    const char *validShapes[] = {
+        "npn", "pnp", "nmos", "pmos", "op amp", "ground", "rground", "sground",
+        "american nor port", "european nor port", "and port", "nand port",
+        "buffer port", "vcc", "vss", "vdd", "vee", "ocirc", "diamondpole",
+        nullptr
+    };
+    for (int i = 0; validShapes[i]; ++i) {
+        if (!set.contains(QString::fromUtf8(validShapes[i]))) {
+            fprintf(stderr, "FAIL: CTK-4 - valid CircuiTikZ shape '%s' is missing\n",
+                    validShapes[i]);
+            failed++;
+        }
+    }
+
+    // CircuiTikZ components must be gated by the circuitikz library (never leak
+    // into a plain tikzpicture without \usepackage{circuitikz}).
+    {
+        QSet<QString> noLibs;
+        auto plain = TikzKeywordDB::instance().filter(
+            QStringLiteral("tikzpicture"), QStringLiteral("to"), noLibs,
+            TikzKeywords::Category::Option);
+        for (auto *kw : plain) {
+            if (kw->name == QLatin1String("rmeterwa") || kw->name == QLatin1String("pR")) {
+                fprintf(stderr, "FAIL: CTK-5 - '%s' leaked without circuitikz lib active\n",
+                        kw->name.toUtf8().constData());
+                failed++;
+            }
+        }
+        QSet<QString> ckLibs; ckLibs.insert(QStringLiteral("circuitikz"));
+        auto gated = TikzKeywordDB::instance().filter(
+            QStringLiteral("circuitikz"), QStringLiteral("to"), ckLibs,
+            TikzKeywords::Category::Option);
+        bool foundRmeter = false;
+        for (auto *kw : gated)
+            if (kw->name == QLatin1String("rmeterwa")) { foundRmeter = true; break; }
+        if (!foundRmeter) {
+            fprintf(stderr, "FAIL: CTK-6 - 'rmeterwa' not offered with circuitikz lib active\n");
+            failed++;
+        }
+    }
+
+    fprintf(stderr, "%s: CircuiTikZ components/shapes match CircuiTikZ 1.7.1 set\n",
+            failed == 0 ? "PASS" : "FAIL");
+    return failed;
+}
+
 // Verifies that \usetikzlibrary{...} completion resolves to the library context
 // through the full pipeline (textBeforeForContext -> detectContext). This is the
 // real-world path: the completer first back-tracks to the enclosing '{', which
@@ -824,6 +935,7 @@ int main(int argc, char *argv[])
     failed += test_multiline_context();
     failed += test_no_bogus_commands();
     failed += test_usetikzlibrary_context();
+    failed += test_circuitikz_components_accurate();
 
     if (failed > 0) {
         fprintf(stderr, "\n%d test(s) failed!\n", failed);

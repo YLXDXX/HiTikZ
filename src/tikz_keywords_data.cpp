@@ -20,34 +20,6 @@ void addBuiltin(Vec &db, const char *name, Category cat,
     db.append(kw);
 }
 
-void addBipolePrefixes(Vec &db, const char *bipole,
-                       std::initializer_list<const char *> envs)
-{
-    static const char *prefixes[] = {
-        "p","v","i","ld","s","q","o","vq","iq","qq", nullptr
-    };
-    for (int p = 0; prefixes[p]; p++) {
-        QByteArray name = QByteArray(prefixes[p]) + bipole;
-        addBuiltin(db, name.constData(), C::Command, envs,
-                   {"draw","path","to"}, {}, {}, nullptr);
-    }
-}
-
-void addCtikzShapes(Vec &db, std::initializer_list<const char *> names,
-                    std::initializer_list<const char *> envs)
-{
-    for (auto &n : names) {
-        QByteArray shapeName = QByteArray(n) + "shape";
-        addBuiltin(db, shapeName.constData(), C::Shape, envs, {"node"});
-    }
-}
-
-void addCtikzShape(Vec &db, const char *shapeName,
-                   std::initializer_list<const char *> envs)
-{
-    addBuiltin(db, shapeName, C::Shape, envs, {"node"});
-}
-
 void registerAllBuiltins(Vec &db)
 {
     registerColors(db);

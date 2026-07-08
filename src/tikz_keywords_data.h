@@ -14,15 +14,6 @@ void addBuiltin(Vec &db, const char *name, Category cat,
                 std::initializer_list<const char *> libs = {},
                 const char *doc = nullptr);
 
-void addBipolePrefixes(Vec &db, const char *bipole,
-                       std::initializer_list<const char *> envs);
-
-void addCtikzShapes(Vec &db, std::initializer_list<const char *> names,
-                    std::initializer_list<const char *> envs);
-
-void addCtikzShape(Vec &db, const char *shapeName,
-                   std::initializer_list<const char *> envs);
-
 // ── Per-category registration functions ──
 void registerColors(Vec &db);
 void registerLineWidths(Vec &db);

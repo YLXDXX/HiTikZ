@@ -8,50 +8,90 @@ void registerCommands(Vec &db)
     // ── CircuiTikZ path components (as Options, not Commands) ──
     // These are used in to[...] or node[...] as keys, not as \ backslash commands.
     // Filtering is done via requiredLibs = {"circuitikz"}.
+    // Authoritative list of CircuiTikZ path components (bipole keys, full names
+    // and style shortcuts) usable inside to[...] / node[...]. Extracted verbatim
+    // from the CircuiTikZ 1.7.1 sources (\pgfcirc@activate@bipole* and
+    // \pgfcirc@style@to@style), so no bogus/misspelled entries are offered.
     const char *ctikzComponents[] = {
-        "R","V","I","C","L","D","short","open",
-        "resistor","vresistor","capacitor","vcapacitor","inductor",
-        "battery","battery1","battery2",
-        "diode","Zdiode","Sdiode","Tdiode","led","pD",
-        "varistor","thermistor","photoresistor","memristor",
-        "fuse","lamp","bulb",
-        "spring","mass",
-        "switch","closingswitch","openingswitch",
-        "ammeter","voltmeter","ohmmeter",
-        "isource","vsource","dcvsource","dcisource",
-        "acsource","vsourceAC","isourceAC",
-        "generic","tgeneric","ageneric","emptygeneric","fullgeneric",
-        "potentiometer",
-        "capacitive","polarcapacitor","ecapacitor",
-        "transformer","coreless transformer","transducer",
-        "elmech","elco","pvarcapacitor","vvarcapacitor",
-        "cute_inductor","american_inductor","coils","vcoils","cute_coil","american_coil",
-        "vsourcesin","isourcesin","vsourceDC","isourceDC","solarcell",
-        "zdiode","schottky","photodiode","varactor","tunneldiode",
-        "thyristor","triac","diac",
-        "nigfet","pigfet","nigfete","pigfete","nmosfete","pmosfete",
-        "njfet","pjfet","nchenh","nchdep","pchdep","nch","pch",
-        "nigmfet","pigmfet","Lnigfet","Lpigfet",
-        "rmeter","rmeterwa","smeter","qiprobe","qvprobe","qprobe",
-        "iloop2","iloop","viscoe",
-        "cspst","ospt","cswitch","oswitch","pushbutton","nopb","ncpb",
-        "motor","motor2","gear",
-        "twoport","fourport","transformercore","gyrator","ctline","delayline","tline",
-        "ocirc","fcirc","ccirc","ocorner","icorner",
-        "ground","rground","cground","sground","tground","noground",
-        "node ground","crossover",
-        "pnp","npn","pnp alt","npn alt",
-        "pmos","nmos","pmos alt","nmos alt",
-        "pigfete","nigfete","pigfetd","nigfetd",
-        "pfet","nfet",
-        "op amp","tlmop amp","put",
-        "tube","tube triode","tube tetrode","tube pentode","barrier",
-        "american and gate","american or gate","american not gate",
-        "american nand gate","american nor gate","american xor gate","american xnor gate",
-        "american buffer gate","american inverter gate",
-        "and port","or port","not port",
-        "nand port","nor port","xor port","xnor port",
-        "buffer port","inverter port",
+        "C", "D", "GTO", "GTOb", "I",
+        "L", "Lnigbt", "Lpigbt", "Mr", "PUT",
+        "PZ", "R", "Schottky diode", "Shockley diode", "TL",
+        "TVS diode", "Tr", "Ty", "V", "VC",
+        "ZZener diode", "Zener diode", "aGTOb", "adc", "afuse",
+        "ageneric", "agtobar", "allornothing", "allpass", "american controlled current source",
+        "american controlled voltage source", "american current source", "american gas filled surge arrester", "american inductive sensor", "american inductor",
+        "american voltage source", "americangfsurgearrester", "americaninductivesens", "americaninductor", "ammeter",
+        "amp", "asymmetric fuse", "baertty", "bandpass", "bandstop",
+        "bare jumper", "barrier", "battery", "battery1", "battery2",
+        "batteryone", "batterytwo", "bgenerator", "biD", "biast",
+        "bidirectionaldiode", "bjumper", "bmultiwire", "bulb", "buzzer",
+        "cC", "cI", "cV", "camera", "capacitive sensor",
+        "capacitivesens", "capacitor", "ccapacitor", "cceI", "cceV",
+        "ccgsw", "ccsw", "cdsjumper", "ceI", "ceV",
+        "cgenerator", "cisource", "cisourceAM", "cisourceC", "cisourceEU",
+        "cisourceam", "cisourcesin", "cjumper", "closed double solder jumper", "closed jumper",
+        "closed solder jumper", "closing normal closed switch", "closing normal open switch", "closing switch", "cncs",
+        "cnos", "cogsw", "controlled current source", "controlled isource", "controlled isourcesin",
+        "controlled sinusoidal current source", "controlled sinusoidal voltage source", "controlled voltage source", "controlled vsource", "controlled vsourcesin",
+        "cosw", "cpe", "crossing", "csI", "csV",
+        "csjumper", "cspst", "current source", "currtap", "curved capacitor",
+        "cute choke", "cute closed switch", "cute closing switch", "cute european controlled current source", "cute european controlled voltage source",
+        "cute european current source", "cute european voltage source", "cute inductive sensor", "cute inductor", "cute open switch",
+        "cute opening switch", "cutechoke", "cuteclosedswitch", "cuteclosingswitch", "cuteinductivesens",
+        "cuteinductor", "cuteopeningswitch", "cuteopenswitch", "cvsource", "cvsourceAM",
+        "cvsourceC", "cvsourceEU", "cvsourceam", "cvsourcesin", "dac",
+        "damper", "dcisource", "dcvsource", "detector", "diode",
+        "dsp", "eC", "ecapacitor", "ecsource", "elko",
+        "empty controlled source", "esource", "european controlled current source", "european controlled voltage source", "european current source",
+        "european gas filled surge arrester", "european inductive sensor", "european inductor", "european voltage source", "europeangfsurgearrester",
+        "europeaninductivesens", "europeaninductor", "feC", "ferrocap", "fft",
+        "fiber", "fullgeneric", "fuse", "generic", "gto",
+        "gtobar", "hemt", "highpass", "highpass2", "iamp",
+        "iec connector", "iecconn", "iloop", "iloop2", "ilooptwo",
+        "inerter", "ioosource", "isource", "isourceAM", "isourceC",
+        "isourceEU", "isourceN", "isourceam", "isourcesin", "lamp",
+        "lasD", "laser diode", "ldR", "ldsjumper", "leD",
+        "led", "left double solder jumper", "loudspeaker", "lowpass", "lowpass2",
+        "mass", "memristor", "mic", "mov", "mstline",
+        "multiwire", "nI", "nV", "ncpb", "ncpbo",
+        "ncpushbutton", "ncpushbuttono", "ncs", "neonlampac", "neonlampcc",
+        "nfet", "ngenerator", "nigbt", "nigfetd", "nigfete",
+        "nigfetebulk", "njfet", "nmos", "nmosd", "noise current source",
+        "noise voltage source", "nopb", "nopbc", "norator", "normal closed switch",
+        "normal open switch", "normally closed push button", "normally closed push button open", "normally open push button", "normally open push button closed",
+        "nos", "npn", "nullator", "odsjumper", "ohmmeter",
+        "ojumper", "oncs", "onos", "ooosource", "oosource",
+        "oosourcetrans", "open", "open double solder jumper", "open jumper", "open solder jumper",
+        "openbarrier", "opening normal closed switch", "opening normal open switch", "opening switch", "oscope",
+        "osjumper", "ospst", "pC", "pD", "pR",
+        "pfet", "phR", "phaseshifter", "photodiode", "photoresistor",
+        "piattenuator", "piezoelectric", "pigbt", "pigfetd", "pigfete",
+        "pigfetebulk", "pjfet", "pmos", "pmosd", "pnp",
+        "polar capacitor", "polarcapacitor", "power", "push button", "pushbutton",
+        "pushbuttonc", "put", "pvmodule", "pvsource", "qgenerator",
+        "qiprobe", "qpprobe", "qvprobe", "rbuzzer", "rdsjumper",
+        "reed", "register", "relais", "right double solder jumper", "rmeter",
+        "rmeterwa", "sC", "sD", "sI", "sL",
+        "sR", "sV", "sacac", "sacdc", "saturation",
+        "sdcac", "sdcdc", "sgeneric", "shD", "short",
+        "sigmoid", "sinetable", "sinusoidal current source", "sinusoidal voltage source", "smeter",
+        "solar", "solarsource", "sparkgap", "spring", "spst",
+        "sqV", "square voltage source", "squid", "switch", "swr",
+        "tD", "tV", "tacac", "tacdc", "tattenuator",
+        "tdcac", "tfullgeneric", "tgeneric", "thR", "thRn",
+        "thRp", "thermistor", "thermistor ntc", "thermistor ptc", "thermistorntc",
+        "thermistorptc", "thermocouple", "three-pins jumper", "thyristor", "tjumper",
+        "tline", "tlmic", "tmultiwire", "toggle switch", "toggleswitch",
+        "transmission line", "triac", "triangle voltage source", "trx", "tunnel diode",
+        "tvsD", "tvset", "twoport", "twoportsplit", "vC",
+        "vL", "vR", "vallpass", "vamericaninductor", "vamp",
+        "varcap", "variable american inductor", "variable capacitor", "variable cute inductor", "variable european inductor",
+        "varistor", "vcapacitor", "vco", "vcuteinductor", "vdd",
+        "veuropeaninductor", "viscoe", "voltage source", "voltmeter", "voosource",
+        "vphaseshifter", "vpiattenuator", "vsource", "vsourceAM", "vsourceC",
+        "vsourceEU", "vsourceN", "vsourceam", "vsourcesin", "vsourcesquare",
+        "vsourcetri", "vss", "vtattenuator", "wfuse", "wiggly fuse",
+        "xgeneric", "xing", "zD", "zzD",
         nullptr
     };
     for (int i = 0; ctikzComponents[i]; i++) {
@@ -163,21 +203,6 @@ void registerCommands(Vec &db)
     addBuiltin(db, "tkzSetUpPoint",          C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
     addBuiltin(db, "tkzSetUpLine",           C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
     addBuiltin(db, "tkzSetUpLabel",          C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-
-    // Bipole prefix combinations (10 prefixes × 9 types = 90 options)
-    {
-        static const char *prefixes[] = {
-            "p","v","i","ld","s","q","o","vq","iq","qq", nullptr
-        };
-        static const char *bipoles[] = {
-            "R","L","C","D","V","I","Q","Ty","Tr", nullptr
-        };
-        for (int p = 0; prefixes[p]; p++)
-            for (int b = 0; bipoles[b]; b++) {
-                QByteArray sn = QByteArray(prefixes[p]) + bipoles[b];
-                addBuiltin(db, sn.constData(), C::Option, {}, {"draw","path","to"}, {}, {"circuitikz"});
-            }
-    }
 
     const char *cmds[] = {
         "addplot","addplot3","addlegendentry","addlegendimage",
