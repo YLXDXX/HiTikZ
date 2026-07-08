@@ -75,6 +75,25 @@ void TikzCompleter::refreshParamWords(const QStringList &params)
     setModelForContext(TkzCtxAt, words);
 }
 
+QString TikzCompleter::commandForOptionContext(const QString &lineBefore, int cursorCol)
+{
+    static const QRegularExpression cmdLineRe(
+        QStringLiteral("\\\\(draw|path|fill|filldraw|shade|shadedraw|node|pic|edge)\\b"));
+    // Use the LAST matching command before the cursor, so on lines with several
+    // commands (e.g. "\draw (0,0) -- \node[..." ) the option context reflects
+    // the command the cursor is actually inside.
+    QRegularExpressionMatchIterator it = cmdLineRe.globalMatch(lineBefore);
+    QString cmdName;
+    while (it.hasNext()) {
+        QRegularExpressionMatch m = it.next();
+        if (m.capturedStart() < cursorCol)
+            cmdName = m.captured(1);
+        else
+            break;
+    }
+    return cmdName;
+}
+
 QStringList TikzCompleter::buildBrkCandidates(Context /*ctx*/)
 {
     // Build option candidates filtered by current env/cmd/libs
@@ -89,12 +108,7 @@ QStringList TikzCompleter::buildBrkCandidates(Context /*ctx*/)
         cursor.movePosition(QTextCursor::StartOfBlock, QTextCursor::KeepAnchor);
         QString lineBefore = cursor.selectedText();
         int cp = m_editor->textCursor().positionInBlock();
-        QString cmdName;
-        static const QRegularExpression cmdLineRe(
-            QStringLiteral("\\\\(draw|path|fill|filldraw|shade|shadedraw|node|pic|edge)\\b"));
-        QRegularExpressionMatch cm = cmdLineRe.match(lineBefore);
-        if (cm.hasMatch() && cm.capturedStart() < cp)
-            cmdName = cm.captured(1);
+        QString cmdName = commandForOptionContext(lineBefore, cp);
 
         auto optionKws = TikzKeywords::TikzKeywordDB::instance().filter(
             env, cmdName, m_docState->activeLibs(),

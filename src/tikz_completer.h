@@ -46,6 +46,11 @@ public:
     // testing.
     static QString eqKeyName(const QString &textBefore);
 
+    // Returns the path/node command name governing the option bracket at the
+    // cursor: the last \draw/\node/\path/... on the line before `cursorCol`
+    // (e.g. "node" for "\draw (0,0) -- \node[|"). Exposed for testing.
+    static QString commandForOptionContext(const QString &lineBefore, int cursorCol);
+
     void setDocumentState(TikzDocumentState *state);
 
 private:

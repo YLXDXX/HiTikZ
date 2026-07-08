@@ -611,6 +611,37 @@ static int test_eq_key_name_extraction()
     return failed;
 }
 
+// Verifies commandForOptionContext returns the command the cursor is inside,
+// i.e. the LAST path/node command before the cursor column on the line.
+static int test_command_for_option_context()
+{
+    int failed = 0;
+    struct { const char *line; int col; const char *expect; } cases[] = {
+        { "\\draw[",                       6,  "draw" },
+        { "\\node[",                       6,  "node" },
+        // Multiple commands on one line: cursor inside the node's options must
+        // resolve to "node", not the earlier "draw".
+        { "\\draw (0,0) -- \\node[",       21, "node" },
+        // Cursor before the node command still sees only the draw.
+        { "\\draw (0,0) -- \\node[",       6,  "draw" },
+        { "  plain text [",               13, ""     },
+        { nullptr, 0, nullptr }
+    };
+    for (int i = 0; cases[i].line != nullptr; ++i) {
+        QString got = TikzCompleter::commandForOptionContext(
+            QString::fromUtf8(cases[i].line), cases[i].col);
+        if (got != QString::fromUtf8(cases[i].expect)) {
+            fprintf(stderr, "FAIL: CMD-%d - commandForOptionContext('%s',%d)='%s' expected='%s'\n",
+                    i, cases[i].line, cases[i].col,
+                    got.toUtf8().constData(), cases[i].expect);
+            failed++;
+        }
+    }
+    fprintf(stderr, "%s: commandForOptionContext picks the innermost command\n",
+            failed == 0 ? "PASS" : "FAIL");
+    return failed;
+}
+
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
@@ -632,6 +663,7 @@ int main(int argc, char *argv[])
     failed += test_key_handlers();
     failed += test_eq_color_completion();
     failed += test_eq_key_name_extraction();
+    failed += test_command_for_option_context();
 
     if (failed > 0) {
         fprintf(stderr, "\n%d test(s) failed!\n", failed);
