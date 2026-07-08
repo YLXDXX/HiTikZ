@@ -37,6 +37,13 @@ if(NOT HAS_KGLOBALACCEL AND WITH_QHOTKEY)
     FetchContent_MakeAvailable(qhotkey)
 endif()
 
+# Search panel sources (split into modules for maintainability)
+set(SEARCH_PANEL_SOURCES
+    src/search_panel.cpp
+    src/search_panel_tags.cpp
+    src/search_panel_menus.cpp
+)
+
 # TikZ completer sources (split into modules for maintainability)
 set(TIKZ_COMPLETER_SOURCES
     src/tikz_completer.cpp
@@ -81,7 +88,7 @@ add_executable(TikzManager
     ${TIKZ_KEYWORDS_SOURCES}
     src/tikz_document_state.cpp
     src/settings_dialog.cpp
-    src/search_panel.cpp
+    ${SEARCH_PANEL_SOURCES}
     src/snippet_properties_dialog.cpp
     src/kde_global_shortcut.cpp
     src/pdf_preview_widget.cpp
@@ -152,7 +159,7 @@ add_executable(test_multitab
     src/tikz_highlighter.cpp
     ${TIKZ_COMPLETER_SOURCES}
     src/settings_dialog.cpp
-    src/search_panel.cpp
+    ${SEARCH_PANEL_SOURCES}
     src/snippet_properties_dialog.cpp
     src/kde_global_shortcut.cpp
     src/pdf_preview_widget.cpp
