@@ -84,8 +84,14 @@ void registerPgfplotsAndShapes(Vec &db)
     addBuiltin(db, "axis line style",   C::Option, {"axis"});
 
     // ── CircuitikZ options ──
+    // 'american'/'european' are valid global styles (\tikzset{american/.style=...}
+    // in circuitikz); keep them. Also offer the choice-key forms voltage=/current=.
     addBuiltin(db, "american",     C::Option, {"circuitikz"}, {});
     addBuiltin(db, "european",     C::Option, {"circuitikz"}, {});
+    addBuiltin(db, "voltage",      C::Option, {"circuitikz"}, {},
+               {"european","american","straight","raised","curved"});
+    addBuiltin(db, "current",      C::Option, {"circuitikz"}, {},
+               {"european","american"});
     addBuiltin(db, "wiper pos",    C::Option, {"circuitikz"}, {});
 
     // ── Execution hooks ──
@@ -142,8 +148,6 @@ void registerPgfplotsAndShapes(Vec &db)
 
     // ── Misc shapes ──
     addBuiltin(db, "cross out",     C::Shape, {"tikzpicture","scope"}, {"node"},
-               {}, {"shapes.misc"});
-    addBuiltin(db, "circle around", C::Shape, {"tikzpicture","scope"}, {"node"},
                {}, {"shapes.misc"});
     addBuiltin(db, "strike out",    C::Shape, {"tikzpicture","scope"}, {"node"},
                {}, {"shapes.misc"});

@@ -85,7 +85,6 @@ void registerShapes(Vec &db)
     addBuiltin(db, "double arrow",            C::Shape, {"tikzpicture","scope"}, {"node"}, {}, {"shapes.arrows"});
     addBuiltin(db, "cloud",                   C::Shape, {"tikzpicture","scope"}, {"node"}, {}, {"shapes.symbols"});
     addBuiltin(db, "star",                    C::Shape, {"tikzpicture","scope"}, {"node"}, {}, {"shapes.geometric"});
-    addBuiltin(db, "polygon",                 C::Shape, {"tikzpicture","scope"}, {"node"});
 }
 
 void registerPatterns(Vec &db)

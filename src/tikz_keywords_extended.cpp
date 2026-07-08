@@ -221,12 +221,18 @@ void registerExtended(Vec &db)
     addBuiltin(db, "l_",  C::Option, {"circuitikz"}, {"draw","path"});
     addBuiltin(db, "l^",  C::Option, {"circuitikz"}, {"draw","path"});
     addBuiltin(db, "a",   C::Option, {"circuitikz"}, {"draw","path"});
+    addBuiltin(db, "a_",  C::Option, {"circuitikz"}, {"draw","path"});
+    addBuiltin(db, "a^",  C::Option, {"circuitikz"}, {"draw","path"});
     addBuiltin(db, "v",   C::Option, {"circuitikz"}, {"draw","path"});
     addBuiltin(db, "v_",  C::Option, {"circuitikz"}, {"draw","path"});
     addBuiltin(db, "v^",  C::Option, {"circuitikz"}, {"draw","path"});
     addBuiltin(db, "i",   C::Option, {"circuitikz"}, {"draw","path"});
     addBuiltin(db, "i_",  C::Option, {"circuitikz"}, {"draw","path"});
     addBuiltin(db, "i^",  C::Option, {"circuitikz"}, {"draw","path"});
+    // Path modifiers for orienting/labelling components (\ctikzset mirror/.style,
+    // invert/.style; verified against CircuiTikZ 1.7.1 sources).
+    addBuiltin(db, "mirror", C::Option, {"circuitikz"}, {"draw","path","to"});
+    addBuiltin(db, "invert", C::Option, {"circuitikz"}, {"draw","path","to"});
 
     // ── tikz-cd options ──
     addBuiltin(db, "from",          C::Option, {"tikzcd"});

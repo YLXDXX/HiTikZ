@@ -859,6 +859,66 @@ static int test_circuitikz_components_accurate()
     return failed;
 }
 
+// Verifies standard TikZ/PGF completion has no hallucinated shapes/options and
+// that genuine (source-verified) entries are kept. Guards against over-eager
+// "cleanups" that would delete valid keys such as bend at start / l_ / american.
+static int test_standard_tikz_no_bogus()
+{
+    int failed = 0;
+    using TikzKeywords::TikzKeywordDB;
+    QStringList all = TikzKeywordDB::instance().allCompletableWords();
+    all += TikzKeywordDB::instance().allOptionNames();
+    QSet<QString> set(all.begin(), all.end());
+
+    // Not real PGF shapes — must be absent (the real one is 'regular polygon';
+    // 'circle around' is only a source comment, never a declared shape).
+    const char *bogusShapes[] = { "polygon", "circle around", nullptr };
+    for (int i = 0; bogusShapes[i]; ++i) {
+        if (set.contains(QString::fromUtf8(bogusShapes[i]))) {
+            fprintf(stderr, "FAIL: STD-1 - bogus shape '%s' should be removed\n",
+                    bogusShapes[i]);
+            failed++;
+        }
+    }
+
+    // Genuine PGF/TikZ entries that must stay (all verified in pgf/circuitikz
+    // 1.7.1 sources). 'bend at start/end' and 'bend pos' are real TikZ core
+    // parabola/bend options; l_/v^ and american/european are real circuitikz keys.
+    const char *valid[] = {
+        "regular polygon", "star", "cross out", "strike out",
+        "bend at start", "bend at end", "bend pos", "bend left", "bend right",
+        "american", "european", "voltage", "current",
+        "l_", "l^", "v_", "v^", "i_", "i^", "a_", "a^",
+        "mirror", "invert", "swap",
+        nullptr
+    };
+    for (int i = 0; valid[i]; ++i) {
+        if (!set.contains(QString::fromUtf8(valid[i]))) {
+            fprintf(stderr, "FAIL: STD-2 - valid entry '%s' is missing\n", valid[i]);
+            failed++;
+        }
+    }
+
+    // 'mirror'/'invert' are circuitikz-gated: must not leak into a plain picture.
+    {
+        QSet<QString> noLibs;
+        auto plain = TikzKeywordDB::instance().filter(
+            QStringLiteral("tikzpicture"), QStringLiteral("draw"), noLibs,
+            TikzKeywords::Category::Option);
+        for (auto *kw : plain) {
+            if (kw->name == QLatin1String("mirror") || kw->name == QLatin1String("invert")) {
+                fprintf(stderr, "FAIL: STD-3 - '%s' leaked without circuitikz lib\n",
+                        kw->name.toUtf8().constData());
+                failed++;
+            }
+        }
+    }
+
+    fprintf(stderr, "%s: standard TikZ shapes/options are source-accurate\n",
+            failed == 0 ? "PASS" : "FAIL");
+    return failed;
+}
+
 // Verifies that \usetikzlibrary{...} completion resolves to the library context
 // through the full pipeline (textBeforeForContext -> detectContext). This is the
 // real-world path: the completer first back-tracks to the enclosing '{', which
@@ -936,6 +996,7 @@ int main(int argc, char *argv[])
     failed += test_no_bogus_commands();
     failed += test_usetikzlibrary_context();
     failed += test_circuitikz_components_accurate();
+    failed += test_standard_tikz_no_bogus();
 
     if (failed > 0) {
         fprintf(stderr, "\n%d test(s) failed!\n", failed);
