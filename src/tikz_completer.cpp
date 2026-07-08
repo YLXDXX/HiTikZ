@@ -27,6 +27,51 @@ bool TikzCompleter::isPopupVisible() const
     return m_completers[m_activeContext]->popup()->isVisible();
 }
 
+int TikzCompleter::governingEqIndex(const QString &textBefore)
+{
+    // Scan backward for the '=' at brace-depth 0 relative to the cursor, so an
+    // '=' nested inside a value's braces (e.g. .code={\pgfkeys{x=1}}) is skipped.
+    int bDepth = 0;
+    for (int i = textBefore.length() - 1; i >= 0; --i) {
+        const QChar ch = textBefore.at(i);
+        if (ch == '}') bDepth++;
+        else if (ch == '{') { if (bDepth > 0) bDepth--; }
+        else if (ch == '=' && bDepth == 0) return i;
+    }
+    return -1;
+}
+
+QString TikzCompleter::eqKeyName(const QString &textBefore)
+{
+    const int eqIdx = governingEqIndex(textBefore);
+    if (eqIdx < 0) return QString();
+
+    const QString beforeKey = textBefore.left(eqIdx);
+    // Walk back to the token start: the previous ',' or '[' at bracket-depth 0,
+    // or the enclosing '{' we step out of — all while ignoring content nested
+    // inside braces so commas/brackets inside a value don't split the key.
+    int keyStart = -1;
+    int kBrace = 0;
+    int kBracket = 0;
+    for (int i = beforeKey.length() - 1; i >= 0; --i) {
+        const QChar ch = beforeKey.at(i);
+        if (ch == '}') { kBrace++; continue; }
+        if (ch == '{') {
+            if (kBrace > 0) { kBrace--; continue; }
+            keyStart = i; break;   // stepped out of the enclosing group
+        }
+        if (kBrace != 0) continue;
+        if (ch == ']') { kBracket++; }
+        else if (ch == '[') {
+            if (kBracket == 0) { keyStart = i; break; }
+            kBracket--;
+        } else if (ch == ',' && kBracket == 0) {
+            keyStart = i; break;
+        }
+    }
+    return beforeKey.mid(keyStart + 1).trimmed();
+}
+
 void TikzCompleter::tryComplete()
 {
     QTextCursor cursor = m_editor->textCursor();
@@ -101,13 +146,9 @@ void TikzCompleter::tryComplete()
         break;
     }
     case TkzCtxEq: {
-        int eqIdx = textBefore.lastIndexOf('=');
+        int eqIdx = governingEqIndex(textBefore);
         if (eqIdx >= 0) {
-            QString beforeKey = textBefore.left(eqIdx).trimmed();
-            int keyStart = beforeKey.lastIndexOf(',');
-            if (keyStart < 0) keyStart = beforeKey.lastIndexOf('[');
-            QString keyName = beforeKey.mid(keyStart + 1).trimmed();
-            updateEqModel(keyName);
+            updateEqModel(eqKeyName(textBefore));
             prefix = textBefore.mid(eqIdx + 1).trimmed();
         }
         break;

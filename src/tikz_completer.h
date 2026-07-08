@@ -40,6 +40,12 @@ public:
     // Exposed for testing.
     QStringList eqCandidatesForKey(const QString &keyName) const;
 
+    // Extracts the option key governing the value being typed at the cursor for
+    // '=' value completion. Correctly ignores '=', ',' and '[' that are nested
+    // inside a value's braces (e.g. [a={x,y}, fill=] -> "fill"). Exposed for
+    // testing.
+    static QString eqKeyName(const QString &textBefore);
+
     void setDocumentState(TikzDocumentState *state);
 
 private:
@@ -48,6 +54,8 @@ private:
     void updateEqModel(const QString &keyName);
     void updateUserModels();
     QStringList buildBrkCandidates(Context ctx);
+    // Index of the '=' governing the value at the cursor (brace-depth 0), or -1.
+    static int governingEqIndex(const QString &textBefore);
 
     QPlainTextEdit *m_editor;
     QHash<Context, QCompleter *> m_completers;

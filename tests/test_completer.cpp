@@ -585,6 +585,32 @@ static int test_eq_color_completion()
     return failed;
 }
 
+// Verifies eqKeyName extracts the correct option key for '=' value completion,
+// ignoring '=', ',' and '[' nested inside a value's braces.
+static int test_eq_key_name_extraction()
+{
+    int failed = 0;
+    struct { const char *text; const char *expect; } cases[] = {
+        { "\\draw[color=",                 "color" },
+        { "\\draw[fill=red, draw=",        "draw"  },
+        { "\\node[a={x,y}, fill=",         "fill"  },   // comma inside braces must not split
+        { "\\path[style/.code={\\pgfkeys{/tikz/x=", "/tikz/x" }, // '=' nested in braces
+        { "\\draw[line width=",            "line width" },
+        { nullptr, nullptr }
+    };
+    for (int i = 0; cases[i].text != nullptr; ++i) {
+        QString got = TikzCompleter::eqKeyName(QString::fromUtf8(cases[i].text));
+        if (got != QString::fromUtf8(cases[i].expect)) {
+            fprintf(stderr, "FAIL: EQK-%d - eqKeyName('%s')='%s' expected='%s'\n",
+                    i, cases[i].text, got.toUtf8().constData(), cases[i].expect);
+            failed++;
+        }
+    }
+    fprintf(stderr, "%s: eqKeyName brace/bracket-aware key extraction\n",
+            failed == 0 ? "PASS" : "FAIL");
+    return failed;
+}
+
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
@@ -605,6 +631,7 @@ int main(int argc, char *argv[])
     failed += test_model_clearing_on_empty_list();
     failed += test_key_handlers();
     failed += test_eq_color_completion();
+    failed += test_eq_key_name_extraction();
 
     if (failed > 0) {
         fprintf(stderr, "\n%d test(s) failed!\n", failed);
