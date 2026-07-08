@@ -2,9 +2,27 @@
 #include <QTextDocument>
 #include <QTextBlock>
 #include <QTextLayout>
+#include <QColor>
 #include "tikz_highlighter.h"
 #include "tikz_document_state.h"
 #include <cstdio>
+
+// Returns true if any applied format range covering `pos` in the given block
+// uses `color` as its foreground (used to detect specific highlight colors).
+static bool hasForegroundAt(const QTextDocument &doc, int blockNumber, int pos,
+                            const QColor &color)
+{
+    QTextBlock block = doc.findBlockByNumber(blockNumber);
+    if (!block.isValid() || !block.layout()) return false;
+    const auto formats = block.layout()->formats();
+    for (const auto &fr : formats) {
+        if (pos >= fr.start && pos < fr.start + fr.length
+            && fr.format.foreground().color() == color)
+            return true;
+    }
+    return false;
+}
+
 
 static int test_basic_rules()
 {
@@ -151,6 +169,36 @@ static int test_key_value_highlight()
     Q_UNUSED(hl);
 
     fprintf(stderr, "PASS: key=value highlight\n");
+    return failed;
+}
+
+// key=value highlighting must ignore '=' nested inside a value's braces.
+static int test_key_value_brace_depth()
+{
+    int failed = 0;
+    const QColor keyColor(20, 100, 100); // TikzHighlighter m_keyFormat foreground
+
+    QTextDocument doc;
+    doc.setPlainText(
+        "\\draw[color=red, name/.style={inner=blue}] (0,0);");
+    TikzHighlighter hl(&doc);
+    hl.rehighlight();
+
+    const QString text = doc.firstBlock().text();
+
+    int colorPos = text.indexOf(QStringLiteral("color="));
+    if (colorPos < 0 || !hasForegroundAt(doc, 0, colorPos, keyColor)) {
+        fprintf(stderr, "FAIL: KVB-1 - top-level key 'color' should use the key color\n");
+        failed++;
+    }
+
+    int innerPos = text.indexOf(QStringLiteral("inner="));
+    if (innerPos >= 0 && hasForegroundAt(doc, 0, innerPos, keyColor)) {
+        fprintf(stderr, "FAIL: KVB-2 - brace-nested '=' must not highlight 'inner' as a key\n");
+        failed++;
+    }
+
+    fprintf(stderr, "%s: key=value respects brace depth\n", failed == 0 ? "PASS" : "FAIL");
     return failed;
 }
 
@@ -317,6 +365,7 @@ int main(int argc, char *argv[])
     failed += test_user_node_highlight();
     failed += test_foreach_var_highlight();
     failed += test_key_value_highlight();
+    failed += test_key_value_brace_depth();
     failed += test_multiline_comment();
     failed += test_combined_rules();
     failed += test_foreach_vars_with_spaces();

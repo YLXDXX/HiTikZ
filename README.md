@@ -812,7 +812,7 @@ tests/
 ├── test_fixes.cpp                   # 关键修复验证（行号正则、注释优先级、QProcess、数据流）
 ├── test_completer.cpp               # 补全词库完整性 + detectContext 上下文检测 + `=` 后颜色值补全（完整调色板）
 ├── test_document_state.cpp          # 文档状态追踪（14 个用例：范围/库/样式/坐标/pic/foreach/颜色）
-└── test_enhanced_highlighter.cpp    # 增强语法高亮（12 个用例：PGF路径/处理器/用户定义名/综合）
+└── test_enhanced_highlighter.cpp    # 增强语法高亮（13 个用例：PGF路径/处理器/用户定义名/key=value花括号深度/综合）
 ```
 
 ### 核心类关系
@@ -881,7 +881,7 @@ MainWindow
 | `test_fixes` | 关键修复验证：行号正则锚定、注释优先级、wrapCode 无 document 前置注入、QProcess 启动检测、数据流状态检查、自动编译设置、短命令行解析、原子文件重命名、草稿清理、路径遍历字符检测、导入失败目录回滚（11 项测试） |
 | `test_completer` | TikZ 补全词库完整性验证（选项/锚点/颜色/线型/交点/角度库关键字含重复检测）、detectContext 上下文检测（34 个测试用例）、PGF 键处理器、值提示（箭头/图案/角度/曲线）、`=` 后颜色值补全（`fill`/`draw`/`color` 提供完整调色板，非颜色键保留精选值）、空列表模型清空（16 项测试） |
 | `test_document_state` | 文档状态追踪：范围栈检测、库解析、用户样式（含空格名）/坐标/节点/pic名/foreach变量（含空格分隔多变量、>2个变量）/颜色/命令解析、环境名查询、片段库注入（14 个测试用例） |
-| `test_enhanced_highlighter` | 增强语法高亮：PGF路径/键处理器/库规则不崩溃，用户样式/节点名/foreach变量高亮检测，key=value分色，多行注释，综合测试，foreach空格分隔变量，**注释保护**验证（12 个测试用例） |
+| `test_enhanced_highlighter` | 增强语法高亮：PGF路径/键处理器/库规则不崩溃，用户样式/节点名/foreach变量高亮检测，key=value分色（含花括号深度隔离），多行注释，综合测试，foreach空格分隔变量，**注释保护**验证（13 个测试用例） |
 
 运行测试：
 ```bash

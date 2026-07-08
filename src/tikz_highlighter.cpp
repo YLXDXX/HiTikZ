@@ -226,15 +226,19 @@ void TikzHighlighter::highlightWord(const QString &text, const QString &word,
 
 void TikzHighlighter::applyKeyValueHighlight(const QString &text)
 {
-    // Highlight key=value: key in keyFormat, value stays in optionFormat
-    // Only apply inside brackets
+    // Highlight key=value: key in keyFormat, value stays in optionFormat.
+    // Only apply inside option brackets ([...]) and at brace depth 0, so a '='
+    // nested inside a value's braces (e.g. [name/.style={a=b}]) is not mistaken
+    // for a new key/value separator.
     int bracketDepth = 0;
-    int keyStart = -1;
+    int braceDepth = 0;
     for (int i = 0; i < text.length(); i++) {
         QChar ch = text.at(i);
         if (ch == '[') bracketDepth++;
         else if (ch == ']') { if (bracketDepth > 0) bracketDepth--; }
-        else if (bracketDepth > 0 && ch == '=') {
+        else if (ch == '{') braceDepth++;
+        else if (ch == '}') { if (braceDepth > 0) braceDepth--; }
+        else if (bracketDepth > 0 && braceDepth == 0 && ch == '=') {
             // Find key start
             int ks = i - 1;
             while (ks >= 0 && (text.at(ks).isLetterOrNumber()
