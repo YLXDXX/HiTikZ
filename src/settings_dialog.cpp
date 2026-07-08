@@ -61,6 +61,10 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     QVBoxLayout *behaviorLayout = new QVBoxLayout(behaviorGroup);
     autoCompileOnSaveCheck = new QCheckBox(QStringLiteral("保存后自动编译"));
     behaviorLayout->addWidget(autoCompileOnSaveCheck);
+    wrapLongLinesCheck = new QCheckBox(QStringLiteral("过长代码自动换行"));
+    wrapLongLinesCheck->setToolTip(QStringLiteral(
+        "开启后，过长的代码行会在编辑器内自动折行显示；折行产生的续行在左侧以 ↳ 标记"));
+    behaviorLayout->addWidget(wrapLongLinesCheck);
     QHBoxLayout *threadLayout = new QHBoxLayout;
     threadLayout->addWidget(new QLabel(QStringLiteral("编译线程数:")));
     threadCountSpin = new QSpinBox;
@@ -228,6 +232,7 @@ void SettingsDialog::loadSettings()
     globalHotkeyEdit->setKeySequence(QKeySequence(settings.value("shortcuts/globalHotkey", "").toString()));
     autoCompileOnSaveCheck->setChecked(settings.value("behavior/autoCompileOnSave", true).toBool());
     threadCountSpin->setValue(settings.value("behavior/threadCount", 6).toInt());
+    wrapLongLinesCheck->setChecked(settings.value("behavior/wrapLongLines", true).toBool());
 }
 void SettingsDialog::saveSettings()
 {
@@ -250,6 +255,7 @@ void SettingsDialog::saveSettings()
     settings.setValue("shortcuts/globalHotkey", globalHotkeyEdit->keySequence().toString());
     settings.setValue("behavior/autoCompileOnSave", autoCompileOnSaveCheck->isChecked());
     settings.setValue("behavior/threadCount", threadCountSpin->value());
+    settings.setValue("behavior/wrapLongLines", wrapLongLinesCheck->isChecked());
 }
 
 void SettingsDialog::applyToCompiler(LatexCompiler *compiler)

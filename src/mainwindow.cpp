@@ -1550,11 +1550,14 @@ void MainWindow::applyAppearanceSettings()
     QFont logFont("monospace", qMax(8, fontSize - 1));
     logPanel->setFont(logFont);
 
+    const bool wrapLongLines = settings.value("behavior/wrapLongLines", true).toBool();
+
     for (int i = 0; i < tabWidget->count(); ++i) {
         CodeEditor *ed = qobject_cast<CodeEditor*>(tabWidget->widget(i));
         if (ed) {
             ed->setFont(editorFont);
             ed->setTabStopDistance(4 * ed->fontMetrics().horizontalAdvance(' '));
+            ed->setWordWrap(wrapLongLines);
         }
     }
 }

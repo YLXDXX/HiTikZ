@@ -4,6 +4,7 @@
 #include "tikz_document_state.h"
 #include <QPainter>
 #include <QTextBlock>
+#include <QTextLayout>
 #include <QKeyEvent>
 #include <QFocusEvent>
 #include <QTimer>
@@ -90,7 +91,17 @@ int CodeEditor::lineNumberAreaWidth()
     }
 
     int space = 3 + fontMetrics().horizontalAdvance(QLatin1Char('9')) * digits;
+    // Ensure the wrapped-continuation marker fits even for single-digit files.
+    space = qMax(space, 3 + fontMetrics().horizontalAdvance(QStringLiteral("\u21B3")) + 4);
     return space;
+}
+
+void CodeEditor::setWordWrap(bool wrap)
+{
+    setLineWrapMode(wrap ? QPlainTextEdit::WidgetWidth : QPlainTextEdit::NoWrap);
+    // The logical->visual line mapping changed; refresh the gutter.
+    if (lineNumberArea)
+        lineNumberArea->update();
 }
 
 void CodeEditor::updateLineNumberAreaWidth(int)
@@ -246,14 +257,31 @@ void CodeEditor::lineNumberAreaPaintEvent(QPaintEvent *event)
     int blockNumber = block.blockNumber();
     int top = qRound(blockBoundingGeometry(block).translated(contentOffset()).top());
     int bottom = top + qRound(blockBoundingRect(block).height());
+    const int areaWidth = lineNumberArea->width();
+    const int fh = fontMetrics().height();
 
     while (block.isValid() && top <= event->rect().bottom()) {
         if (block.isVisible() && bottom >= event->rect().top()) {
-            QString number = QString::number(blockNumber + 1);
-            painter.setPen(Qt::darkGray);
-            painter.drawText(0, top, lineNumberArea->width(),
-                             fontMetrics().height(),
-                             Qt::AlignRight, number);
+            QTextLayout *layout = block.layout();
+            const int lineCount = layout ? layout->lineCount() : 1;
+            for (int i = 0; i < lineCount; ++i) {
+                int lineTop = top;
+                if (layout && i < layout->lineCount())
+                    lineTop = top + qRound(layout->lineAt(i).rect().top());
+
+                if (i == 0) {
+                    // Real (logical) line: show its number.
+                    painter.setPen(Qt::darkGray);
+                    painter.drawText(0, lineTop, areaWidth, fh, Qt::AlignRight,
+                                     QString::number(blockNumber + 1));
+                } else {
+                    // Soft-wrapped continuation of the same logical line:
+                    // show a marker instead of a number.
+                    painter.setPen(QColor(120, 140, 200));
+                    painter.drawText(0, lineTop, areaWidth, fh, Qt::AlignRight,
+                                     QStringLiteral("\u21B3"));
+                }
+            }
         }
 
         block = block.next();

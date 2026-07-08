@@ -17,6 +17,10 @@ public:
     void lineNumberAreaPaintEvent(QPaintEvent *event);
     int lineNumberAreaWidth();
 
+    // Toggle soft-wrapping of over-long lines. When enabled, wrapped
+    // continuation rows are marked in the line-number gutter.
+    void setWordWrap(bool wrap);
+
     TikzCompleter *completer() const;
     TikzDocumentState *documentState() const;
 

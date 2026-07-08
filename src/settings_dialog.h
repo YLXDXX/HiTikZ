@@ -47,6 +47,7 @@ private:
     QKeySequenceEdit *globalHotkeyEdit;
     QCheckBox *autoCompileOnSaveCheck;
     QSpinBox *threadCountSpin;
+    QCheckBox *wrapLongLinesCheck;
     QListWidget *templateListWidget;
     QPlainTextEdit *templateEdit;
 
