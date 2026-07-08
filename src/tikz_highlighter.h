@@ -28,6 +28,10 @@ private:
     void applyRules(const QString &text);
     void applyUserHighlights(const QString &text);
     void applyKeyValueHighlight(const QString &text);
+    // Colors option brackets ([...]) as m_optionFormat, honoring nesting and
+    // spanning multiple lines via the InBracket block state. Returns true if the
+    // block ends while still inside an unclosed bracket.
+    bool applyOptionBrackets(const QString &text, bool startedInBracket);
     void highlightWord(const QString &text, const QString &word,
                        const QTextCharFormat &fmt);
 
@@ -57,5 +61,5 @@ private:
 
     TikzDocumentState *m_docState = nullptr;
 
-    enum BlockState { Normal = 0, InComment = 1 };
+    enum BlockState { Normal = 0, InComment = 1, InBracket = 2 };
 };

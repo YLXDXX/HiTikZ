@@ -202,6 +202,48 @@ static int test_key_value_brace_depth()
     return failed;
 }
 
+// Options split across multiple lines must stay option-colored on every line
+// (the closing ']' ends the option list; content after it must not).
+static int test_multiline_option_highlight()
+{
+    int failed = 0;
+    const QColor optColor(0, 120, 120); // TikzHighlighter m_optionFormat foreground
+
+    QTextDocument doc;
+    doc.setPlainText(
+        "\\draw[red,\n"
+        "      line width=2pt,\n"
+        "      ->] (0,0) -- (1,1);");
+    TikzHighlighter hl(&doc);
+    hl.rehighlight();
+
+    // Continuation line 1: "line" must be option-colored.
+    QString b1 = doc.findBlockByNumber(1).text();
+    int linePos = b1.indexOf(QStringLiteral("line"));
+    if (linePos < 0 || !hasForegroundAt(doc, 1, linePos, optColor)) {
+        fprintf(stderr, "FAIL: MLO-1 - multi-line option continuation should be option-colored\n");
+        failed++;
+    }
+
+    // Continuation line 2: the "->" before the closing ']' stays option-colored.
+    QString b2 = doc.findBlockByNumber(2).text();
+    int arrowPos = b2.indexOf(QStringLiteral("->"));
+    if (arrowPos < 0 || !hasForegroundAt(doc, 2, arrowPos, optColor)) {
+        fprintf(stderr, "FAIL: MLO-2 - option content before closing ']' should be option-colored\n");
+        failed++;
+    }
+
+    // After the closing ']', the coordinate must NOT be option-colored.
+    int coordPos = b2.indexOf(QStringLiteral("(0,0)"));
+    if (coordPos >= 0 && hasForegroundAt(doc, 2, coordPos, optColor)) {
+        fprintf(stderr, "FAIL: MLO-3 - content after ']' must not be option-colored\n");
+        failed++;
+    }
+
+    fprintf(stderr, "%s: multi-line option bracket highlighting\n", failed == 0 ? "PASS" : "FAIL");
+    return failed;
+}
+
 static int test_multiline_comment()
 {
     int failed = 0;
@@ -366,6 +408,7 @@ int main(int argc, char *argv[])
     failed += test_foreach_var_highlight();
     failed += test_key_value_highlight();
     failed += test_key_value_brace_depth();
+    failed += test_multiline_option_highlight();
     failed += test_multiline_comment();
     failed += test_combined_rules();
     failed += test_foreach_vars_with_spaces();

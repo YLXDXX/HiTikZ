@@ -66,7 +66,6 @@ TikzHighlighter::TikzHighlighter(QTextDocument *parent)
         {QRegularExpression(QStringLiteral("\\{[^}]*\\}|\\}")), m_braceFormat, 8},
         {QRegularExpression(QStringLiteral("\\(-?[\\d.]+\\.?\\s*,\\s*-?[\\d.]+\\s*\\)")),
             m_coordFormat, 9},
-        {QRegularExpression(QStringLiteral("\\[[^\\]]*\\]")), m_optionFormat, 10},
         {QRegularExpression(
             QStringLiteral("\\b\\d+\\.?\\d*(pt|cm|mm|in|ex|em|bp|dd|pc|cc|sp)?\\b")),
             m_numberFormat, 11},
@@ -115,6 +114,11 @@ void TikzHighlighter::highlightBlock(const QString &text)
         return;
     }
 
+    // Option brackets ([...]) are colored first (as a base layer) so the more
+    // specific rules below can paint on top; this also carries an unclosed
+    // bracket across block boundaries for multi-line option lists.
+    bool endsInBracket = applyOptionBrackets(text, prevState == InBracket);
+
     applyRules(text);
     applyUserHighlights(text);
     applyKeyValueHighlight(text);
@@ -134,7 +138,52 @@ void TikzHighlighter::highlightBlock(const QString &text)
             break;
         }
     }
-    setCurrentBlockState(endsInComment ? InComment : Normal);
+    if (endsInComment)
+        setCurrentBlockState(InComment);
+    else if (endsInBracket)
+        setCurrentBlockState(InBracket);
+    else
+        setCurrentBlockState(Normal);
+}
+
+bool TikzHighlighter::applyOptionBrackets(const QString &text, bool startedInBracket)
+{
+    int i = 0;
+
+    if (startedInBracket) {
+        // Continuation of an option list opened on a previous line.
+        int depth = 1;
+        int j = 0;
+        for (; j < text.length(); ++j) {
+            const QChar c = text.at(j);
+            if (c == '[') depth++;
+            else if (c == ']') { if (--depth == 0) break; }
+        }
+        if (j >= text.length()) {
+            setFormat(0, text.length(), m_optionFormat);
+            return true; // still open at end of line
+        }
+        setFormat(0, j + 1, m_optionFormat);
+        i = j + 1;
+    }
+
+    for (; i < text.length(); ++i) {
+        if (text.at(i) != '[') continue;
+        int depth = 1;
+        int j = i + 1;
+        for (; j < text.length(); ++j) {
+            const QChar c = text.at(j);
+            if (c == '[') depth++;
+            else if (c == ']') { if (--depth == 0) break; }
+        }
+        if (j >= text.length()) {
+            setFormat(i, text.length() - i, m_optionFormat);
+            return true; // unclosed → the next block continues the option list
+        }
+        setFormat(i, j - i + 1, m_optionFormat);
+        i = j; // resume scanning after the closing ']'
+    }
+    return false;
 }
 
 void TikzHighlighter::applyRules(const QString &text)
