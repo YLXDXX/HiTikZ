@@ -88,19 +88,33 @@ void MainWindow::performAutoSave()
         obj["code"] = ed->toPlainText();
         obj["name"] = tabWidget->tabText(i);
 
-        if (sid.isEmpty()) {
+        if (i == tabWidget->currentIndex()) {
+            // The active tab's metadata widgets hold the freshest (possibly
+            // unsaved) values, so persist those into the draft instead of the
+            // stale on-disk metadata.
+            obj["description"] = descEdit->toPlainText();
+            QStringList tags;
+            for (const QString &tag : tagsEdit->text().split(',')) {
+                QString t = tag.trimmed();
+                if (!t.isEmpty()) tags.append(t);
+            }
+            obj["tags"] = tags.join(QStringLiteral(", "));
+            obj["packages"] = packagesEdit->text();
+            obj["tikzLibraries"] = tikzLibrariesEdit->text();
+            obj["templateId"] = templateCombo->currentData().toString();
+        } else if (!sid.isEmpty()) {
+            Snippet s = snippetMgr->loadSnippet(sid);
+            obj["description"] = s.description;
+            obj["tags"] = s.tags.join(QStringLiteral(", "));
+            obj["packages"] = s.packages;
+            obj["tikzLibraries"] = s.tikzLibraries;
+            obj["templateId"] = s.templateId;
+        } else {
             obj["description"] = QString();
             obj["tags"] = QString();
             obj["packages"] = QString();
             obj["tikzLibraries"] = QString();
             obj["templateId"] = QString();
-        } else {
-            Snippet s = snippetMgr->loadSnippet(sid);
-            obj["description"] = s.description;
-            obj["tags"] = s.tags.join(", ");
-            obj["packages"] = s.packages;
-            obj["tikzLibraries"] = s.tikzLibraries;
-            obj["templateId"] = s.templateId;
         }
 
         QSaveFile file(draftPath);

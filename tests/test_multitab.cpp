@@ -217,6 +217,48 @@ static void test_snippet_modified_sync(SnippetManager *snippetMgr, SearchPanel *
     snippetMgr->deleteSnippet(id);
 }
 
+// Verifies unsaved-change detection considers metadata edits (not just code),
+// so closing/exiting won't silently discard metadata changes.
+static void test_metadata_dirty_detection(MainWindow *mw, SnippetManager *snippetMgr,
+                                          SearchPanel *searchPanel, QTabWidget *tabWidget)
+{
+    QString id = snippetMgr->createSnippet("Dirty Test", "test/dirty");
+    Snippet s = snippetMgr->loadSnippet(id);
+    s.description = "Original desc";
+    s.code = "\\draw (0,0) -- (1,1);";
+    snippetMgr->saveSnippet(s);
+
+    emit searchPanel->snippetSelected(id);
+    QApplication::processEvents();
+
+    int idx = -1;
+    for (int i = 0; i < tabWidget->count(); ++i)
+        if (tabWidget->tabBar()->tabData(i).toString() == id) { idx = i; break; }
+    TEST_ASSERT(idx >= 0, "dirty test tab should exist");
+    TEST_ASSERT(tabWidget->currentIndex() == idx, "dirty test tab should be current");
+
+    // Freshly loaded, unmodified snippet must be clean.
+    TEST_ASSERT(!mw->tabHasUnsavedChanges(idx),
+                "freshly loaded snippet should not be dirty");
+
+    // Editing only the description (metadata) must mark the tab dirty.
+    QTextEdit *descEdit = mw->findChild<QTextEdit*>(QStringLiteral("metaDescEdit"));
+    TEST_ASSERT(descEdit != nullptr, "should find metaDescEdit by object name");
+    if (descEdit) {
+        descEdit->setPlainText(QStringLiteral("Edited description"));
+        QApplication::processEvents();
+        TEST_ASSERT(mw->tabHasUnsavedChanges(idx),
+                    "metadata-only edit should be detected as unsaved");
+        // Restore so it doesn't interfere with later teardown.
+        descEdit->setPlainText(QStringLiteral("Original desc"));
+        QApplication::processEvents();
+        TEST_ASSERT(!mw->tabHasUnsavedChanges(idx),
+                    "reverting metadata should clear the dirty state");
+    }
+
+    snippetMgr->deleteSnippet(id);
+}
+
 static void cleanup_snippets(SnippetManager *mgr)
 {
     QList<Snippet> all = mgr->getAllSnippets(true);
@@ -282,6 +324,7 @@ int main(int argc, char *argv[])
         test_close_tab(tabWidget);
         test_reopen_snippet_after_close(snippetMgr, searchPanel, tabWidget);
         test_snippet_modified_sync(snippetMgr, searchPanel, tabWidget);
+        test_metadata_dirty_detection(&mw, snippetMgr, searchPanel, tabWidget);
 
         cleanup_snippets(snippetMgr);
     }

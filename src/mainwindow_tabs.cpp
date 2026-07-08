@@ -177,6 +177,47 @@ void MainWindow::onTabChanged(int index)
     setEditorForTab(index);
 }
 
+bool MainWindow::isSnippetDirty(const QString &sid, CodeEditor *editor) const
+{
+    if (!editor) return false;
+
+    // Unsaved scratch tab (no backing snippet): dirty if it has any content.
+    if (sid.isEmpty())
+        return !editor->toPlainText().trimmed().isEmpty();
+
+    Snippet saved = snippetMgr->loadSnippet(sid);
+    if (saved.id.isEmpty())
+        return true; // backing snippet vanished but the tab still has content
+
+    if (editor->toPlainText() != saved.code)
+        return true;
+
+    // The metadata widgets (name/description/tags/packages/libs/template) are
+    // shared across tabs and only reflect the *currently active* tab. Comparing
+    // them for a background tab would be meaningless, so only do so when this
+    // editor is the active one.
+    if (editor == currentEditor()) {
+        if (nameEdit->text() != saved.name) return true;
+        if (descEdit->toPlainText() != saved.description) return true;
+        if (packagesEdit->text() != saved.packages) return true;
+        if (tikzLibrariesEdit->text() != saved.tikzLibraries) return true;
+        if (tagsEdit->text() != saved.tags.join(QStringLiteral(", "))) return true;
+        if (!saved.templateId.isEmpty()
+            && templateCombo->currentData().toString() != saved.templateId)
+            return true;
+    }
+    return false;
+}
+
+bool MainWindow::tabHasUnsavedChanges(int index) const
+{
+    if (!tabWidget || index < 0 || index >= tabWidget->count())
+        return false;
+    QString sid = tabWidget->tabBar()->tabData(index).toString();
+    CodeEditor *editor = qobject_cast<CodeEditor*>(tabWidget->widget(index));
+    return isSnippetDirty(sid, editor);
+}
+
 bool MainWindow::maybeCloseTab(int index)
 {
     if (index < 0 || index >= tabWidget->count()) return true;
@@ -185,15 +226,7 @@ bool MainWindow::maybeCloseTab(int index)
     CodeEditor *editor = qobject_cast<CodeEditor*>(tabWidget->widget(index));
     if (!editor) return true;
 
-    bool hasUnsaved = false;
-    if (!sid.isEmpty()) {
-        Snippet saved = snippetMgr->loadSnippet(sid);
-        if (editor->toPlainText() != saved.code)
-            hasUnsaved = true;
-    } else {
-        if (!editor->toPlainText().trimmed().isEmpty())
-            hasUnsaved = true;
-    }
+    bool hasUnsaved = isSnippetDirty(sid, editor);
 
     if (hasUnsaved) {
         tabWidget->setCurrentIndex(index);

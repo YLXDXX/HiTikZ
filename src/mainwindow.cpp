@@ -204,14 +204,7 @@ void MainWindow::closeEvent(QCloseEvent *event)
         QString sid = tabWidget->tabBar()->tabData(i).toString();
         CodeEditor *ed = qobject_cast<CodeEditor*>(tabWidget->widget(i));
         if (!ed) continue;
-        bool dirty = false;
-        if (!sid.isEmpty()) {
-            Snippet saved = snippetMgr->loadSnippet(sid);
-            if (ed->toPlainText() != saved.code) dirty = true;
-        } else {
-            if (!ed->toPlainText().trimmed().isEmpty()) dirty = true;
-        }
-        if (dirty) unsavedTabs.append(i);
+        if (isSnippetDirty(sid, ed)) unsavedTabs.append(i);
     }
 
     if (!unsavedTabs.isEmpty()) {
@@ -411,8 +404,10 @@ void MainWindow::setupUI()
     });
 
     nameEdit = new QLineEdit;
+    nameEdit->setObjectName(QStringLiteral("metaNameEdit"));
     nameEdit->setPlaceholderText(QStringLiteral("名称"));
     descEdit = new QTextEdit;
+    descEdit->setObjectName(QStringLiteral("metaDescEdit"));
     descEdit->setPlaceholderText(QStringLiteral("简介"));
     descEdit->setMaximumHeight(80);
 
@@ -422,14 +417,17 @@ void MainWindow::setupUI()
     metaLayout->addWidget(descEdit, 1);
     metaLayout->addWidget(new QLabel(QStringLiteral("标签 (逗号分隔):")));
     tagsEdit = new QLineEdit;
+    tagsEdit->setObjectName(QStringLiteral("metaTagsEdit"));
     tagsEdit->setPlaceholderText(QStringLiteral("标签1, 标签2, ..."));
     metaLayout->addWidget(tagsEdit);
     metaLayout->addWidget(new QLabel(QStringLiteral("额外宏包 (逗号分隔):")));
     packagesEdit = new QLineEdit;
+    packagesEdit->setObjectName(QStringLiteral("metaPackagesEdit"));
     packagesEdit->setPlaceholderText(QStringLiteral("如: tikz-3dplot,[european]circuitikz"));
     metaLayout->addWidget(packagesEdit);
     metaLayout->addWidget(new QLabel(QStringLiteral("TikZ库 (逗号分隔):")));
     tikzLibrariesEdit = new QLineEdit;
+    tikzLibrariesEdit->setObjectName(QStringLiteral("metaTikzLibrariesEdit"));
     tikzLibrariesEdit->setPlaceholderText(QStringLiteral("如: calc,er,angles"));
     metaLayout->addWidget(tikzLibrariesEdit);
     metaLayout->addWidget(new QLabel(QStringLiteral("模板:")));

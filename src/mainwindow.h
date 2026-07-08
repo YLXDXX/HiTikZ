@@ -50,6 +50,10 @@ public:
     void factoryReset();
     void applyGlobalHotkey();
 
+    // Returns true if the tab at `index` has unsaved changes (code or, for the
+    // active tab, metadata). Exposed for tests.
+    bool tabHasUnsavedChanges(int index) const;
+
 signals:
     void batchPreviewFinished();
 
@@ -101,6 +105,7 @@ private:
     QString currentTabSnippetId() const;
     int findTabForSnippet(const QString &id) const;
     bool maybeCloseTab(int index);
+    bool isSnippetDirty(const QString &sid, CodeEditor *editor) const;
     void updateTabTitle(int index, const QString &title);
     void onTabChanged(int index);
     void onTabCloseRequested(int index);
