@@ -233,7 +233,14 @@ void TikzCompleter::tryComplete()
         int sl = textBefore.lastIndexOf(QLatin1Char('\\'));
         if (sl >= 0 && sl < static_cast<int>(textBefore.length()) - 1) {
             QString afterS = textBefore.mid(sl);
-            if (!afterS.isEmpty() && afterS.at(1).isLetter()) {
+            // Only reroute to user-command completion when the backslash
+            // directly introduces the token being typed (e.g. "\foo"). Without
+            // this, an earlier command on the retained context (e.g.
+            // "\draw ... grid") would hijack a plain path word like "grid" with
+            // a bogus prefix and suppress completion entirely.
+            static const QRegularExpression cmdTokenRe(
+                QStringLiteral("^\\\\[A-Za-z@]+$"));
+            if (cmdTokenRe.match(afterS).hasMatch()) {
                 ctx = TkzCtxUserCmd;
                 prefix = afterS;
             }

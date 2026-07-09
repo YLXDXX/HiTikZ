@@ -8,6 +8,7 @@
 #include "tikz_words.h"
 #include "tikz_completer.h"
 #include "tikz_keywords.h"
+#include "tikz_document_state.h"
 
 static int test_options_contain_help_lines()
 {
@@ -459,6 +460,48 @@ static int test_path_keywords_completable()
     }
 
     if (failed == 0) fprintf(stderr, "PASS: all path construction keywords completable\n");
+    return failed;
+}
+
+// Regression: bare path/graphic words such as "grid"/"circle"/"rectangle" typed
+// after an earlier command on the same line (e.g. "\draw ... grid") must still
+// trigger the completion popup. The previous code rerouted TkzCtxWord to
+// TkzCtxUserCmd whenever ANY backslash preceded the word, hijacking the prefix
+// with the whole "\draw ... grid" text and suppressing completion entirely.
+static int test_path_word_completion_triggers()
+{
+    int failed = 0;
+    QPlainTextEdit editor;
+    editor.show();
+    TikzCompleter completer(&editor);
+    TikzDocumentState state;
+    completer.setDocumentState(&state);
+
+    struct { const char *text; bool shouldPopup; const char *desc; } cases[] = {
+        { "\\draw[help lines] (0,0) grid",  true,  "grid after bracket/command" },
+        { "\\draw (0,0) circle",            true,  "circle after command" },
+        { "\\draw (0,0) rectangle",         true,  "rectangle after command" },
+        { "\\draw (0,0) -- (1,1) node",     true,  "node after command" },
+        { "\\dra",                          true,  "real command still completes" },
+        { "\\draw (0,0) xyzqwv",            false, "nonsense word => no popup" },
+        { nullptr, false, nullptr }
+    };
+
+    for (int i = 0; cases[i].text != nullptr; ++i) {
+        editor.setPlainText(QString::fromUtf8(cases[i].text));
+        editor.moveCursor(QTextCursor::End);
+        completer.tryComplete();
+        bool visible = completer.isPopupVisible();
+        if (visible != cases[i].shouldPopup) {
+            fprintf(stderr, "FAIL: PWT-%d (%s) - '%s': expected popup=%d, got %d\n",
+                    i, cases[i].desc, cases[i].text,
+                    cases[i].shouldPopup, visible);
+            failed++;
+        }
+    }
+
+    if (failed == 0)
+        fprintf(stderr, "PASS: bare path/graphic words trigger completion\n");
     return failed;
 }
 
@@ -1289,6 +1332,7 @@ int main(int argc, char *argv[])
     failed += test_value_hints_curve_angles();
     failed += test_value_hints_angles_library();
     failed += test_path_keywords_completable();
+    failed += test_path_word_completion_triggers();
     failed += test_model_clearing_on_empty_list();
     failed += test_key_handlers();
     failed += test_eq_color_completion();

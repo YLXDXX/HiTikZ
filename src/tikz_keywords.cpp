@@ -141,6 +141,13 @@ QStringList TikzKeywordDB::allCompletableWords() const
         }
     };
     appendUnique(allCommandNames());
+    // Seed canonical bare-word shapes/patterns/path-ops before the generic
+    // option/arrow lists so their lowercase spelling (e.g. "circle",
+    // "rectangle", "grid") wins over case-colliding arrow-tip names such as
+    // "Circle"/"Rectangle" under the case-insensitive dedup below.
+    appendUnique(names(Category::Shape));
+    appendUnique(names(Category::Pattern));
+    appendUnique(names(Category::PathOperation));
     appendUnique(allOptionNames());
     appendUnique(allAnchorNames());
     appendUnique(allColorNames());
