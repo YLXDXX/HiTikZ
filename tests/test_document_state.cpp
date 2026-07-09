@@ -394,6 +394,68 @@ static int test_usepackage_activates_libs()
     return failed;
 }
 
+// Regression: nodes that use name=<name> in their options (instead of the
+// explicit (name) syntax) must still be extracted so the completer can offer
+// them. E.g. \node[place,name=critical 1] [below=of ...] {};
+static int test_node_name_in_options()
+{
+    int failed = 0;
+    QTextDocument doc;
+    doc.setPlainText(
+        "\\node[place,name=critical 1] [below=of waiting 1] {};\n"
+        "\\node[draw,name=my node] at (0,0) {hello};\n"
+        "\\node[circle,name=Node3] {};\n"
+        "\\pic[red,name={braced name}] at (1,1) {mypic};\n");
+    TikzDocumentState state;
+    state.reparse(&doc);
+    const auto &nodes = state.userNodes();
+
+    // Names from name=... in options must be extracted.
+    if (!nodes.contains("critical 1")) {
+        fprintf(stderr, "FAIL: DCS-NN1 - 'critical 1' via name= should be extracted\n");
+        failed++;
+    }
+    if (!nodes.contains("my node")) {
+        fprintf(stderr, "FAIL: DCS-NN2 - 'my node' via name= should be extracted\n");
+        failed++;
+    }
+    if (!nodes.contains("Node3")) {
+        fprintf(stderr, "FAIL: DCS-NN3 - 'Node3' via name= should be extracted\n");
+        failed++;
+    }
+    // Brace-quoted name
+    if (!nodes.contains("braced name")) {
+        fprintf(stderr, "FAIL: DCS-NN4 - 'braced name' via name={...} should be extracted\n");
+        failed++;
+    }
+
+    if (failed == 0) fprintf(stderr, "PASS: node name extracted from name=... in options\n");
+    return failed;
+}
+
+// Regression: nodes with both (name) and name=... should not duplicate.
+static int test_node_both_name_styles()
+{
+    int failed = 0;
+    QTextDocument doc;
+    doc.setPlainText(
+        "\\node[red] (A) at (0,0) {};\n"
+        "\\node[name=B] (C) at (0,0) {};\n"
+        "\\coordinate[name=D] (E) at (0,0);\n");
+    TikzDocumentState state;
+    state.reparse(&doc);
+    const auto &nodes = state.userNodes();
+
+    if (!nodes.contains("A")) { fprintf(stderr, "FAIL: DCS-BN1\n"); failed++; }
+    if (!nodes.contains("B")) { fprintf(stderr, "FAIL: DCS-BN2\n"); failed++; }
+    if (!nodes.contains("C")) { fprintf(stderr, "FAIL: DCS-BN3\n"); failed++; }
+    if (!nodes.contains("D")) { fprintf(stderr, "FAIL: DCS-BN4\n"); failed++; }
+    if (!nodes.contains("E")) { fprintf(stderr, "FAIL: DCS-BN5\n"); failed++; }
+
+    if (failed == 0) fprintf(stderr, "PASS: both (name) and name= styles coexist\n");
+    return failed;
+}
+
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
@@ -414,6 +476,8 @@ int main(int argc, char *argv[])
     failed += test_style_with_spaces();
     failed += test_pic_name_detection();
     failed += test_usepackage_activates_libs();
+    failed += test_node_name_in_options();
+    failed += test_node_both_name_styles();
     if (failed > 0) { fprintf(stderr, "\n%d test(s) failed!\n", failed); return 1; }
     fprintf(stderr, "\nAll TikzDocumentState tests passed!\n");
     return 0;

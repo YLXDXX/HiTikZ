@@ -252,6 +252,21 @@ void TikzDocumentState::parseLine(const QString &text, int blockStartPos,
                     m_userCoords.insert(name);
                     m_userNodes.insert(name);
                 }
+                // Also extract name=<name> from options (e.g. \coordinate[name=D] (E))
+                {
+                    static const QRegularExpression nameRe(
+                        QStringLiteral("name\\s*=\\s*(?:\\{([^}]*)\\}|([^,\\]]+))"));
+                    QRegularExpressionMatch nv = nameRe.match(coo.captured(0));
+                    if (nv.hasMatch()) {
+                        QString optName = nv.captured(1);
+                        if (optName.isEmpty()) optName = nv.captured(2);
+                        optName = optName.trimmed();
+                        if (!optName.isEmpty()) {
+                            m_userCoords.insert(optName);
+                            m_userNodes.insert(optName);
+                        }
+                    }
+                }
                 pos = coo.capturedEnd();
                 continue;
             }
@@ -307,8 +322,56 @@ void TikzDocumentState::parseLine(const QString &text, int blockStartPos,
                 QString nodeName = nm.captured(1).trimmed();
                 if (!nodeName.isEmpty())
                     m_userNodes.insert(nodeName);
+                // Also extract name=<name> from options (e.g. \node[name=B] (C))
+                {
+                    static const QRegularExpression nameRe(
+                        QStringLiteral("name\\s*=\\s*(?:\\{([^}]*)\\}|([^,\\]]+))"));
+                    QRegularExpressionMatch nv = nameRe.match(nm.captured(0));
+                    if (nv.hasMatch()) {
+                        QString optName = nv.captured(1);
+                        if (optName.isEmpty()) optName = nv.captured(2);
+                        optName = optName.trimmed();
+                        if (!optName.isEmpty())
+                            m_userNodes.insert(optName);
+                    }
+                }
                 pos = nm.capturedEnd();
                 continue;
+            }
+
+            // \node or \pic with name=... in options (no explicit (name) syntax).
+            // E.g. \node[place,name=critical 1] [below=of ...] {};
+            {
+                static const QRegularExpression nodeOrPic(
+                    QStringLiteral("^\\\\(node|pic)\\b"));
+                QRegularExpressionMatch npm = nodeOrPic.match(text.mid(pos));
+                if (npm.hasMatch()) {
+                    int p = pos + npm.capturedLength();
+                    while (p < len && text.at(p).isSpace()) p++;
+                    bool advanced = false;
+                    while (p < len && text.at(p) == QLatin1Char('[')) {
+                        int close = text.indexOf(QLatin1Char(']'), p);
+                        if (close < 0) break;
+                        QString bracket = text.mid(p + 1, close - p - 1);
+                        static const QRegularExpression nameRe(
+                            QStringLiteral("(?:^|,)\\s*name\\s*=\\s*(?:\\{([^}]*)\\}|([^,\\]]+))"));
+                        QRegularExpressionMatch nv = nameRe.match(bracket);
+                        if (nv.hasMatch()) {
+                            QString name = nv.captured(1);
+                            if (name.isEmpty()) name = nv.captured(2);
+                            name = name.trimmed();
+                            if (!name.isEmpty())
+                                m_userNodes.insert(name);
+                        }
+                        p = close + 1;
+                        while (p < len && text.at(p).isSpace()) p++;
+                        advanced = true;
+                    }
+                    if (advanced) {
+                        pos = p;
+                        continue;
+                    }
+                }
             }
 
             pos++;

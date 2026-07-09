@@ -85,7 +85,11 @@ TikzCompleter::Context TikzCompleter::detectContext(const QString &textBefore) c
         int lastCloseParen = textBefore.lastIndexOf(')');
         if (lastOpenParen > lastCloseParen && lastOpenParen >= 0) {
             QString afterParen = textBefore.mid(lastOpenParen + 1);
-            if (!afterParen.contains(',') && !afterParen.contains(' ') &&
+            // Exclude coordinate pairs (x,y) and calc expressions ($...$), but
+            // allow names with spaces (e.g. "critical 1") so they can be
+            // completed after a '('.
+            if (!afterParen.contains(',') &&
+                !afterParen.startsWith('$') &&
                 afterParen.length() >= 0 && afterParen.length() < 30)
                 return TkzCtxCoord;
         }

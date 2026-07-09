@@ -281,6 +281,21 @@ static int test_detect_context()
         {QStringLiteral("\\draw (0,0) node {rec"), TikzCompleter::TkzCtxWord, "rec inside node text -> generic word"},
         {QStringLiteral("\\draw (0,0) node {reciproc"), TikzCompleter::TkzCtxWord, "reciproc inside braces -> generic word"},
         {QStringLiteral("\\draw (0,0) node {hello} -- (1,1) ar"), TikzCompleter::TkzCtxPathWord, "arc after node and line-to -> path word"},
+        // Coordinate context with names containing spaces (names like "critical 1"
+        // or "waiting 1" must be detected inside "(" now that the space restriction
+        // was removed).
+        {QStringLiteral("\\draw (0,0) -- (waiting 1"), TikzCompleter::TkzCtxCoord, "coordinate name with space after ("},
+        {QStringLiteral("\\draw (crit"), TikzCompleter::TkzCtxCoord, "coordinate name after ("},
+        // Still excluded: coordinate pairs with commas.
+        {QStringLiteral("\\draw (0,0"), TikzCompleter::TkzCtxNone, "coordinate pair (not a named coord)"},
+        // After =of in a positioning key: TkzCtxEq must fire (so the value
+        // completer can offer coordinate names).
+        {QStringLiteral("[below=of wai"), TikzCompleter::TkzCtxEq, "positioning key =of value"},
+        {QStringLiteral("[below=of"), TikzCompleter::TkzCtxEq, "positioning key =of (just typed of)"},
+        {QStringLiteral("[above=of critical"), TikzCompleter::TkzCtxEq, "positioning above=of value"},
+        {QStringLiteral("[right=of"), TikzCompleter::TkzCtxEq, "positioning right=of"},
+        // Regular bracket context without = should still work.
+        {QStringLiteral("[draw, below"), TikzCompleter::TkzCtxBrk, "below as key in bracket"},
         {QStringLiteral("\\node[draw] at (0.5,"), TikzCompleter::TkzCtxNone, "coordinates"},
         {QStringLiteral("\\usetikzlibrary{"), TikzCompleter::TkzCtxLib, "empty usetikzlibrary brace"},
         {QStringLiteral("\\usetikzlibrary{inters"), TikzCompleter::TkzCtxLib, "single library typing"},
@@ -1477,6 +1492,80 @@ static int test_path_word_completion_correctness()
     return failed;
 }
 
+// Verifies eqCandidatesForKey includes coordinate/node names for positioning
+// keys (above/below/left/right and their =of variants), both bare and
+// "of "-prefixed, so \node[below=of wai...] completes to "of waiting 1".
+static int test_positioning_key_coord_completion()
+{
+    int failed = 0;
+    QPlainTextEdit editor;
+    TikzCompleter completer(&editor);
+
+    QTextDocument doc;
+    doc.setPlainText(
+        "\\coordinate (waiting 1) at (0,0);\n"
+        "\\coordinate (critical 1) at (0,0);\n"
+        "\\node (myNode) at (0,0) {};\n");
+    TikzDocumentState state;
+    state.reparse(&doc);
+    completer.setDocumentState(&state);
+
+    const QStringList vals = completer.eqCandidatesForKey(QStringLiteral("below"));
+
+    if (!vals.contains(QStringLiteral("of waiting 1"))) {
+        fprintf(stderr, "FAIL: POS-1 - 'below=' completion should offer 'of waiting 1'\n");
+        failed++;
+    }
+    if (!vals.contains(QStringLiteral("of critical 1"))) {
+        fprintf(stderr, "FAIL: POS-2 - 'below=' completion should offer 'of critical 1'\n");
+        failed++;
+    }
+    if (!vals.contains(QStringLiteral("of myNode"))) {
+        fprintf(stderr, "FAIL: POS-3 - 'below=' completion should offer 'of myNode'\n");
+        failed++;
+    }
+    if (!vals.contains(QStringLiteral("waiting 1"))) {
+        fprintf(stderr, "FAIL: POS-4 - 'below=' completion should offer bare 'waiting 1'\n");
+        failed++;
+    }
+
+    // Non-positioning keys must NOT offer coordinate names.
+    const QStringList drawVals = completer.eqCandidatesForKey(QStringLiteral("draw"));
+    if (drawVals.contains(QStringLiteral("of waiting 1"))) {
+        fprintf(stderr, "FAIL: POS-5 - 'draw=' should NOT offer coordinate names\n");
+        failed++;
+    }
+
+    // "above=of" key variant must also offer coordinates.
+    const QStringList aboveOfVals = completer.eqCandidatesForKey(QStringLiteral("above=of"));
+    if (!aboveOfVals.contains(QStringLiteral("of waiting 1"))) {
+        fprintf(stderr, "FAIL: POS-6 - 'above=of=' completion should offer 'of waiting 1'\n");
+        failed++;
+    }
+
+    // "left" and "right" too.
+    for (const char *k : { "left", "right", "above left", "below right" }) {
+        const QStringList v = completer.eqCandidatesForKey(QString::fromUtf8(k));
+        if (!v.contains(QStringLiteral("of waiting 1"))) {
+            fprintf(stderr, "FAIL: POS-7 - '%s=' completion should offer 'of waiting 1'\n", k);
+            failed++;
+        }
+    }
+
+    // A key that happens to contain "below" as substring (like "below=of") but
+    // is NOT a positioning key should not get coordinates. Actually "below=of"
+    // IS a positioning key. Let's test a truly unrelated key.
+    const QStringList lwVals = completer.eqCandidatesForKey(QStringLiteral("line width"));
+    if (lwVals.contains(QStringLiteral("waiting 1"))) {
+        fprintf(stderr, "FAIL: POS-8 - 'line width=' should NOT offer coordinate names\n");
+        failed++;
+    }
+
+    if (failed == 0)
+        fprintf(stderr, "PASS: positioning keys offer coordinate names\n");
+    return failed;
+}
+
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
@@ -1512,6 +1601,7 @@ int main(int argc, char *argv[])
     failed += test_package_completion_accurate();
     failed += test_path_word_set_restricted();
     failed += test_path_word_completion_correctness();
+    failed += test_positioning_key_coord_completion();
 
     if (failed > 0) {
         fprintf(stderr, "\n%d test(s) failed!\n", failed);

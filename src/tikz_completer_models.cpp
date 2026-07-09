@@ -214,6 +214,29 @@ QStringList TikzCompleter::eqCandidatesForKey(const QString &keyName) const
             vals << TikzWords::tikzDecorationNames();
         }
     }
+
+    // Positioning keys (above/below/left/right and their =of variants): offer
+    // coordinate/node names as completions, both bare and "of "-prefixed, so
+    // \node[below=of wai...] completes to "of waiting 1".
+    {
+        static const QSet<QString> posKeys = {
+            "above", "above left", "above right",
+            "below", "below left", "below right",
+            "left", "right",
+            "above=of", "below=of", "left=of", "right=of"
+        };
+        if (posKeys.contains(lower) && m_docState) {
+            for (const auto &c : m_docState->userCoordinates())
+                vals << (QLatin1String("of ") + c);
+            for (const auto &n : m_docState->userNodes())
+                vals << (QLatin1String("of ") + n);
+            for (const auto &c : m_docState->userCoordinates())
+                vals << c;
+            for (const auto &n : m_docState->userNodes())
+                vals << n;
+        }
+    }
+
     vals.removeDuplicates();
     vals.sort(Qt::CaseInsensitive);
     return vals;
