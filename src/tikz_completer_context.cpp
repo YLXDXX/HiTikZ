@@ -128,8 +128,16 @@ TikzCompleter::Context TikzCompleter::detectContext(const QString &textBefore) c
                           || textBefore.at(j) == '@'))
             j--;
         word = textBefore.mid(j + 1);
-        if (word.length() >= 2)
+        if (word.length() >= 2) {
+            // Distinguish a bare word in the path body (e.g. "\draw (0,0)
+            // rectangle") from one inside a '{...}' group (node text / math
+            // expression such as "{reciprocal(x)}"). In the path body only path
+            // operations are valid, so route there; inside braces keep the
+            // generic word list (which includes math functions, etc.).
+            if (textBefore.count('{') <= textBefore.count('}'))
+                return TkzCtxPathWord;
             return TkzCtxWord;
+        }
     }
 
     return TkzCtxNone;

@@ -21,7 +21,8 @@ public:
         TkzCtxLib,
         TkzCtxWord,
         TkzCtxCoord,
-        TkzCtxUserCmd
+        TkzCtxUserCmd,
+        TkzCtxPathWord
     };
 
     explicit TikzCompleter(QPlainTextEdit *editor, QObject *parent = nullptr);

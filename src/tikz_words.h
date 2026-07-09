@@ -73,4 +73,18 @@ inline const QStringList pgfKeysPathCommands() {
     return TikzKeywords::TikzKeywordDB::instance().names(TikzKeywords::Category::PGFKeyPath);
 }
 
+// Path operations completable as bare words directly inside a path body
+// (after coordinates, outside options/braces), e.g. "\draw (0,0) rectangle
+// (2,2)". This is intentionally a curated, source-accurate set so a path
+// position offers only the operations valid there — not the full 2000-word
+// dictionary (which would surface irrelevant entries like "reciprocal" or the
+// node-only shape "rectangle split").
+inline QStringList tikzPathOperations() {
+    return {
+        "rectangle", "circle", "ellipse", "arc", "grid", "parabola", "bend",
+        "sin", "cos", "svg", "plot", "to", "let", "node", "coordinate", "pic",
+        "edge", "graph", "child", "foreach", "cycle", "closedcycle", "controls"
+    };
+}
+
 } // namespace TikzWords

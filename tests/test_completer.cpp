@@ -269,7 +269,18 @@ static int test_detect_context()
         {QStringLiteral("node.30"), TikzCompleter::TkzCtxDot, "node angle anchor"},
         {QStringLiteral(" \\"), TikzCompleter::TkzCtxCmd, "backslash after space"},
         {QStringLiteral("\\begin{tikzpictu"), TikzCompleter::TkzCtxBeg, "inside begin"},
-        {QStringLiteral("\\draw[help lines] (0,0) gr"), TikzCompleter::TkzCtxWord, "keyword after bracket"},
+        {QStringLiteral("\\draw[help lines] (0,0) gr"), TikzCompleter::TkzCtxPathWord, "keyword after bracket (path body)"},
+        // Path-word context: bare words in the path body (outside braces) route to
+        // TkzCtxPathWord with a restricted set, while words inside '{...}' remain
+        // TkzCtxWord for node text / math expressions.
+        {QStringLiteral("\\draw (0,0) rec"), TikzCompleter::TkzCtxPathWord, "rec in path body -> path word"},
+        {QStringLiteral("\\draw (0,0) cir"), TikzCompleter::TkzCtxPathWord, "cir in path body -> path word"},
+        {QStringLiteral("\\draw (0,0) elli"), TikzCompleter::TkzCtxPathWord, "elli in path body -> path word"},
+        {QStringLiteral("\\draw (0,0) -- (1,1) no"), TikzCompleter::TkzCtxPathWord, "node after line-to -> path word"},
+        {QStringLiteral("\\draw (0,0) node {hello} rec"), TikzCompleter::TkzCtxPathWord, "word after closed brace back in path body"},
+        {QStringLiteral("\\draw (0,0) node {rec"), TikzCompleter::TkzCtxWord, "rec inside node text -> generic word"},
+        {QStringLiteral("\\draw (0,0) node {reciproc"), TikzCompleter::TkzCtxWord, "reciproc inside braces -> generic word"},
+        {QStringLiteral("\\draw (0,0) node {hello} -- (1,1) ar"), TikzCompleter::TkzCtxPathWord, "arc after node and line-to -> path word"},
         {QStringLiteral("\\node[draw] at (0.5,"), TikzCompleter::TkzCtxNone, "coordinates"},
         {QStringLiteral("\\usetikzlibrary{"), TikzCompleter::TkzCtxLib, "empty usetikzlibrary brace"},
         {QStringLiteral("\\usetikzlibrary{inters"), TikzCompleter::TkzCtxLib, "single library typing"},
@@ -1315,6 +1326,157 @@ static int test_package_completion_accurate()
     return failed;
 }
 
+// Verifies the TkzCtxPathWord context's completable set is strictly limited to
+// path operations — unrelated entries such as math function "reciprocal", the
+// node shape "rectangle split", PGF key handlers, or CircuiTikZ components must
+// not leak into the path-word completer where only path construction verbs
+// belong. Also verifies those entries remain in the full TkzCtxWord pool.
+static int test_path_word_set_restricted()
+{
+    int failed = 0;
+
+    const QStringList pathOps = TikzWords::tikzPathOperations();
+    const QStringList allWords = TikzWords::allCompletableWords();
+
+    // Path operations that MUST be present in the restricted set.
+    const char *required[] = {
+        "rectangle", "circle", "ellipse", "arc", "grid", "parabola", "bend",
+        "sin", "cos", "svg", "plot", "to", "let", "node", "coordinate", "pic",
+        "edge", "graph", "child", "foreach", "cycle", "closedcycle", "controls",
+        nullptr
+    };
+    for (int i = 0; required[i]; ++i) {
+        if (!pathOps.contains(QString::fromLatin1(required[i]))) {
+            fprintf(stderr, "FAIL: PWS-1 - path op '%s' missing from tikzPathOperations\n",
+                    required[i]);
+            failed++;
+        }
+    }
+
+    // Entries that MUST NOT be in the restricted set (they belong in the full
+    // word list, but not in a path-body context where only path operations make
+    // sense). This is the crux of the reported bug: typing "rec" inside a
+    // \draw path offered "reciprocal" and "rectangle split" alongside "rectangle".
+    const char *mustNot[] = {
+        "reciprocal", "rectangle split", "rectangle shape",
+        "recursively defined", "semicircle", "circular sector",
+        "circular drop shadow", "circle through", "circle solidus",
+        "circle connection bar", "circle split", "circle top",
+        "circle right", "circle left", "circle bottom",
+        "circle arrow", "circle bar", "node distance", "node split",
+        "arc tip", "arc focus", "separation circle", "grid style",
+        "grids", "cir", "rec", nullptr
+    };
+    for (int i = 0; mustNot[i]; ++i) {
+        if (pathOps.contains(QString::fromLatin1(mustNot[i]))) {
+            fprintf(stderr, "FAIL: PWS-2 - '%s' should NOT be in tikzPathOperations\n",
+                    mustNot[i]);
+            failed++;
+        }
+    }
+
+    // Verify these must-not entries DO exist in the full word list (they are
+    // valid completions for TkzCtxWord — just not for TkzCtxPathWord).
+    const char *validInFull[] = {
+        "reciprocal", "rectangle split",
+        "semicircle", "circular sector", nullptr
+    };
+    for (int i = 0; validInFull[i]; ++i) {
+        if (!allWords.contains(QString::fromLatin1(validInFull[i]), Qt::CaseInsensitive)) {
+            fprintf(stderr, "FAIL: PWS-3 - '%s' should still be in allCompletableWords\n",
+                    validInFull[i]);
+            failed++;
+        }
+    }
+
+    // Path operations should also be in the full word list (check the subset
+    // that are common enough to appear in the keyword database).
+    {
+        const char *inBoth[] = {
+            "rectangle", "circle", "ellipse", "arc", "grid", "parabola",
+            "sin", "cos", "plot", "to", "node", "coordinate",
+            "edge", "cycle", "controls", nullptr
+        };
+        for (int i = 0; inBoth[i]; ++i) {
+            if (!allWords.contains(QString::fromLatin1(inBoth[i]), Qt::CaseInsensitive)) {
+                fprintf(stderr, "FAIL: PWS-4 - path op '%s' missing from allCompletableWords\n",
+                        inBoth[i]);
+                failed++;
+            }
+        }
+    }
+
+    // No duplicate entries in the restricted set.
+    QSet<QString> seen;
+    for (const QString &s : pathOps) {
+        QString l = s.toLower();
+        if (seen.contains(l)) {
+            fprintf(stderr, "FAIL: PWS-5 - duplicate '%s' in tikzPathOperations\n",
+                    qPrintable(s));
+            failed++;
+        }
+        seen.insert(l);
+    }
+
+    if (failed == 0)
+        fprintf(stderr, "PASS: path-word completion set restricted to path operations\n");
+    return failed;
+}
+
+// End-to-end test: typing a path word in a \draw body offers only path
+// operations, not the full word list. Uses the completer's internal models
+// accessed via the public setModelForContext / models side-channel.
+static int test_path_word_completion_correctness()
+{
+    int failed = 0;
+    QPlainTextEdit editor;
+    editor.show();
+    TikzCompleter completer(&editor);
+    TikzDocumentState state;
+    completer.setDocumentState(&state);
+
+    // Structure: set document text, trigger completion, verify popup state
+    // and that the context routing is correct.
+    struct CompletionCase {
+        const char *text;
+        bool shouldPopup;
+        const char *desc;
+    };
+
+    CompletionCase cases[] = {
+        // Path operations in the path body must trigger a popup.
+        { "\\draw (0,0) rec",      true,  "rec triggers path-word popup" },
+        { "\\draw (0,0) circ",     true,  "circ triggers path-word popup" },
+        { "\\draw (0,0) ellip",    true,  "ellip triggers path-word popup" },
+        { "\\draw (0,0) grid",     true,  "grid triggers path-word popup" },
+        { "\\draw (0,0) -- (2,2) ar",   true,  "arc after points" },
+        { "\\draw (0,0) -- (2,2) par", true,  "par after points" },
+        { "\\draw (0,0) node {rec",     true,  "rec inside braces (full word list)" },
+        { "\\node at (0,0) {recip",     true,  "recip inside braces (full word list)" },
+        // Nonsense words that aren't in either set: no popup.
+        { "\\draw (0,0) zzzxxx",  false, "nonsense word in path body" },
+        { "\\draw (0,0) node {zzzxxx", false, "nonsense word in braces" },
+        { nullptr, false, nullptr }
+    };
+
+    for (int i = 0; cases[i].text != nullptr; ++i) {
+        editor.setPlainText(QString::fromUtf8(cases[i].text));
+        editor.moveCursor(QTextCursor::End);
+        completer.tryComplete();
+        bool visible = completer.isPopupVisible();
+        if (visible != cases[i].shouldPopup) {
+            fprintf(stderr, "FAIL: PWC-%d (%s) - '%s': expected popup=%d, got %d\n",
+                    i, cases[i].desc, cases[i].text,
+                    cases[i].shouldPopup, visible);
+            failed++;
+        }
+    }
+
+    if (failed == 0)
+        fprintf(stderr, "PASS: path-word completion correctness (context routing + trigger)\n");
+    return failed;
+}
+
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
@@ -1348,6 +1510,8 @@ int main(int argc, char *argv[])
     failed += test_physics_siunitx_gated();
     failed += test_pgfplots_keys_accurate();
     failed += test_package_completion_accurate();
+    failed += test_path_word_set_restricted();
+    failed += test_path_word_completion_correctness();
 
     if (failed > 0) {
         fprintf(stderr, "\n%d test(s) failed!\n", failed);

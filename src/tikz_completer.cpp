@@ -206,7 +206,8 @@ void TikzCompleter::tryComplete()
         if (atIdx >= 0) prefix = textBefore.mid(atIdx);
         break;
     }
-    case TkzCtxWord: {
+    case TkzCtxWord:
+    case TkzCtxPathWord: {
         int j = textBefore.length() - 1;
         while (j >= 0 && (textBefore.at(j).isLetterOrNumber()
                           || textBefore.at(j) == '_' || textBefore.at(j) == '-'

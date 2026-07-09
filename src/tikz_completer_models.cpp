@@ -55,6 +55,7 @@ void TikzCompleter::initCompleters()
     makeCompleter(TkzCtxEq, valueWords);
 
     makeCompleter(TkzCtxWord, TikzWords::allCompletableWords());
+    makeCompleter(TkzCtxPathWord, TikzWords::tikzPathOperations());
     makeCompleter(TkzCtxAt, {});
     makeCompleter(TkzCtxCoord, {});
     makeCompleter(TkzCtxUserCmd, {});
