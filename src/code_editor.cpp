@@ -195,10 +195,13 @@ void CodeEditor::keyPressEvent(QKeyEvent *event)
                     // Wrap the selected text:  {selection}  [selection]  etc.
                     int selStart = cursor.selectionStart();
                     int selEnd = cursor.selectionEnd();
+                    cursor.beginEditBlock();
                     cursor.setPosition(selStart);
                     cursor.insertText(QString(open));
                     cursor.setPosition(selEnd + 1);
                     cursor.insertText(QString(close));
+                    cursor.endEditBlock();
+                    setTextCursor(cursor);
                     handled = true;
                 } else {
                     // Check whether we are on a comment line — don't
@@ -256,9 +259,10 @@ void CodeEditor::keyPressEvent(QKeyEvent *event)
                     (before == QLatin1Char('[') && after == QLatin1Char(']')) ||
                     (before == QLatin1Char('(') && after == QLatin1Char(')'));
                 if (isPair) {
-                    cursor.setPosition(pos);
-                    cursor.setPosition(pos + 2, QTextCursor::KeepAnchor);
+                    cursor.setPosition(pos - 1);
+                    cursor.setPosition(pos + 1, QTextCursor::KeepAnchor);
                     cursor.removeSelectedText();
+                    setTextCursor(cursor);
                     if (m_completer)
                         QTimer::singleShot(0, this,
                                            [this]() { m_completer->tryComplete(); });
