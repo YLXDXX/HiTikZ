@@ -931,6 +931,55 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    // Test 53: \def with delimited parameter text ([...], (...), #n) must be
+    // extracted whole, with nothing left behind in the body.
+    {
+        QString outCode;
+        const QString def =
+            QStringLiteral("\\def\\MarkRightAngle[size=#1](#2,#3,#4)"
+                           "{\\draw[thick] ($(#3)!#1!(#2)$) -- ($(#3)!#1!(#4)$)}");
+        QString cmds = LatexCompiler::extractCustomCommands(
+            def + QStringLiteral("\n"
+                "\\begin{tikzpicture}\n"
+                "  \\MarkRightAngle[size=5pt](A,B,C);\n"
+                "\\end{tikzpicture}"),
+            outCode);
+        if (!cmds.contains(def)) {
+            fprintf(stderr, "FAIL: Test 53 - \\def with delimited params not extracted whole\n");
+            customTestsFailed++;
+        } else if (outCode.contains(QStringLiteral("\\MarkRightAngle[size=#1]"))) {
+            fprintf(stderr, "FAIL: Test 53 - \\def definition leaked into body\n");
+            customTestsFailed++;
+        } else {
+            fprintf(stderr, "PASS: Test 53 - \\def with delimited parameter text\n");
+        }
+    }
+
+    // Test 54: \newcommand{\name}[N] with whitespace/newline before the body
+    // brace must still be extracted whole.
+    {
+        QString outCode;
+        const QString def =
+            QStringLiteral("\\newcommand{\\myvoltmeter}[2] \n"
+                           "{\n  \\draw (#1) circle (11pt);\n}");
+        QString cmds = LatexCompiler::extractCustomCommands(
+            def + QStringLiteral("\n"
+                "\\begin{tikzpicture}\n"
+                "  \\myvoltmeter{n}{0}\n"
+                "\\end{tikzpicture}"),
+            outCode);
+        if (!cmds.contains(QStringLiteral("\\newcommand{\\myvoltmeter}[2]"))
+            || !cmds.contains(QStringLiteral("circle (11pt)"))) {
+            fprintf(stderr, "FAIL: Test 54 - \\newcommand with newline before body not extracted\n");
+            customTestsFailed++;
+        } else if (outCode.contains(QStringLiteral("\\myvoltmeter}[2]"))) {
+            fprintf(stderr, "FAIL: Test 54 - \\newcommand definition leaked into body\n");
+            customTestsFailed++;
+        } else {
+            fprintf(stderr, "PASS: Test 54 - \\newcommand with whitespace before body\n");
+        }
+    }
+
     fprintf(stderr, "Custom command tests: %d failed\n", customTestsFailed);
     failed += customTestsFailed;
 

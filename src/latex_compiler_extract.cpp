@@ -288,12 +288,18 @@ QString LatexCompiler::extractCustomCommands(const QString &texCode, QString &ou
             defEnd = pos;
             defStart = cmdStart;
         } else if (isDef) {
-            // \def\name args{body}
+            // \def\name<param text>{body}
+            // The parameter text may contain delimiters like [ ] ( ) # and
+            // digits (e.g. \def\foo[size=#1](#2,#3){...}), so skip the macro
+            // name and then everything up to the body's opening '{' (TeX
+            // parameter text can never contain a '{').
             if (pos < remaining.length() && remaining.at(pos) == '\\') {
-                while (pos < remaining.length() && remaining.at(pos) != '[' && remaining.at(pos) != '{') {
+                pos++; // skip backslash
+                while (pos < remaining.length() && remaining.at(pos).isLetter())
                     pos++;
-                }
             }
+            while (pos < remaining.length() && remaining.at(pos) != '{')
+                pos++;
             if (pos < remaining.length() && remaining.at(pos) == '{') {
                 defStart = pos;
                 readBalancedBraces(remaining, pos);
@@ -381,15 +387,19 @@ QString LatexCompiler::extractCustomCommands(const QString &texCode, QString &ou
                 }
             }
 
+            skipWs(remaining, pos);
             if (isOldCmd && pos < remaining.length() && remaining.at(pos) == '[') {
                 readBalancedBrackets(remaining, pos);
+                skipWs(remaining, pos);
             }
             if (isOldCmd && pos < remaining.length() && remaining.at(pos) == '[') {
                 readBalancedBrackets(remaining, pos);
+                skipWs(remaining, pos);
             }
 
             if (isDocCmd && pos < remaining.length() && remaining.at(pos) == '{') {
                 readBalancedBraces(remaining, pos);
+                skipWs(remaining, pos);
             }
 
             if (pos < remaining.length() && remaining.at(pos) == '{') {
