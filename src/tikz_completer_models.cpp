@@ -35,9 +35,7 @@ void TikzCompleter::initCompleters()
     makeCompleter(TkzCtxBrk, TikzWords::tikzOptions());
 
     {
-        QStringList dotWords = TikzWords::tikzAnchors();
-        dotWords << TikzWords::tikzKeyHandlers();
-        dotWords.removeDuplicates();
+        QStringList dotWords;
         makeCompleter(TkzCtxDot, dotWords);
     }
 
@@ -179,6 +177,36 @@ void TikzCompleter::updateBrkModel()
     setModelForContext(TkzCtxBrk, buildBrkCandidates(TkzCtxBrk));
 }
 
+void TikzCompleter::updateDotModel()
+{
+    QStringList words;
+
+    QSet<QString> libs;
+    QString env = QLatin1String("tikzpicture");
+    if (m_docState) {
+        libs = m_docState->activeLibs();
+        QTextCursor cursor = m_editor->textCursor();
+        int pos = cursor.position();
+        env = m_docState->currentEnvName(pos);
+    }
+
+    auto anchorKws = TikzKeywords::TikzKeywordDB::instance().filter(
+        env, QString(), libs,
+        TikzKeywords::Category::Anchor);
+    for (auto *kw : anchorKws)
+        words << kw->name;
+
+    auto handlerKws = TikzKeywords::TikzKeywordDB::instance().filter(
+        env, QString(), libs,
+        TikzKeywords::Category::Handler);
+    for (auto *kw : handlerKws)
+        words << kw->name;
+
+    words.removeDuplicates();
+    words.sort(Qt::CaseInsensitive);
+    setModelForContext(TkzCtxDot, words);
+}
+
 QStringList TikzCompleter::eqCandidatesForKey(const QString &keyName) const
 {
     QStringList vals;
@@ -249,7 +277,10 @@ void TikzCompleter::updateEqModel(const QString &keyName)
 
 void TikzCompleter::updateUserModels()
 {
-    if (!m_docState) return;
+    if (!m_docState) {
+        updateDotModel();
+        return;
+    }
 
     QTextCursor cursor = m_editor->textCursor();
     int pos = cursor.position();
@@ -299,4 +330,7 @@ void TikzCompleter::updateUserModels()
 
     // Merge user styles into TkzCtxBrk
     updateBrkModel();
+
+    // Update dot completion (anchors + handlers) filtered by active libs
+    updateDotModel();
 }

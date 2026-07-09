@@ -147,33 +147,67 @@ void registerDecorations(Vec &db)
 
 void registerAnchors(Vec &db)
 {
-    // ── Anchors ──
-    const char *anchors[] = {
+    // ── Universal PGF anchors (always available) ──
+    // Verified against pgf/modules/pgfmoduleshapes.code.tex (TeXLive).
+    const char *universal[] = {
         "north","north east","north west","south","south east","south west",
-        "east","west","center","base","base east","base west",
-        "mid","mid east","mid west","text","text split",
-        "left","right","top","bottom",
-        "apex","corner 1","corner 2","tail",
-        "input","output","input 1","input 2","output 1","output 2",
-        "angle","150","120","90","60","30","0","210","240","270","300","330",
+        "east","west","center","text",
+        "base","base east","base west",
+        "mid","mid east","mid west",
+        nullptr};
+    for (int i = 0; universal[i]; i++)
+        addBuiltin(db, universal[i], C::Anchor, {}, {"node"});
+
+    // ── shapes.multipart (circle split / rectangle split) ──
+    // Verified against pgflibraryshapes.multipart.code.tex.
+    const char *multipart[] = {
+        "lower",                    // circle split lower half
+        nullptr};
+    for (int i = 0; multipart[i]; i++)
+        addBuiltin(db, multipart[i], C::Anchor, {}, {"node"}, {},
+                   {"shapes.multipart"});
+
+    // ── shapes.geometric ──
+    // Verified against pgflibraryshapes.geometric.code.tex.
+    const char *geometric[] = {
+        "apex",                     // isosceles triangle
+        nullptr};
+    for (int i = 0; geometric[i]; i++)
+        addBuiltin(db, geometric[i], C::Anchor, {}, {"node"}, {},
+                   {"shapes.geometric"});
+
+    // ── shapes.symbols / shapes.arrows ──
+    // Verified against pgflibraryshapes.symbols/arrows.code.tex.
+    {
+        addBuiltin(db, "tail", C::Anchor, {}, {"node"}, {}, {"shapes.arrows"});
+    }
+
+    // ── shapes.gates.logic.US / .IEC ──
+    // Verified against pgflibraryshapes.gates.(logic.US|logic.IEC|ee).code.tex.
+    {
+        addBuiltin(db, "input", C::Anchor, {}, {"node"}, {},
+                   {"shapes.gates.logic.US"});
+        addBuiltin(db, "output", C::Anchor, {}, {"node"}, {},
+                   {"shapes.gates.logic.US"});
+    }
+
+    // ── CircuiTikZ (require circuitikz library) ──
+    // Verified against pgfcirc{bipoles,tripoles,multipoles,quadpoles}.tex.
+    const char *circuitikz[] = {
         "wiper","W",
         "cathode","anode","gate","G",
         "in","in 1","in 2","out","out 1","out 2",
-        "tap","tap down","tap up","v+","v-","tip",
+        "tap","tap down","tap up",
+        "v+","v-",
+        "tip",
         "B","C","E","S","D",
-        "collector","emitter","base",
-        "source","drain","bulk","substrate",
-        "primary","secondary",
-        "primary left","primary right",
-        "secondary left","secondary right",
+        "collector","emitter","source","drain","bulk",
         "+","-",
-        "A","B","C","Y","O",
-        "text split one","text split two",
-        "part one","part two","part three","part four",
-        "lower","upper",
+        "left","right","top","bottom",
         nullptr};
-    for (int i = 0; anchors[i]; i++)
-        addBuiltin(db, anchors[i], C::Anchor, {}, {"node"});
+    for (int i = 0; circuitikz[i]; i++)
+        addBuiltin(db, circuitikz[i], C::Anchor, {}, {"node"}, {},
+                   {"circuitikz"});
 }
 
 void registerHandlers(Vec &db)

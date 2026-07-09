@@ -63,6 +63,7 @@ public:
 private:
     void initCompleters();
     void updateBrkModel();
+    void updateDotModel();
     void updateEqModel(const QString &keyName);
     void updateUserModels();
     QStringList buildBrkCandidates(Context ctx);

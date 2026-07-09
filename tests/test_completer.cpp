@@ -1566,6 +1566,182 @@ static int test_positioning_key_coord_completion()
     return failed;
 }
 
+// Verifies anchors are source-accurate against TeXLive PGF/circuitikz:
+// universal PGF anchors always present, circuitikz anchors gated, and
+// bogus/hallucinated entries removed (angle numbers, "substrate",
+// "primary/secondary", "text split one", "part one", single-letter
+// non-anchors "A"/"Y"/"O", etc.).
+static int test_anchors_source_accurate()
+{
+    int failed = 0;
+    using TikzKeywords::TikzKeywordDB;
+    using TikzKeywords::Category;
+
+    const QStringList anchors = TikzKeywordDB::instance().allAnchorNames();
+
+    // ── Universal PGF anchors (always present) ──
+    const char *universal[] = {
+        "north","north east","north west","south","south east","south west",
+        "east","west","center","text",
+        "base","base east","base west",
+        "mid","mid east","mid west",
+        nullptr
+    };
+    for (int i = 0; universal[i]; ++i) {
+        if (!anchors.contains(QString::fromLatin1(universal[i]))) {
+            fprintf(stderr, "FAIL: ANC-1 - universal anchor '%s' missing\n",
+                    universal[i]);
+            failed++;
+        }
+    }
+
+    // ── Circuitikz anchors (present, gated by circuitikz lib) ──
+    const char *ckt[] = {
+        "wiper","W","cathode","anode","gate","G",
+        "in","in 1","in 2","out","out 1","out 2",
+        "tap","tap down","tap up","v+","v-","tip",
+        "B","C","E","S","D",
+        "collector","emitter","source","drain","bulk",
+        "+","-","left","right","top","bottom",
+        nullptr
+    };
+    for (int i = 0; ckt[i]; ++i) {
+        QString name = QString::fromLatin1(ckt[i]);
+        if (!anchors.contains(name)) {
+            fprintf(stderr, "FAIL: ANC-2 - circuitikz anchor '%s' missing\n",
+                    ckt[i]);
+            failed++;
+        }
+        // Verify library gating
+        const auto *kw = TikzKeywordDB::instance().find(name, Category::Anchor);
+        if (!kw || !kw->requiredLibs.contains(QStringLiteral("circuitikz"))) {
+            fprintf(stderr, "FAIL: ANC-3 - '%s' must require circuitikz lib\n",
+                    ckt[i]);
+            failed++;
+        }
+    }
+
+    // ── Bogus entries (must be REMOVED) ──
+    const char *bogus[] = {
+        "substrate",
+        "primary","secondary","primary left","primary right",
+        "secondary left","secondary right",
+        "text split","text split one","text split two",
+        "part one","part two","part three","part four",
+        "corner 1","corner 2",
+        "input 1","input 2","output 1","output 2",
+        "angle","upper",
+        nullptr
+    };
+    for (int i = 0; bogus[i]; ++i) {
+        if (anchors.contains(QString::fromLatin1(bogus[i]))) {
+            fprintf(stderr, "FAIL: ANC-4 - bogus anchor '%s' should be removed\n",
+                    bogus[i]);
+            failed++;
+        }
+    }
+
+    // Single-letter non-anchors from the old list that were removed.
+    // (B, C, E, S, D, G, W are kept — they are real circuitikz anchors.)
+    const char *bogusLetters[] = { "A", "Y", "O", nullptr };
+    for (int i = 0; bogusLetters[i]; ++i) {
+        if (anchors.contains(QString::fromLatin1(bogusLetters[i]))) {
+            fprintf(stderr, "FAIL: ANC-5 - single-letter bogus anchor '%s' should be removed\n",
+                    bogusLetters[i]);
+            failed++;
+        }
+    }
+
+    // Angle numbers: removed because ANY angle is valid, not just the 11 listed.
+    const char *angles[] = { "0","30","60","90","120","150",
+                              "210","240","270","300","330", nullptr };
+    for (int i = 0; angles[i]; ++i) {
+        if (anchors.contains(QString::fromLatin1(angles[i]))) {
+            fprintf(stderr, "FAIL: ANC-6 - angle number '%s' should not be a named anchor\n",
+                    angles[i]);
+            failed++;
+        }
+    }
+
+    if (failed == 0)
+        fprintf(stderr, "PASS: anchors source-accurate against TeXLive PGF/circuitikz\n");
+    return failed;
+}
+
+// Verifies filter() for anchors respects library gating: circuitikz anchors
+// are hidden when circuitikz lib is inactive, and shown when active.
+static int test_anchor_library_gating()
+{
+    int failed = 0;
+    using TikzKeywords::TikzKeywordDB;
+    using TikzKeywords::Category;
+
+    // Without circuitikz lib: must NOT see circuitikz anchors
+    {
+        QSet<QString> noLibs;
+        auto plain = TikzKeywordDB::instance().filter(
+            QStringLiteral("tikzpicture"), QStringLiteral("node"), noLibs,
+            Category::Anchor);
+        QSet<QString> names;
+        for (auto *kw : plain) names.insert(kw->name);
+
+        if (names.contains(QStringLiteral("wiper"))) {
+            fprintf(stderr, "FAIL: ALG-1 - 'wiper' leaked without circuitikz lib\n");
+            failed++;
+        }
+        if (names.contains(QStringLiteral("cathode"))) {
+            fprintf(stderr, "FAIL: ALG-2 - 'cathode' leaked without circuitikz lib\n");
+            failed++;
+        }
+        if (names.contains(QStringLiteral("B"))) {
+            fprintf(stderr, "FAIL: ALG-3 - 'B' leaked without circuitikz lib\n");
+            failed++;
+        }
+
+        // Universal anchors must still be present
+        if (!names.contains(QStringLiteral("north"))) {
+            fprintf(stderr, "FAIL: ALG-4 - 'north' missing without circuitikz\n");
+            failed++;
+        }
+        if (!names.contains(QStringLiteral("center"))) {
+            fprintf(stderr, "FAIL: ALG-5 - 'center' missing without circuitikz\n");
+            failed++;
+        }
+    }
+
+    // With circuitikz lib active: must see circuitikz anchors
+    {
+        QSet<QString> ckLibs; ckLibs.insert(QStringLiteral("circuitikz"));
+        auto gated = TikzKeywordDB::instance().filter(
+            QStringLiteral("circuitikz"), QStringLiteral("node"), ckLibs,
+            Category::Anchor);
+        QSet<QString> names;
+        for (auto *kw : gated) names.insert(kw->name);
+
+        if (!names.contains(QStringLiteral("wiper"))) {
+            fprintf(stderr, "FAIL: ALG-6 - 'wiper' not offered with circuitikz lib\n");
+            failed++;
+        }
+        if (!names.contains(QStringLiteral("cathode"))) {
+            fprintf(stderr, "FAIL: ALG-7 - 'cathode' not offered with circuitikz lib\n");
+            failed++;
+        }
+        if (!names.contains(QStringLiteral("B"))) {
+            fprintf(stderr, "FAIL: ALG-8 - 'B' not offered with circuitikz lib\n");
+            failed++;
+        }
+        // Universal still present
+        if (!names.contains(QStringLiteral("north"))) {
+            fprintf(stderr, "FAIL: ALG-9 - 'north' missing with circuitikz\n");
+            failed++;
+        }
+    }
+
+    if (failed == 0)
+        fprintf(stderr, "PASS: anchor library gating (circuitikz on/off)\n");
+    return failed;
+}
+
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
@@ -1602,6 +1778,8 @@ int main(int argc, char *argv[])
     failed += test_path_word_set_restricted();
     failed += test_path_word_completion_correctness();
     failed += test_positioning_key_coord_completion();
+    failed += test_anchors_source_accurate();
+    failed += test_anchor_library_gating();
 
     if (failed > 0) {
         fprintf(stderr, "\n%d test(s) failed!\n", failed);
