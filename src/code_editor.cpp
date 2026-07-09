@@ -193,6 +193,8 @@ void CodeEditor::keyPressEvent(QKeyEvent *event)
 
                 if (cursor.hasSelection()) {
                     // Wrap the selected text:  {selection}  [selection]  etc.
+                    // After wrapping, re-select the inner text so the user
+                    // can continue typing or add another bracket.
                     int selStart = cursor.selectionStart();
                     int selEnd = cursor.selectionEnd();
                     cursor.beginEditBlock();
@@ -201,6 +203,8 @@ void CodeEditor::keyPressEvent(QKeyEvent *event)
                     cursor.setPosition(selEnd + 1);
                     cursor.insertText(QString(close));
                     cursor.endEditBlock();
+                    cursor.setPosition(selStart + 1);
+                    cursor.setPosition(selEnd + 1, QTextCursor::KeepAnchor);
                     setTextCursor(cursor);
                     handled = true;
                 } else {
@@ -230,8 +234,8 @@ void CodeEditor::keyPressEvent(QKeyEvent *event)
                                         QTextCursor::KeepAnchor, 1);
                     if (cursor.selectedText().at(0) == close) {
                         cursor.clearSelection();
-                        cursor.movePosition(QTextCursor::Right,
-                                            QTextCursor::MoveAnchor, 1);
+                        // clearSelection leaves the cursor right after the
+                        // matched bracket — no extra move needed.
                         setTextCursor(cursor);
                         handled = true;
                     }
