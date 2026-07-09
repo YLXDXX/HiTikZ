@@ -46,43 +46,11 @@ void registerExtended(Vec &db)
     }
 
     // ── Decorations ──
-    addBuiltin(db, "random steps",       C::Decoration, {}, {"draw","path"}, {},
-               {"decorations.pathmorphing"});
-    addBuiltin(db, "wave",               C::Decoration, {}, {"draw","path"}, {},
-               {"decorations.pathmorphing"});
-    addBuiltin(db, "bent",               C::Decoration, {}, {"draw","path"}, {},
-               {"decorations.pathmorphing"});
-    addBuiltin(db, "lineto",             C::Decoration, {}, {"draw","path"}, {},
-               {"decorations.pathmorphing"});
-    addBuiltin(db, "straight zigzag",    C::Decoration, {}, {"draw","path"}, {},
-               {"decorations.pathmorphing"});
-    addBuiltin(db, "text along path",       C::Decoration, {}, {"draw","path"}, {},
-               {"decorations.text"});
-    addBuiltin(db, "text effects along path", C::Decoration, {}, {"draw","path"}, {},
-               {"decorations.text"});
-    addBuiltin(db, "show path construction", C::Decoration, {}, {"draw","path"}, {},
-               {"decorations.pathreplacing"});
-    addBuiltin(db, "expanding waves",        C::Decoration, {}, {"draw","path"}, {},
-               {"decorations.pathreplacing"});
-    addBuiltin(db, "ticks",                  C::Decoration, {}, {"draw","path"}, {},
-               {"decorations.pathreplacing"});
-    addBuiltin(db, "border",                 C::Decoration, {}, {"draw","path"}, {},
-               {"decorations.pathreplacing"});
-    addBuiltin(db, "waves",                  C::Decoration, {}, {"draw","path"}, {},
-               {"decorations.pathreplacing"});
-    addBuiltin(db, "triangles",          C::Decoration, {}, {"draw","path"}, {},
-               {"decorations.shapes"});
-    addBuiltin(db, "shape backgrounds",  C::Decoration, {}, {"draw","path"}, {},
-               {"decorations.shapes"});
-    addBuiltin(db, "Koch curve",         C::Decoration, {}, {"draw","path"}, {},
-               {"decorations.fractals"});
-    addBuiltin(db, "Koch snowflake",     C::Decoration, {}, {"draw","path"}, {},
-               {"decorations.fractals"});
-    addBuiltin(db, "Cantor set",         C::Decoration, {}, {"draw","path"}, {},
-               {"decorations.fractals"});
-    addBuiltin(db, "footprints",     C::Decoration, {}, {"draw","path"}, {},
-               {"decorations.footprints"});
-    addBuiltin(db, "footprints of",   C::Decoration, {}, {"draw","path"},
+    // Canonical decoration names/libraries are registered in
+    // registerDecorations() (tikz_keywords_basic.cpp). Only the extra
+    // "footprints of" key (a decoration option, not a decoration name) is kept
+    // here; it is verified in decorations.footprints.
+    addBuiltin(db, "footprints of",   C::Option, {}, {"draw","path"},
                {"bird","dog","frog","gnu"}, {"decorations.footprints"});
 
     // ── shadows.blur options ──
@@ -150,7 +118,6 @@ void registerExtended(Vec &db)
     // ── pgfplots bar chart ──
     addBuiltin(db, "bar width",     C::Option, {"axis","groupplot"});
     addBuiltin(db, "bar shift",     C::Option, {"axis","groupplot"});
-    addBuiltin(db, "bar gap",       C::Option, {"axis","groupplot"});
     addBuiltin(db, "ybar",          C::Option, {"axis","groupplot"});
     addBuiltin(db, "xbar",          C::Option, {"axis","groupplot"});
     addBuiltin(db, "ybar stacked",  C::Option, {"axis","groupplot"});
@@ -163,7 +130,7 @@ void registerExtended(Vec &db)
     addBuiltin(db, "legend cell align", C::Option, {"axis","groupplot"},
                {"left","center","right"});
     addBuiltin(db, "legend columns",    C::Option, {"axis","groupplot"});
-    addBuiltin(db, "legend image style",C::Option, {"axis","groupplot"});
+    addBuiltin(db, "legend image post style",C::Option, {"axis","groupplot"});
 
     // ── pgfplots clip ──
     addBuiltin(db, "clip mode", C::Option, {"axis","groupplot"},
@@ -177,9 +144,8 @@ void registerExtended(Vec &db)
                 "redyellow","violet","bluered"});
 
     // ── pgfplots plot styles ──
-    addBuiltin(db, "smooth",    C::Option, {"axis"});
     addBuiltin(db, "area style",C::Option, {"axis","groupplot"});
-    addBuiltin(db, "histogram", C::Option, {"axis","groupplot"});
+    addBuiltin(db, "hist",      C::Option, {"axis","groupplot"}, {}, {}, {"pgfplots.statistics"});
 
     // ── pgfplots mesh/contour/quiver ──
     addBuiltin(db, "mesh",             C::Option, {"axis"});
@@ -196,14 +162,12 @@ void registerExtended(Vec &db)
     addBuiltin(db, "domain y",   C::Option, {"axis","groupplot"});
     addBuiltin(db, "y domain",   C::Option, {"axis","groupplot"});
     addBuiltin(db, "samples y",  C::Option, {"axis","groupplot"});
-    addBuiltin(db, "variable",   C::Option, {"axis","groupplot"});
     addBuiltin(db, "variable y", C::Option, {"axis","groupplot"});
     addBuiltin(db, "parametric", C::Option, {"axis","groupplot"});
 
     // ── pgfplots const plot variants ──
-    addBuiltin(db, "const plot mark left",  C::Option, {"axis"});
-    addBuiltin(db, "const plot mark right", C::Option, {"axis"});
-    addBuiltin(db, "const plot mark mid",   C::Option, {"axis"});
+    // (const plot mark left/right/mid are core TikZ plot handlers registered in
+    //  tikz_keywords_options.cpp; they also work inside pgfplots axes.)
 
     // ── CircuitikZ options (using requiredLibs filtering) ──
 
@@ -300,6 +264,19 @@ void registerExtended(Vec &db)
                {"angles"});
     addBuiltin(db, "pic type",  C::Option, {}, {"pic"},
                {"angle","right angle"}, {"angles"});
+
+    // ── arrows.meta arrow tips ── (verified in pgflibraryarrows.meta.code.tex)
+    // These modern tips and aliases require \usetikzlibrary{arrows.meta}.
+    const char *metaArrows[] = {
+        "Stealth","Latex","Kite","Rays","Tee Barb","Bar",
+        "Straight Barb","Arc Barb","Hooks","Circle","Square","Diamond",
+        "Turned Square","Triangle","Rectangle","Ellipse",
+        "LaTeX","To","Bracket","Parenthesis","Implies",
+        "Fast Triangle","Fast Round","Round Cap","Butt Cap","Triangle Cap",
+        "Computer Modern Rightarrow","Classical TikZ Rightarrow",
+        nullptr};
+    for (int i = 0; metaArrows[i]; i++)
+        addBuiltin(db, metaArrows[i], C::Arrow, {}, {"draw","path"}, {}, {"arrows.meta"});
 
     // ── Additional libraries ──
     addBuiltin(db, "shadows.blur",         C::Library);

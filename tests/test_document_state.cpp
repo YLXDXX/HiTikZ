@@ -346,6 +346,41 @@ static int test_pic_name_detection()
     return failed;
 }
 
+// Verifies \usepackage{physics,siunitx,pgfplots} and the snippet packages field
+// activate the corresponding completion libraries so package-gated commands show.
+static int test_usepackage_activates_libs()
+{
+    int failed = 0;
+    // via \usepackage in the document body
+    QTextDocument doc;
+    doc.setPlainText(
+        "\\usepackage{physics}\n"
+        "\\usepackage[per-mode=symbol]{siunitx}\n"
+        "\\usepackage{pgfplots}\n"
+        "\\begin{tikzpicture}\n\\end{tikzpicture}\n");
+    TikzDocumentState state;
+    state.reparse(&doc);
+    for (const char *lib : { "physics", "siunitx", "pgfplots" }) {
+        if (!state.activeLibs().contains(QString::fromUtf8(lib))) {
+            fprintf(stderr, "FAIL: DCS-UP1 - \\usepackage should activate '%s'\n", lib);
+            failed++;
+        }
+    }
+    // via the snippet packages metadata field
+    TikzDocumentState state2;
+    state2.setSnippetPackages({QStringLiteral("physics"), QStringLiteral("siunitx")});
+    QTextDocument doc2;
+    doc2.setPlainText("\\begin{tikzpicture}\n\\end{tikzpicture}\n");
+    state2.reparse(&doc2);
+    if (!state2.activeLibs().contains(QStringLiteral("physics"))
+        || !state2.activeLibs().contains(QStringLiteral("siunitx"))) {
+        fprintf(stderr, "FAIL: DCS-UP2 - snippet packages field should activate physics/siunitx\n");
+        failed++;
+    }
+    if (failed == 0) fprintf(stderr, "PASS: \\usepackage activates completion libs\n");
+    return failed;
+}
+
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
@@ -365,6 +400,7 @@ int main(int argc, char *argv[])
     failed += test_circuitikz_scope();
     failed += test_style_with_spaces();
     failed += test_pic_name_detection();
+    failed += test_usepackage_activates_libs();
     if (failed > 0) { fprintf(stderr, "\n%d test(s) failed!\n", failed); return 1; }
     fprintf(stderr, "\nAll TikzDocumentState tests passed!\n");
     return 0;

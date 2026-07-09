@@ -204,6 +204,54 @@ void registerCommands(Vec &db)
     addBuiltin(db, "tkzSetUpLine",           C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
     addBuiltin(db, "tkzSetUpLabel",          C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
 
+    // ═══════════════════════════════════════════════════════════════
+    //  physics package commands (heavily used in physics diagrams)
+    //  Activated by \usepackage{physics}. Names verified against
+    //  texmf-dist/tex/latex/physics/physics.sty. Pure trig/log overlaps
+    //  (\sin,\cos,\exp,\ln,\log,\tan,\det,\Re,\Im,\Pr,\abs) are already in
+    //  the general math command list, so only physics-distinctive macros are
+    //  registered here to avoid duplicate suggestions.
+    const char *physicsCmds[] = {
+        "va","vb","vu","vdot","vnabla","vectorbold","vectorarrow","vectorunit",
+        "grad","gradient","divergence","curl","laplacian",
+        "dd","dv","derivative","pdv","pderivative","partialderivative",
+        "fdv","fderivative","functionalderivative","differential","flatfrac",
+        "cross","cp","crossproduct","dotproduct","dyad","outerproduct",
+        "innerproduct","ip","expval","expectationvalue","ev","var","variation",
+        "bra","ket","braket","ketbra","mel","matrixel","matrixelement",
+        "comm","commutator","acomm","anticommutator","pb","poissonbracket",
+        "norm","absolutevalue","order","eval","evaluated",
+        "qty","quantity","pqty","bqty","Bqty","vqty",
+        "mqty","pmat","smqty","spmqty","Pmqty","sPmqty","bmqty","sbmqty",
+        "vmqty","svmqty","pmqty",
+        "matrixquantity","dmat","diagonalmatrix","admat","antidiagonalmatrix",
+        "imat","identitymatrix","xmat","xmatrix","zmat","zeromatrix",
+        "paulimatrix","paulixmatrix","pauliymatrix","paulizmatrix",
+        "mdet","matrixdeterminant","smdet","tr","Tr",
+        "Res","principalvalue","pv","PV",
+        "qq","qqtext","qc","qcc","qcomma","qand","qor","qif","qthen",
+        "qelse","qotherwise","qsince","qusing","qassume","qgiven","qlet",
+        "qfor","qin","qunless",
+        "coth","sech","csch",
+        "arccot","arcsec","arccsc","acot","asec","acsc",
+        nullptr
+    };
+    for (int i = 0; physicsCmds[i]; i++)
+        addBuiltin(db, physicsCmds[i], C::Command, {}, {}, {}, {"physics"});
+
+    // ═══════════════════════════════════════════════════════════════
+    //  siunitx package commands. Activated by \usepackage{siunitx}.
+    //  Public commands verified against texmf-dist/tex/latex/siunitx/siunitx.sty.
+    const char *siunitxCmds[] = {
+        "SI","si","num","unit","qty","ang",
+        "numlist","numrange","numproduct","qtylist","qtyrange","qtyproduct",
+        "SIlist","SIrange","sisetup","tablenum",
+        "complexnum","complexqty","DeclareSIUnit",
+        nullptr
+    };
+    for (int i = 0; siunitxCmds[i]; i++)
+        addBuiltin(db, siunitxCmds[i], C::Command, {}, {}, {}, {"siunitx"});
+
     const char *cmds[] = {
         "addplot","addplot3","addlegendentry","addlegendimage",
         "begin",
@@ -338,21 +386,21 @@ void registerCommands(Vec &db)
 void registerMathFunctions(Vec &db)
 {
     // ── Math functions ──
+    // The complete PGF math-engine function set, verified against
+    // texmf-dist/tex/generic/pgf/math/ (\pgfmathdeclarefunction). Previous
+    // bogus entries (cit, kil, note, record, res, vecilen, cm, pt, clip, in,
+    // turn, format, intersection, dotproduct, power) were not real functions.
     const char *mathFns[] = {
-        "abs","acos","add","angle","asin","atan","atan2",
-        "ceil","cit","clip","cm","cos","cosec","cosh",
-        "cot","deg","depth","dim","divide","dotproduct",
-        "e","exp","factorial","floor","format",
-        "frac","gcd","height",
-        "in","int","intersection","isodd",
-        "kil","length","ln","log10","log2",
-        "max","min","mod","multiply",
-        "not","note","pi","pow","power",
-        "pt","rad","rand","random","rdiv","real","record","res",
-        "round","scalar","sec","sign","sin","sinh",
-        "sqrt","subtract","sum",
-        "tan","tanh","true","turn",
-        "value","vecilen","width",nullptr};
+        "abs","acos","add","and","approxequalto","array","asin","atan","atan2",
+        "bin","ceil","cos","cosec","cosh","cot","deg","depth","dim",
+        "div","divide","e","equal","exp","factorial","false","floor","frac",
+        "gcd","greater","height","hex","Hex","ifthenelse","int","iseven",
+        "isodd","isprime","less","ln","log10","log2","max","min","mod","Mod",
+        "multiply","neg","not","notequal","notgreater","notless","oct","or",
+        "pi","pow","rad","radians","rand","random","real","reciprocal","rnd",
+        "round","scalar","sec","sign","sin","sinh","sqrt","subtract","tan",
+        "tanh","true","veclen","width",
+        nullptr};
     for (int i = 0; mathFns[i]; i++)
         addBuiltin(db, mathFns[i], C::MathFunction);
 }

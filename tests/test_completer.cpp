@@ -64,7 +64,7 @@ static int test_options_contain_new_entries()
         {"zmax", "pgfplots zmax"},
         {"ztick", "pgfplots ztick"},
         {"zticklabels", "pgfplots zticklabels"},
-        {"zstep", "pgfplots zstep"},
+        {"ztick distance", "pgfplots ztick distance"},
         {"z radius", "z radius for elliptical arcs"},
         {"out", "out curve angle"},
         {"in looseness", "in looseness curve key"},
@@ -84,7 +84,6 @@ static int test_options_contain_new_entries()
         {"sort by", "intersections sort by"},
         {"nonzero rule", "fill rule nonzero"},
         {"even odd rule", "fill rule even odd"},
-        {"information text", "information text style"},
         {"angle radius", "angles library radius"},
         {"angle eccentricity", "angles library eccentricity"},
         {"right angle", "angles library right angle pic"},
@@ -970,6 +969,198 @@ static int test_usetikzlibrary_context()
     return failed;
 }
 
+// Verifies math functions match the PGF math engine set (verified against
+// texmf-dist/tex/generic/pgf/math): bogus entries are gone, real ones present.
+static int test_mathfunctions_accurate()
+{
+    int failed = 0;
+    using TikzKeywords::TikzKeywordDB;
+    using TikzKeywords::Category;
+    const QStringList fns = TikzKeywordDB::instance().allMathFuncNames();
+
+    const char *bogus[] = { "cit","kil","note","record","res","vecilen",
+        "power","dotproduct","turn","intersection","clip","format","cm","pt",
+        "in","length","angle","sum","value","rdiv", nullptr };
+    for (int i = 0; bogus[i]; ++i) {
+        if (fns.contains(QString::fromUtf8(bogus[i]))) {
+            fprintf(stderr, "FAIL: MFN-1 - bogus math function '%s' should be gone\n", bogus[i]);
+            failed++;
+        }
+    }
+    const char *valid[] = { "veclen","pow","atan2","sec","cosec","Mod","reciprocal",
+        "hex","Hex","oct","bin","isprime","iseven","isodd","gcd","factorial",
+        "and","or","not","equal","greater","less","radians","round","floor","ceil",
+        nullptr };
+    for (int i = 0; valid[i]; ++i) {
+        if (!fns.contains(QString::fromUtf8(valid[i]))) {
+            fprintf(stderr, "FAIL: MFN-2 - real math function '%s' is missing\n", valid[i]);
+            failed++;
+        }
+    }
+    fprintf(stderr, "%s: math functions match the PGF math engine set\n",
+            failed == 0 ? "PASS" : "FAIL");
+    return failed;
+}
+
+// Verifies decoration names and their library attributions against the pgf
+// decoration libraries: bogus entries gone, real ones present, core decorations
+// not wrongly gated behind decorations.pathmorphing.
+static int test_decorations_accurate()
+{
+    int failed = 0;
+    using TikzKeywords::TikzKeywordDB;
+    using TikzKeywords::Category;
+    const QStringList decos = TikzKeywordDB::instance().allDecorationNames();
+
+    const char *bogus[] = { "curly brace","trapezium brace","Hilbert curve",
+        "Sierpinski triangle","Peano curve","Moore curve","stars","Koch curve",
+        "wave","angle", nullptr };
+    for (int i = 0; bogus[i]; ++i) {
+        if (decos.contains(QString::fromUtf8(bogus[i]))) {
+            fprintf(stderr, "FAIL: DEC-1 - bogus decoration '%s' should be gone\n", bogus[i]);
+            failed++;
+        }
+    }
+    const char *valid[] = { "snake","coil","zigzag","random steps","bent",
+        "straight zigzag","brace","ticks","waves","expanding waves","border",
+        "show path construction","markings","Koch curve type 1","Koch curve type 2",
+        "Cantor set","crosses","triangles", nullptr };
+    for (int i = 0; valid[i]; ++i) {
+        if (!decos.contains(QString::fromUtf8(valid[i]))) {
+            fprintf(stderr, "FAIL: DEC-2 - real decoration '%s' is missing\n", valid[i]);
+            failed++;
+        }
+    }
+    // Core decorations must NOT require decorations.pathmorphing.
+    for (const char *core : { "lineto", "curveto", "moveto" }) {
+        const auto *kw = TikzKeywordDB::instance().find(QString::fromUtf8(core), Category::Decoration);
+        if (kw && kw->requiredLibs.contains(QStringLiteral("decorations.pathmorphing"))) {
+            fprintf(stderr, "FAIL: DEC-3 - core decoration '%s' wrongly gated by pathmorphing\n", core);
+            failed++;
+        }
+    }
+    fprintf(stderr, "%s: decorations match the pgf decoration libraries\n",
+            failed == 0 ? "PASS" : "FAIL");
+    return failed;
+}
+
+// Verifies physics/siunitx package commands are present and correctly gated:
+// not offered without the package, offered when \usepackage is detected.
+static int test_physics_siunitx_gated()
+{
+    int failed = 0;
+    using TikzKeywords::TikzKeywordDB;
+    using TikzKeywords::Category;
+
+    const char *physCmds[] = { "vb","va","vu","dv","pdv","grad","curl",
+        "laplacian","bra","ket","braket","expval","comm","dd","cross",
+        "norm","tr","Tr", nullptr };
+    for (int i = 0; physCmds[i]; ++i) {
+        const auto *kw = TikzKeywordDB::instance().find(QString::fromUtf8(physCmds[i]), Category::Command);
+        if (!kw) {
+            fprintf(stderr, "FAIL: PSI-1 - physics command '%s' missing\n", physCmds[i]);
+            failed++;
+        } else if (!kw->requiredLibs.contains(QStringLiteral("physics"))) {
+            fprintf(stderr, "FAIL: PSI-2 - physics command '%s' not gated by physics lib\n", physCmds[i]);
+            failed++;
+        }
+    }
+    const char *siCmds[] = { "SI","si","num","ang","qty","unit","numlist",
+        "qtyrange","sisetup", nullptr };
+    for (int i = 0; siCmds[i]; ++i) {
+        const auto *kw = TikzKeywordDB::instance().find(QString::fromUtf8(siCmds[i]), Category::Command);
+        if (!kw) {
+            fprintf(stderr, "FAIL: PSI-3 - siunitx command '%s' missing\n", siCmds[i]);
+            failed++;
+        } else if (!kw->requiredLibs.contains(QStringLiteral("siunitx"))) {
+            fprintf(stderr, "FAIL: PSI-4 - siunitx command '%s' not gated by siunitx lib\n", siCmds[i]);
+            failed++;
+        }
+    }
+
+    // Gating behaviour through filter(): without libs, \vb / \SI must be hidden;
+    // with the libs active they must appear.
+    QSet<QString> noLibs;
+    auto plainCmds = TikzKeywordDB::instance().filter(
+        QStringLiteral("tikzpicture"), QString(), noLibs, Category::Command);
+    for (auto *kw : plainCmds) {
+        if (kw->name == QLatin1String("vb") || kw->name == QLatin1String("SI")) {
+            fprintf(stderr, "FAIL: PSI-5 - '%s' leaked without its package active\n",
+                    kw->name.toUtf8().constData());
+            failed++;
+        }
+    }
+    QSet<QString> physLibs; physLibs.insert(QStringLiteral("physics"));
+    bool foundVb = false;
+    for (auto *kw : TikzKeywordDB::instance().filter(
+             QStringLiteral("tikzpicture"), QString(), physLibs, Category::Command))
+        if (kw->name == QLatin1String("vb")) { foundVb = true; break; }
+    if (!foundVb) {
+        fprintf(stderr, "FAIL: PSI-6 - '\\vb' not offered with physics package active\n");
+        failed++;
+    }
+
+    fprintf(stderr, "%s: physics/siunitx commands present and package-gated\n",
+            failed == 0 ? "PASS" : "FAIL");
+    return failed;
+}
+
+// Verifies pgfplots keys/shapes: bogus removed, high-value keys present.
+static int test_pgfplots_keys_accurate()
+{
+    int failed = 0;
+    using TikzKeywords::TikzKeywordDB;
+    using TikzKeywords::Category;
+    const QStringList opts = TikzKeywordDB::instance().allOptionNames();
+
+    const char *bogus[] = { "xstep","ystep","zstep","bar gap",
+        "legend image style","histogram", nullptr };
+    for (int i = 0; bogus[i]; ++i) {
+        // xstep/ystep are valid *grid* options (draw context); only the pgfplots
+        // axis versions were renamed, so check the pgfplots-specific ones are gone
+        // by confirming their replacements exist instead.
+        (void)bogus[i];
+    }
+    const char *mustAbsent[] = { "bar gap","legend image style","histogram", nullptr };
+    for (int i = 0; mustAbsent[i]; ++i) {
+        if (opts.contains(QString::fromUtf8(mustAbsent[i]))) {
+            fprintf(stderr, "FAIL: PGP-1 - bogus pgfplots key '%s' should be gone\n", mustAbsent[i]);
+            failed++;
+        }
+    }
+    const char *valid[] = { "xtick distance","ytick distance","ztick distance",
+        "enlarge x limits","enlarge y limits","axis lines","axis lines*",
+        "colorbar","point meta","scatter src","forget plot","each nth point",
+        "nodes near coords","scale only axis","restrict y to domain","hide axis",
+        "shader","compat","cycle list name","xtick pos","z buffer",
+        "legend image post style","hist", nullptr };
+    for (int i = 0; valid[i]; ++i) {
+        if (!opts.contains(QString::fromUtf8(valid[i]))) {
+            fprintf(stderr, "FAIL: PGP-2 - pgfplots key '%s' is missing\n", valid[i]);
+            failed++;
+        }
+    }
+    // Missing shapes now present.
+    const char *shapes[] = { "kite","dart","chamfered rectangle","arrow box",
+        "starburst","ellipse split","circle solidus","magnifying glass", nullptr };
+    for (int i = 0; shapes[i]; ++i) {
+        if (!TikzKeywordDB::instance().find(QString::fromUtf8(shapes[i]), Category::Shape)) {
+            fprintf(stderr, "FAIL: PGP-3 - shape '%s' is missing\n", shapes[i]);
+            failed++;
+        }
+    }
+    // Bogus shapes gone.
+    for (const char *bs : { "lightning", "line callout", "rounded rectangle callout" }) {
+        if (TikzKeywordDB::instance().find(QString::fromUtf8(bs), Category::Shape)) {
+            fprintf(stderr, "FAIL: PGP-4 - bogus shape '%s' should be gone\n", bs);
+            failed++;
+        }
+    }
+    fprintf(stderr, "%s: pgfplots keys/shapes source-accurate\n",
+            failed == 0 ? "PASS" : "FAIL");
+    return failed;
+}
+
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
@@ -997,6 +1188,10 @@ int main(int argc, char *argv[])
     failed += test_usetikzlibrary_context();
     failed += test_circuitikz_components_accurate();
     failed += test_standard_tikz_no_bogus();
+    failed += test_mathfunctions_accurate();
+    failed += test_decorations_accurate();
+    failed += test_physics_siunitx_gated();
+    failed += test_pgfplots_keys_accurate();
 
     if (failed > 0) {
         fprintf(stderr, "\n%d test(s) failed!\n", failed);

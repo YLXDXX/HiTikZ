@@ -52,14 +52,15 @@ void registerArrows(Vec &db)
     addBuiltin(db, "<-",  C::Arrow, {}, {"draw","path"});
     addBuiltin(db, "<->", C::Arrow, {}, {"draw","path"});
 
-    // ── Arrow tip names ──
-    const char *arrows[] = {"stealth","stealth'","latex","latex reversed","to","to reversed",
+    // ── Classic arrow tip names ── (pgflibraryarrows, no arrows.meta needed)
+    // Capitalized arrows.meta tips (Stealth/Latex/Circle/...) are registered in
+    // registerExtended() gated by \usetikzlibrary{arrows.meta}.
+    const char *arrows[] = {"stealth","stealth'","latex","latex'","latex reversed","to","to reversed",
         "angle 90","angle 60","angle 45","triangle 90","triangle 60","triangle 45",
         "open triangle 90","open triangle 60","open triangle 45",
-        "Circle","Diamond","Square","Bar","Bracket","Parenthesis",
-        "Round Cap","Butt Cap","Triangle Cap","Fast Round","Fast Triangle",
-        "Hooks","Implies","Straight Barb","Arc Barb","Classical TikZ Rightarrow",
-        "Computer Modern Rightarrow","Stealth","Latex","To",nullptr};
+        "left to","right to","left hook","right hook","hooks",
+        "round cap","butt cap","fast cap","serif cm","implies",
+        "o","*","diamond","open diamond","square","open square",nullptr};
     for (int i = 0; arrows[i]; i++)
         addBuiltin(db, arrows[i], C::Arrow, {}, {"draw","path"});
 }
@@ -107,36 +108,39 @@ void registerPatterns(Vec &db)
 void registerDecorations(Vec &db)
 {
     // ── Decorations ──
+    // Names and library attributions verified against
+    // texmf-dist/tex/generic/pgf/ (\pgfdeclaredecoration / \pgfdeclaremetadecoration).
+    // pathmorphing:
     addBuiltin(db, "snake",    C::Decoration, {}, {"draw","path"}, {}, {"decorations.pathmorphing"});
     addBuiltin(db, "coil",     C::Decoration, {}, {"draw","path"}, {}, {"decorations.pathmorphing"});
     addBuiltin(db, "saw",      C::Decoration, {}, {"draw","path"}, {}, {"decorations.pathmorphing"});
     addBuiltin(db, "zigzag",   C::Decoration, {}, {"draw","path"}, {}, {"decorations.pathmorphing"});
     addBuiltin(db, "bumps",    C::Decoration, {}, {"draw","path"}, {}, {"decorations.pathmorphing"});
+    addBuiltin(db, "bent",     C::Decoration, {}, {"draw","path"}, {}, {"decorations.pathmorphing"});
     addBuiltin(db, "random steps", C::Decoration, {}, {"draw","path"}, {}, {"decorations.pathmorphing"});
-    addBuiltin(db, "lineto",   C::Decoration, {}, {"draw","path"}, {}, {"decorations.pathmorphing"});
-    addBuiltin(db, "curveto",  C::Decoration, {}, {"draw","path"}, {}, {"decorations.pathmorphing"});
     addBuiltin(db, "straight zigzag", C::Decoration, {}, {"draw","path"}, {}, {"decorations.pathmorphing"});
-    addBuiltin(db, "ticks",    C::Decoration, {}, {"draw","path"}, {}, {"decorations.pathmorphing"});
-    addBuiltin(db, "crosses",  C::Decoration, {}, {"draw","path"}, {}, {"decorations.pathmorphing"});
+    // core built-in decorations (no library needed):
+    addBuiltin(db, "moveto",   C::Decoration, {}, {"draw","path"});
+    addBuiltin(db, "lineto",   C::Decoration, {}, {"draw","path"});
+    addBuiltin(db, "curveto",  C::Decoration, {}, {"draw","path"});
+    // pathreplacing:
     addBuiltin(db, "brace",        C::Decoration, {}, {"draw","path"}, {}, {"decorations.pathreplacing"});
-    addBuiltin(db, "brace mirrored", C::Decoration, {}, {"draw","path"}, {}, {"decorations.pathreplacing"});
-    addBuiltin(db, "curly brace",  C::Decoration, {}, {"draw","path"}, {}, {"decorations.pathreplacing"});
-    addBuiltin(db, "triangle",     C::Decoration, {}, {"draw","path"}, {}, {"decorations.pathreplacing"});
-    addBuiltin(db, "angle",        C::Decoration, {}, {"draw","path"}, {}, {"decorations.pathreplacing"});
-    addBuiltin(db, "trapezium brace", C::Decoration, {}, {"draw","path"}, {}, {"decorations.pathreplacing"});
+    addBuiltin(db, "ticks",        C::Decoration, {}, {"draw","path"}, {}, {"decorations.pathreplacing"});
+    addBuiltin(db, "waves",        C::Decoration, {}, {"draw","path"}, {}, {"decorations.pathreplacing"});
+    addBuiltin(db, "expanding waves", C::Decoration, {}, {"draw","path"}, {}, {"decorations.pathreplacing"});
+    addBuiltin(db, "border",       C::Decoration, {}, {"draw","path"}, {}, {"decorations.pathreplacing"});
+    addBuiltin(db, "show path construction", C::Decoration, {}, {"draw","path"}, {}, {"decorations.pathreplacing"});
+    // markings:
     addBuiltin(db, "markings", C::Decoration, {}, {"draw","path"}, {}, {"decorations.markings"});
-    addBuiltin(db, "Koch snowflake",  C::Decoration, {}, {"draw","path"}, {}, {"decorations.fractals"});
-    addBuiltin(db, "Koch curve",      C::Decoration, {}, {"draw","path"}, {}, {"decorations.fractals"});
+    // fractals (exact names from the fractals library):
+    addBuiltin(db, "Koch snowflake",    C::Decoration, {}, {"draw","path"}, {}, {"decorations.fractals"});
+    addBuiltin(db, "Koch curve type 1", C::Decoration, {}, {"draw","path"}, {}, {"decorations.fractals"});
     addBuiltin(db, "Koch curve type 2", C::Decoration, {}, {"draw","path"}, {}, {"decorations.fractals"});
-    addBuiltin(db, "Hilbert curve",   C::Decoration, {}, {"draw","path"}, {}, {"decorations.fractals"});
-    addBuiltin(db, "Sierpinski triangle", C::Decoration, {}, {"draw","path"}, {}, {"decorations.fractals"});
-    addBuiltin(db, "Cantor set",      C::Decoration, {}, {"draw","path"}, {}, {"decorations.fractals"});
-    addBuiltin(db, "Peano curve",     C::Decoration, {}, {"draw","path"}, {}, {"decorations.fractals"});
-    addBuiltin(db, "Moore curve",     C::Decoration, {}, {"draw","path"}, {}, {"decorations.fractals"});
-    addBuiltin(db, "Levy curve",      C::Decoration, {}, {"draw","path"}, {}, {"decorations.fractals"});
+    addBuiltin(db, "Cantor set",        C::Decoration, {}, {"draw","path"}, {}, {"decorations.fractals"});
+    // text / footprints / shapes:
     addBuiltin(db, "text along path", C::Decoration, {}, {"draw","path"}, {}, {"decorations.text"});
     addBuiltin(db, "footprints",      C::Decoration, {}, {"draw","path"}, {}, {"decorations.footprints"});
-    addBuiltin(db, "stars",           C::Decoration, {}, {"draw","path"}, {}, {"decorations.shapes"});
+    addBuiltin(db, "crosses",         C::Decoration, {}, {"draw","path"}, {}, {"decorations.shapes"});
     addBuiltin(db, "triangles",       C::Decoration, {}, {"draw","path"}, {}, {"decorations.shapes"});
     addBuiltin(db, "shape backgrounds", C::Decoration, {}, {"draw","path"}, {}, {"decorations.shapes"});
 }

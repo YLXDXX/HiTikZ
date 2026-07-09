@@ -153,7 +153,6 @@ void registerGeneralOptions(Vec &db)
     addBuiltin(db, "align",            C::Option, {"tikzpicture","scope"}, {"node"},
                {"left","center","right","justify","none"});
     addBuiltin(db, "font",             C::Option, {"tikzpicture","scope"}, {"node"});
-    addBuiltin(db, "fontsize",         C::Option, {"tikzpicture","scope"}, {"node"});
     addBuiltin(db, "node contents",    C::Option, {"tikzpicture","scope"}, {"node"});
     addBuiltin(db, "node distance",    C::Option, {"tikzpicture","scope"}, {"node"},
                {"0.5cm","1cm","1.5cm","2cm","2.5cm","3cm","4cm"});
@@ -223,6 +222,31 @@ void registerGeneralOptions(Vec &db)
     // Path construction keywords (also available as options for some contexts)
     addBuiltin(db, "controls",         C::Option, {}, {"draw","path"});
     addBuiltin(db, "parabola",         C::Option, {}, {"draw","path"});
+    addBuiltin(db, "parabola height",  C::Option, {}, {"draw","path"});
+    addBuiltin(db, "bend",             C::Option, {}, {"draw","path"});
+
+    // Plot options (\draw plot ...): defined in tikz.code.tex. Note that
+    // pgfplots-specific "domain"/"samples" (with value hints) live in
+    // tikz_keywords_pgfplots.cpp gated to axis environments.
+    addBuiltin(db, "variable",         C::Option, {}, {"draw","path"});
+    addBuiltin(db, "smooth cycle",     C::Option, {}, {"draw","path"});
+    addBuiltin(db, "sharp plot",       C::Option, {}, {"draw","path"});
+    addBuiltin(db, "sharp cycle",      C::Option, {}, {"draw","path"});
+    addBuiltin(db, "const plot",       C::Option, {}, {"draw","path"});
+    addBuiltin(db, "const plot mark left",  C::Option, {}, {"draw","path"});
+    addBuiltin(db, "const plot mark right", C::Option, {}, {"draw","path"});
+    addBuiltin(db, "const plot mark mid",   C::Option, {}, {"draw","path"});
+    addBuiltin(db, "jump mark left",   C::Option, {}, {"draw","path"});
+    addBuiltin(db, "jump mark right",  C::Option, {}, {"draw","path"});
+    addBuiltin(db, "jump mark mid",    C::Option, {}, {"draw","path"});
+    addBuiltin(db, "ycomb",            C::Option, {}, {"draw","path"});
+    addBuiltin(db, "xcomb",            C::Option, {}, {"draw","path"});
+    addBuiltin(db, "polar comb",       C::Option, {}, {"draw","path"});
+
+    // Grid step (tikz.code.tex \tikzoption{step}/{xstep}/{ystep})
+    addBuiltin(db, "step",             C::Option, {}, {"draw","path"});
+    addBuiltin(db, "xstep",            C::Option, {}, {"draw","path"});
+    addBuiltin(db, "ystep",            C::Option, {}, {"draw","path"});
 
     // Fill rules
     addBuiltin(db, "nonzero rule",     C::Option, {}, {"draw","path","fill"});
@@ -281,20 +305,22 @@ void registerGeneralOptions(Vec &db)
     addBuiltin(db, "rectangle split parts", C::Option, {"tikzpicture","scope"}, {"node"}, {}, {"shapes.multipart"});
 
     // Tree / graph
-    addBuiltin(db, "grow",              C::Option, {"tikzpicture","scope"});
+    addBuiltin(db, "grow",              C::Option, {"tikzpicture","scope"}, {},
+               {"up","down","left","right","north","south","east","west"});
+    addBuiltin(db, "grow'",             C::Option, {"tikzpicture","scope"}, {},
+               {"up","down","left","right"});
     addBuiltin(db, "grow cyclic",       C::Option, {"tikzpicture","scope"});
-    addBuiltin(db, "grow=up",           C::Option, {"tikzpicture","scope"});
-    addBuiltin(db, "grow=down",         C::Option, {"tikzpicture","scope"});
-    addBuiltin(db, "grow=left",         C::Option, {"tikzpicture","scope"});
-    addBuiltin(db, "grow=right",        C::Option, {"tikzpicture","scope"});
+    addBuiltin(db, "growth function",   C::Option, {"tikzpicture","scope"});
+    addBuiltin(db, "growth parent anchor", C::Option, {"tikzpicture","scope"});
     addBuiltin(db, "level distance",    C::Option, {"tikzpicture","scope"},
                {"0.5cm","1cm","1.5cm","2cm","3cm"});
     addBuiltin(db, "sibling distance",  C::Option, {"tikzpicture","scope"},
                {"0.5cm","1cm","1.5cm","2cm","3cm"});
-    addBuiltin(db, "branch",            C::Option, {"tikzpicture","scope"});
     addBuiltin(db, "edge from parent",  C::Option, {"tikzpicture","scope"});
     addBuiltin(db, "edge from parent path", C::Option, {"tikzpicture","scope"});
     addBuiltin(db, "edge label",        C::Option, {"tikzpicture","scope"});
+    addBuiltin(db, "parent anchor",     C::Option, {"tikzpicture","scope"});
+    addBuiltin(db, "child anchor",      C::Option, {"tikzpicture","scope"});
     addBuiltin(db, "counterclockwise",  C::Option, {"tikzpicture","scope"}, {"node"});
     addBuiltin(db, "clockwise",         C::Option, {"tikzpicture","scope"}, {"node"});
 
@@ -325,7 +351,6 @@ void registerGeneralOptions(Vec &db)
 
     // Predefined styles
     addBuiltin(db, "help lines",        C::Option, {"tikzpicture","scope"});
-    addBuiltin(db, "information text",  C::Option, {"tikzpicture","scope"});
     addBuiltin(db, "to path",           C::Option, {}, {"draw","path"});
 
     // Coordinate systems

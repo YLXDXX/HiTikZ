@@ -60,6 +60,12 @@ void TikzDocumentState::clear()
             m_activeLibs.insert("3d");
         if (pkg.contains("tikz-cd", Qt::CaseInsensitive))
             m_activeLibs.insert("cd");
+        if (pkg.contains("physics", Qt::CaseInsensitive))
+            m_activeLibs.insert("physics");
+        if (pkg.contains("siunitx", Qt::CaseInsensitive))
+            m_activeLibs.insert("siunitx");
+        if (pkg.contains("pgfplots", Qt::CaseInsensitive))
+            m_activeLibs.insert("pgfplots");
     }
 }
 
@@ -156,6 +162,12 @@ void TikzDocumentState::parseLine(const QString &text, int blockStartPos,
                             m_activeLibs.insert("cd");
                         if (trimmed == QLatin1String("tkz-euclide"))
                             m_activeLibs.insert("tkz-euclide");
+                        if (trimmed == QLatin1String("physics"))
+                            m_activeLibs.insert("physics");
+                        if (trimmed == QLatin1String("siunitx"))
+                            m_activeLibs.insert("siunitx");
+                        if (trimmed == QLatin1String("pgfplots"))
+                            m_activeLibs.insert("pgfplots");
                     }
                 }
                 pos = up.capturedEnd();
