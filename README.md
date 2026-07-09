@@ -585,6 +585,8 @@ calc,er,angles,patterns,decorations.pathmorphing,shadows.blur,pgfplots.fillbetwe
 - 仅提取 `\begin{tikzpicture}` / `\begin{circuitikz}` **之前**的定义命令
 - 环境内部的命令（如图内 `\tikzset`）原样保留不提取
 - 多行定义、嵌套花括号、混合格式（新旧混用、花括号/无花括号混用）均正确解析
+- 参数与正文之间的空白/换行被容忍，如 `\newcommand{\foo}[2]`（换行）`{...}` 也能完整抽取
+- 带分隔符参数文本的 `\def` 正确解析，如 `\def\foo[size=#1](#2,#3){...}`（参数文本含 `[]`/`()`/`#n`）
 - 遇到不完整/无法解析的定义（如 `\newcommand{\foo}` 无 `{body}`）时安全跳过，不中断后续命令的提取
 - 编译时：先注入宏包和 TikZ 库，再注入自定义命令，确保依赖顺序正确
 - 清理时保留换行分隔符，防止 LaTeX 注释行与后续命令合并
@@ -952,7 +954,7 @@ MainWindow
 | 测试 | 内容 |
 |------|------|
 | `test_snippet_manager` | 片段创建/读取/更新/删除，loadCode，renameCategory，compileCommand JSON 序列化，ZIP 导入/导出往返 |
-| `test_latex_compiler` | xelatex 可用性检测，基本编译，PDF 生成，PNG 转换，SVG 转换，错误编译日志验证，自定义命令抽取（41 项测试覆盖 14 类定义命令）、定义跳过后继续解析、析构回收转换子进程、compileCommand 自定义引擎编译与 lastFullCommand 验证（51+ 项测试） |
+| `test_latex_compiler` | xelatex 可用性检测，基本编译，PDF 生成，PNG 转换，SVG 转换，错误编译日志验证，自定义命令抽取（覆盖 14 类定义命令）、带分隔符参数的 `\def` 与参数后换行的 `\newcommand` 抽取、定义跳过后继续解析、析构回收转换子进程、compileCommand 自定义引擎编译与 lastFullCommand 验证（53+ 项测试） |
 | `test_search` | 精确匹配、子序列匹配、连续加分、中文搜索、标签过滤、分类统计 |
 | `test_packages_libraries` | 宏包字符串解析（含嵌套括号选项），TikZ 库解析，模板注入正确性，往返序列化 |
 | `test_highlighter_regex` | 数学模式 `$...$`、`\(...\)`、`\[...\]` 正则表达式匹配验正 |
