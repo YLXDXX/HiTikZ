@@ -178,32 +178,63 @@ git clone https://github.com/YLXDXX/HiTikZ.git #国外
 cd HiTikZ
 
 # 构建
-mkdir build && cd build
-cmake ..
-cmake --build .
+cmake -B build
+cmake --build build -j$(nproc)
 
-# 运行
-./TikzManager
+# 直接从构建目录运行（无需安装）
+./build/hitikz
 
 # 运行测试
-ctest --output-on-failure
+cd build && ctest --output-on-failure
 ```
+
+> 可执行程序名为全小写的 **`hitikz`**。直接从构建目录运行时，程序会自动使用源码树内的 `resources/`；安装后则使用安装目录中的资源。
 
 如需禁用 KGlobalAccel（仅用 QHotkey 后备方案）：
 ```bash
-cmake .. -DWITH_KGLOBALACCEL=OFF
+cmake -B build -DWITH_KGLOBALACCEL=OFF
 ```
 
 如需同时禁用全局快捷键：
 ```bash
-cmake .. -DWITH_KGLOBALACCEL=OFF -DWITH_QHOTKEY=OFF
+cmake -B build -DWITH_KGLOBALACCEL=OFF -DWITH_QHOTKEY=OFF
 ```
+
+---
+
+### 安装与卸载
+
+遵循 Linux 目录惯例：用户自行编译的程序默认安装到 **`/usr/local`**（可通过 `CMAKE_INSTALL_PREFIX` 或 `--prefix` 自定义）。
+
+```bash
+# 安装（默认前缀 /usr/local，需要写入系统目录故用 sudo）
+sudo cmake --install build
+
+# 指定安装前缀（例如系统级 /usr）
+cmake --install build --prefix /usr
+
+# 卸载（依据安装时生成的 install_manifest.txt 移除已安装文件）
+sudo cmake --build build --target uninstall
+```
+
+安装内容与目标位置（以默认前缀 `/usr/local` 为例）：
+
+| 文件 | 安装位置 |
+|------|---------|
+| 可执行程序 `hitikz` | `/usr/local/bin/` |
+| 预置片段与模板 `resources/` | `/usr/local/share/hitikz/resources/` |
+| 桌面入口 `hitikz.desktop` | `/usr/local/share/applications/` |
+| 应用图标 `hitikz.svg` | `/usr/local/share/icons/hicolor/scalable/apps/` |
+
+> **打包用途**：安装步骤支持 `DESTDIR`（如 `DESTDIR=/tmp/stage cmake --install build`），便于制作发行版软件包。
+
+> **版本号**：版本号在 `CMakeLists.txt` 的 `project(... VERSION x.y)` 处**统一设定**，经编译宏 `APP_VERSION` 传入程序（`main.cpp` 不再硬编码版本号），后续升级只需修改这一处。
 
 ---
 
 ### 运行时依赖（非构建依赖）
 
-行时需要 LaTeX 发行版：
+运行时需要 LaTeX 发行版：
 
 | 发行版          | 安装命令                                                     |
 | --------------- | ------------------------------------------------------------ |
@@ -754,10 +785,14 @@ cmake -B build
 cmake --build build -j$(nproc)
 
 # 构建并运行
-./build/TikzManager
+./build/hitikz
 
 # 运行测试
 cd build && ctest --output-on-failure
+
+# 安装 / 卸载（详见「安装与卸载」）
+sudo cmake --install build
+sudo cmake --build build --target uninstall
 ```
 
 CMake 选项：
@@ -766,6 +801,7 @@ CMake 选项：
 |------|--------|------|
 | `WITH_KGLOBALACCEL` | ON | 启用 KDE KGlobalAccel |
 | `WITH_QHOTKEY` | ON | KGlobalAccel 不可用时回退 QHotkey |
+| `CMAKE_INSTALL_PREFIX` | `/usr/local` | 安装前缀（用户自编译程序的惯用位置） |
 
 ---
 
@@ -775,7 +811,7 @@ CMake 选项：
 
 ```
 src/
-├── main.cpp                         # 入口（QApplication 初始化）
+├── main.cpp                         # 入口（QApplication 初始化，版本号由 APP_VERSION 宏注入）
 │
 │   # ── 主窗口（共用 mainwindow.h，按职责拆分）──
 ├── mainwindow.h                     # MainWindow 类声明
@@ -851,6 +887,12 @@ tests/
 ├── test_completer.cpp               # 补全词库完整性 + detectContext 上下文检测 + `=` 后颜色值补全（完整调色板）
 ├── test_document_state.cpp          # 文档状态追踪（16 个用例：范围/库/样式/坐标/pic/foreach(含可选参数)/颜色/\usepackage 激活 physics·siunitx·pgfplots）
 └── test_enhanced_highlighter.cpp    # 增强语法高亮（14 个用例：PGF路径/处理器/用户定义名/key=value花括号深度/跨行选项/综合）
+
+# ── 打包与安装 ──
+cmake/
+└── cmake_uninstall.cmake.in         # uninstall 目标使用的模板（按 install_manifest.txt 卸载）
+hitikz.desktop                       # 桌面入口（Exec=hitikz，Icon=hitikz）
+hitikz.svg                           # 应用图标（scalable）
 ```
 
 ### 核心类关系

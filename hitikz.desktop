@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=hitikz
+Exec=hitikz
+Icon=hitikz
+StartupWMClass=hitikz
+Categories=Utility;
+Terminal=false

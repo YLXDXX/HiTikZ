@@ -1,0 +1,29 @@
+# Uninstall script: removes every file recorded in install_manifest.txt.
+set(MANIFEST "@CMAKE_BINARY_DIR@/install_manifest.txt")
+
+if(NOT EXISTS "${MANIFEST}")
+    message(FATAL_ERROR "Cannot find install manifest: ${MANIFEST}\n"
+                        "Run the install step before uninstalling.")
+endif()
+
+file(STRINGS "${MANIFEST}" files)
+foreach(file ${files})
+    message(STATUS "Uninstalling: $ENV{DESTDIR}${file}")
+    if(IS_SYMLINK "$ENV{DESTDIR}${file}" OR EXISTS "$ENV{DESTDIR}${file}")
+        execute_process(
+            COMMAND "@CMAKE_COMMAND@" -E rm -f "$ENV{DESTDIR}${file}"
+            RESULT_VARIABLE rm_result)
+        if(NOT rm_result EQUAL 0)
+            message(WARNING "Failed to remove: $ENV{DESTDIR}${file}")
+        endif()
+    else()
+        message(STATUS "File does not exist: $ENV{DESTDIR}${file}")
+    endif()
+endforeach()
+
+# Also drop the now-empty resource directory installed for the app.
+set(APP_DATADIR "@CMAKE_INSTALL_FULL_DATADIR@/@APP_ID@")
+if(EXISTS "$ENV{DESTDIR}${APP_DATADIR}")
+    file(REMOVE_RECURSE "$ENV{DESTDIR}${APP_DATADIR}")
+    message(STATUS "Removed directory: $ENV{DESTDIR}${APP_DATADIR}")
+endif()

@@ -1,8 +1,22 @@
 cmake_minimum_required(VERSION 3.16)
-project(TikzManager VERSION 0.2 LANGUAGES CXX)
+project(TikzManager VERSION 0.1 LANGUAGES CXX)
+
+# Single source of truth for the version number is the project() call above.
+# It is exposed to the C++ code as APP_VERSION (see target_compile_definitions).
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# Follow the GNU/Linux directory conventions. When the user does not pass
+# -DCMAKE_INSTALL_PREFIX, self-built software installs under /usr/local.
+include(GNUInstallDirs)
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+    set(CMAKE_INSTALL_PREFIX "/usr/local"
+        CACHE PATH "Install prefix" FORCE)
+endif()
+
+# Name of the installed program / .desktop / icon (all lowercase).
+set(APP_ID hitikz)
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
@@ -107,8 +121,13 @@ add_executable(TikzManager
 
 target_link_libraries(TikzManager PRIVATE Qt6::Widgets Qt6::Pdf Qt6::PdfWidgets Qt6::Concurrent)
 
+# Installed program name is all-lowercase "hitikz" (matches hitikz.desktop).
+set_target_properties(TikzManager PROPERTIES OUTPUT_NAME ${APP_ID})
+
 target_compile_definitions(TikzManager PRIVATE
     RESOURCE_DIR=${CMAKE_SOURCE_DIR}/resources
+    INSTALL_RESOURCE_DIR=${CMAKE_INSTALL_FULL_DATADIR}/${APP_ID}/resources
+    APP_VERSION="${PROJECT_VERSION}"
 )
 
 if(HAS_KGLOBALACCEL)
@@ -119,6 +138,37 @@ endif()
 if(NOT HAS_KGLOBALACCEL AND WITH_QHOTKEY AND TARGET qhotkey)
     target_link_libraries(TikzManager PRIVATE qhotkey)
     target_compile_definitions(TikzManager PRIVATE HAS_QHOTKEY)
+endif()
+
+# ---------------------------------------------------------------------------
+# Installation
+#
+#   cmake --install build                 # install to CMAKE_INSTALL_PREFIX (/usr/local by default)
+#   cmake --install build --prefix /usr   # or a custom prefix
+#   sudo cmake --build build --target uninstall
+# ---------------------------------------------------------------------------
+install(TARGETS TikzManager
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+# Bundled presets and templates.
+install(DIRECTORY resources/
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/${APP_ID}/resources)
+
+# Desktop entry and application icon.
+install(FILES ${CMAKE_SOURCE_DIR}/${APP_ID}.desktop
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/applications)
+install(FILES ${CMAKE_SOURCE_DIR}/${APP_ID}.svg
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/scalable/apps)
+
+# Uninstall target (CMake has no built-in one) — removes files listed in the
+# install manifest generated at install time.
+if(NOT TARGET uninstall)
+    configure_file(
+        "${CMAKE_SOURCE_DIR}/cmake/cmake_uninstall.cmake.in"
+        "${CMAKE_BINARY_DIR}/cmake_uninstall.cmake"
+        IMMEDIATE @ONLY)
+    add_custom_target(uninstall
+        COMMAND ${CMAKE_COMMAND} -P ${CMAKE_BINARY_DIR}/cmake_uninstall.cmake)
 endif()
 
 enable_testing()

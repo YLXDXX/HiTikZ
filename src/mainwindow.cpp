@@ -56,6 +56,18 @@
 #define STRINGIFY(x) STRINGIFY_IMPL(x)
 #define STRINGIFY_IMPL(x) #x
 #define RES_DIR STRINGIFY(RESOURCE_DIR)
+#define INSTALL_RES_DIR STRINGIFY(INSTALL_RESOURCE_DIR)
+
+// Locate the bundled resources (presets/templates). Prefer the installed
+// location (set at configure time); fall back to the in-tree source directory
+// so the program also runs directly from the build tree during development.
+static QString resolveResourceDir()
+{
+    const QString installDir = QStringLiteral(INSTALL_RES_DIR);
+    if (!installDir.isEmpty() && QDir(installDir).exists())
+        return installDir;
+    return QStringLiteral(RES_DIR);
+}
 
 #include "mainwindow_internal.h"
 
@@ -63,7 +75,7 @@ static const QRegularExpression paramLineRe(QStringLiteral("^%\\s*@param:.*(\n|\
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 {
-    QString resourceDir = QStringLiteral(RES_DIR);
+    QString resourceDir = resolveResourceDir();
     SettingsDialog::ensureTemplatesCopied(resourceDir + "/templates");
 
     // Only copy presets on first run (tracked via QSettings flag)
@@ -1570,7 +1582,7 @@ void MainWindow::factoryReset()
     QDir().mkpath(dataLocation + "/presets");
     QDir().mkpath(dataLocation + "/templates");
 
-    QString resourceDir = QStringLiteral(RES_DIR);
+    QString resourceDir = resolveResourceDir();
     SettingsDialog::ensureTemplatesCopied(resourceDir + "/templates");
     SnippetManager::copyPresetsFromResources(
         resourceDir + "/presets",
