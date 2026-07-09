@@ -1,5 +1,6 @@
 #pragma once
 #include <QProcess>
+#include <QProcessEnvironment>
 #include <QObject>
 #include <QString>
 #include <QStringList>
@@ -42,9 +43,9 @@ public:
     QString svgTool() const;
     QString lastFullCommand() const { return m_lastFullCommand; }
 
-    static bool checkXelatexAvailable();
-    static bool checkPdfToCairoAvailable();
-    static bool checkInkscapeAvailable();
+    bool checkXelatexAvailable() const;
+    bool checkPdfToCairoAvailable() const;
+    bool checkInkscapeAvailable() const;
 
     QString wrapCode(const QString &texCode, const QString &templateId,
                     const QString &packages, const QString &tikzLibraries,
@@ -70,6 +71,17 @@ private:
     QString texInputs;
     int m_userCodeStartLine = 1;
     QString m_lastFullCommand;
+
+    // Build the environment used for every launched subprocess (compile,
+    // conversions, availability checks). The user-configured extra paths are
+    // prepended to PATH (so tools like xelatex are found even when the app is
+    // launched from a desktop entry with a minimal PATH) and added to TEXINPUTS.
+    QProcessEnvironment processEnvironment() const;
+
+    // Resolve a tool name to an absolute path, searching the user-configured
+    // directories first and then the system PATH. Returns the input unchanged
+    // if it is already an explicit path or cannot be found.
+    QString resolveTool(const QString &name) const;
 
     QString loadTemplate(const QString &templateId) const;
 };

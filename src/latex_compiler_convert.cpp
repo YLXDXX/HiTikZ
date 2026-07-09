@@ -8,26 +8,35 @@
 #include <QEventLoop>
 #include <QTimer>
 
-bool LatexCompiler::checkXelatexAvailable()
+bool LatexCompiler::checkXelatexAvailable() const
 {
     QProcess test;
-    test.start("xelatex", QStringList() << "--version");
+    test.setProcessEnvironment(processEnvironment());
+    test.start(resolveTool(xelatexPath), QStringList() << "--version");
+    if (!test.waitForStarted(3000))
+        return false;
     test.waitForFinished(3000);
     return test.exitCode() == 0;
 }
 
-bool LatexCompiler::checkPdfToCairoAvailable()
+bool LatexCompiler::checkPdfToCairoAvailable() const
 {
     QProcess test;
-    test.start("pdftocairo", QStringList() << "-v");
+    test.setProcessEnvironment(processEnvironment());
+    test.start(resolveTool(pdfToCairoPath), QStringList() << "-v");
+    if (!test.waitForStarted(3000))
+        return false;
     test.waitForFinished(3000);
     return test.exitCode() == 0;
 }
 
-bool LatexCompiler::checkInkscapeAvailable()
+bool LatexCompiler::checkInkscapeAvailable() const
 {
     QProcess test;
-    test.start("inkscape", QStringList() << "--version");
+    test.setProcessEnvironment(processEnvironment());
+    test.start(resolveTool(inkscapePath), QStringList() << "--version");
+    if (!test.waitForStarted(3000))
+        return false;
     test.waitForFinished(3000);
     return test.exitCode() == 0;
 }
@@ -51,6 +60,7 @@ void LatexCompiler::convertToPng(const QString &pdfPath, int dpi)
     args << "-png" << "-r" << QString::number(dpi) << "-singlefile" << pdfPath << outPrefix;
 
     QProcess *conv = new QProcess(this);
+    conv->setProcessEnvironment(processEnvironment());
     connect(conv, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
         this, [this, conv, outPrefix](int exitCode, QProcess::ExitStatus) {
             QString png = outPrefix + ".png";
@@ -64,7 +74,7 @@ void LatexCompiler::convertToPng(const QString &pdfPath, int dpi)
             conv->deleteLater();
         });
 
-    conv->start(pdfToCairoPath, args);
+    conv->start(resolveTool(pdfToCairoPath), args);
 }
 
 void LatexCompiler::convertToSvg()
@@ -83,6 +93,7 @@ void LatexCompiler::convertToSvg(const QString &pdfPath)
     QString outSvg = fi.absolutePath() + "/" + fi.completeBaseName() + ".svg";
 
     QProcess *conv = new QProcess(this);
+    conv->setProcessEnvironment(processEnvironment());
     connect(conv, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
         this, [this, conv, outSvg](int exitCode, QProcess::ExitStatus) {
             bool ok = (exitCode == 0 && QFile::exists(outSvg));
@@ -103,11 +114,11 @@ void LatexCompiler::convertToSvg(const QString &pdfPath)
              << "--pages=1"
              << pdfPath
              << "-o" << outSvg;
-        conv->start(inkscapePath, args);
+        conv->start(resolveTool(inkscapePath), args);
     } else {
         QStringList args;
         args << "-svg" << pdfPath << outSvg;
-        conv->start(pdfToCairoPath, args);
+        conv->start(resolveTool(pdfToCairoPath), args);
     }
 }
 
@@ -117,6 +128,7 @@ bool LatexCompiler::convertToSvgBlocking(const QString &pdfPath, const QString &
         return false;
 
     QProcess proc;
+    proc.setProcessEnvironment(processEnvironment());
     if (svgTool_ == "inkscape") {
         QStringList args;
         args << "--export-type=svg"
@@ -125,11 +137,11 @@ bool LatexCompiler::convertToSvgBlocking(const QString &pdfPath, const QString &
              << "--pages=1"
              << pdfPath
              << "-o" << outSvgPath;
-        proc.start(inkscapePath, args);
+        proc.start(resolveTool(inkscapePath), args);
     } else {
         QStringList args;
         args << "-svg" << pdfPath << outSvgPath;
-        proc.start(pdfToCairoPath, args);
+        proc.start(resolveTool(pdfToCairoPath), args);
     }
     proc.waitForFinished(15000);
     return (proc.exitCode() == 0 && QFile::exists(outSvgPath));

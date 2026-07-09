@@ -77,6 +77,50 @@ void LatexCompiler::setTexInputs(const QString &texInputs)
     this->texInputs = texInputs;
 }
 
+QProcessEnvironment LatexCompiler::processEnvironment() const
+{
+    QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+    if (!texInputs.isEmpty()) {
+        const QString sep = QStringLiteral(":");
+
+        // Prepend the configured directories to PATH so bundled tools
+        // (xelatex, pdftocairo, inkscape) resolve even when launched from a
+        // desktop environment that provides only a minimal PATH.
+        const QString path = env.value(QStringLiteral("PATH"));
+        env.insert(QStringLiteral("PATH"),
+                   path.isEmpty() ? texInputs : texInputs + sep + path);
+
+        // Also expose them to TEXINPUTS so local input files are found.
+        const QString currentInputs = env.value(QStringLiteral("TEXINPUTS"));
+        env.insert(QStringLiteral("TEXINPUTS"),
+                   currentInputs.isEmpty() ? texInputs + sep
+                                           : texInputs + sep + currentInputs);
+    }
+    return env;
+}
+
+QString LatexCompiler::resolveTool(const QString &name) const
+{
+    if (name.isEmpty())
+        return name;
+
+    // Explicit path given — use as-is.
+    if (name.contains(QLatin1Char('/')))
+        return name;
+
+    // Search the user-configured directories first, then the system PATH.
+    // QProcess's own PATH lookup on Unix does not reliably honour the PATH set
+    // via setProcessEnvironment(), so resolve to an absolute path here.
+    if (!texInputs.isEmpty()) {
+        const QStringList extra = texInputs.split(QLatin1Char(':'), Qt::SkipEmptyParts);
+        const QString found = QStandardPaths::findExecutable(name, extra);
+        if (!found.isEmpty())
+            return found;
+    }
+    const QString sys = QStandardPaths::findExecutable(name);
+    return sys.isEmpty() ? name : sys;
+}
+
 QString LatexCompiler::xelatexCommand() const
 {
     return xelatexPath;
@@ -218,16 +262,7 @@ void LatexCompiler::compile(const QString &texCode, const QString &templateId, c
     file.write(fullCode.toUtf8());
     file.close();
 
-    QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
-    if (!texInputs.isEmpty()) {
-        QString currentInputs = env.value("TEXINPUTS", "");
-        if (currentInputs.isEmpty()) {
-            env.insert("TEXINPUTS", texInputs + ":");
-        } else {
-            env.insert("TEXINPUTS", texInputs + ":" + currentInputs);
-        }
-    }
-    process->setProcessEnvironment(env);
+    process->setProcessEnvironment(processEnvironment());
     process->setWorkingDirectory(currentCompileDir);
 
     connect(process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
@@ -291,5 +326,5 @@ void LatexCompiler::compile(const QString &texCode, const QString &templateId, c
         m_lastFullCommand += " " + a;
     }
 
-    process->start(program, args);
+    process->start(resolveTool(program), args);
 }

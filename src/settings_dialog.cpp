@@ -36,7 +36,11 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     svgToolCombo->addItem("pdftocairo", "pdftocairo");
     svgToolCombo->addItem("inkscape", "inkscape");
     texInputsEdit = new QLineEdit;
-    texInputsEdit->setPlaceholderText(QStringLiteral("额外的环境变量，用于相关命令查找，用冒号分隔"));
+    texInputsEdit->setPlaceholderText(QStringLiteral(
+        "可执行文件搜索路径，如 /usr/local/texlive/2025/bin/x86_64-linux，多个用冒号分隔"));
+    texInputsEdit->setToolTip(QStringLiteral(
+        "这些目录会被加入 PATH（用于查找 xelatex/pdftocairo/inkscape 等命令）"
+        "以及 TEXINPUTS。当从桌面图标启动、系统 PATH 不含 TeX Live 时尤其有用。"));
     pngDpiSpin = new QSpinBox;
     pngDpiSpin->setRange(72, 1200);
     pngDpiSpin->setValue(300);
@@ -51,7 +55,7 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     formLayout->addRow(QStringLiteral("pdftocairo 命令:"), pdftocairoPathEdit);
     formLayout->addRow(QStringLiteral("inkscape 命令:"), inkscapePathEdit);
     formLayout->addRow(QStringLiteral("SVG 转换工具:"), svgToolCombo);
-    formLayout->addRow(QStringLiteral("环境变量:"), texInputsEdit);
+    formLayout->addRow(QStringLiteral("命令搜索路径:"), texInputsEdit);
     formLayout->addRow(QStringLiteral("PNG DPI:"), pngDpiSpin);
     formLayout->addRow(QStringLiteral("代码字体大小:"), editorFontSizeSpin);
     formLayout->addRow(QStringLiteral("界面字体大小:"), uiFontSizeSpin);

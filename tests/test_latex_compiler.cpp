@@ -14,14 +14,16 @@ int main(int argc, char *argv[]) {
 
     // Test 1: Check xelatex availability
     {
-        bool avail = LatexCompiler::checkXelatexAvailable();
+        LatexCompiler compiler;
+        bool avail = compiler.checkXelatexAvailable();
         if (!avail) { qDebug() << "FAIL: Test 1 - xelatex not available"; failed++; }
         else qDebug() << "PASS: Test 1 - xelatex available";
     }
 
     // Test 2: Check pdftocairo availability
     {
-        bool avail = LatexCompiler::checkPdfToCairoAvailable();
+        LatexCompiler compiler;
+        bool avail = compiler.checkPdfToCairoAvailable();
         if (!avail) { qDebug() << "FAIL: Test 2 - pdftocairo not available"; failed++; }
         else qDebug() << "PASS: Test 2 - pdftocairo available";
     }
@@ -878,8 +880,9 @@ int main(int argc, char *argv[]) {
     // Test 51: destroying a compiler with an in-flight async conversion must
     // not crash or leave the process running (destructor reaps conv children).
     {
-        if (!LatexCompiler::checkXelatexAvailable()
-            || !LatexCompiler::checkPdfToCairoAvailable()) {
+        LatexCompiler avail;
+        if (!avail.checkXelatexAvailable()
+            || !avail.checkPdfToCairoAvailable()) {
             fprintf(stderr, "SKIP: Test 51 - xelatex/pdftocairo not available\n");
         } else {
             LatexCompiler gen;

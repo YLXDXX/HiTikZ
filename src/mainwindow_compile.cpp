@@ -490,16 +490,16 @@ void MainWindow::checkSystemDependencies()
 {
     QStringList missing;
 
-    if (!LatexCompiler::checkXelatexAvailable())
+    if (!compiler->checkXelatexAvailable())
         missing << QStringLiteral("xelatex");
 
     QSettings settings("HiTikZ", "TikzManager");
     QString svgTool = settings.value("svg/tool", "pdftocairo").toString();
     if (svgTool == "inkscape") {
-        if (!LatexCompiler::checkInkscapeAvailable())
+        if (!compiler->checkInkscapeAvailable())
             missing << QStringLiteral("inkscape");
     } else {
-        if (!LatexCompiler::checkPdfToCairoAvailable())
+        if (!compiler->checkPdfToCairoAvailable())
             missing << QStringLiteral("pdftocairo");
     }
 

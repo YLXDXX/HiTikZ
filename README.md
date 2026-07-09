@@ -747,12 +747,14 @@ calc,er,angles,patterns,decorations.pathmorphing,shadows.blur,pgfplots.fillbetwe
 工具栏"设置"按钮打开设置对话框，包含以下区域：
 
 **路径设置**：
-- xelatex / pdftocairo / inkscape 命令（默认从 `$PATH` 查找）
+- xelatex / pdftocairo / inkscape 命令（默认从 `$PATH` 查找，可填绝对路径）
 - SVG 转换工具选择：pdftocairo 或 inkscape
-- 额外环境变量
+- **命令搜索路径**：额外的可执行文件目录（多个用冒号分隔）。这些目录会被加入所有子进程的 `PATH`（同时也加入 `TEXINPUTS`），用于查找 `xelatex`/`pdftocairo`/`inkscape` 等命令。**从桌面图标启动、系统 `PATH` 不含 TeX Live 时尤其有用**——例如 TeX Live 用户可填入 `/usr/local/texlive/2025/bin/x86_64-linux`
 - PNG DPI（72–1200，默认 300）
 - 代码字体大小（8–48，默认 10）
 - 界面字体大小（8–48，默认 10）— 影响左栏分类树、缩略图名称及全局界面字体
+
+> **提示**：桌面环境（尤其是 Wayland/systemd 会话）启动 GUI 程序时的 `PATH` 往往比终端里的精简，可能不含 `/usr/local/texlive/.../bin`。若启动时提示「未找到依赖工具 xelatex」，在此处填入 TeX Live 的 `bin` 目录即可（无需登出或修改系统环境）。
 
 **快捷键设置**：
 - 全部 8 项操作均可自定义键序列
