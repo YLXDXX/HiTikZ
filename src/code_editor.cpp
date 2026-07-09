@@ -174,6 +174,100 @@ void CodeEditor::keyPressEvent(QKeyEvent *event)
         return;
     }
 
+    // ── Auto-pair brackets / braces / parentheses ──
+    {
+        const QString &text = event->text();
+        auto mods = event->modifiers();
+        if (!text.isEmpty() && !(mods & (Qt::ControlModifier | Qt::AltModifier))) {
+            QTextCursor cursor = textCursor();
+            bool handled = false;
+
+            // Opening brackets: insert pair and place cursor between them.
+            if (text == QLatin1String("{") || text == QLatin1String("[")
+                || text == QLatin1String("(")) {
+                QChar open = text.at(0);
+                QChar close;
+                if (open == QLatin1Char('{'))      close = QLatin1Char('}');
+                else if (open == QLatin1Char('[')) close = QLatin1Char(']');
+                else                               close = QLatin1Char(')');
+
+                if (cursor.hasSelection()) {
+                    // Wrap the selected text:  {selection}  [selection]  etc.
+                    int selStart = cursor.selectionStart();
+                    int selEnd = cursor.selectionEnd();
+                    cursor.setPosition(selStart);
+                    cursor.insertText(QString(open));
+                    cursor.setPosition(selEnd + 1);
+                    cursor.insertText(QString(close));
+                    handled = true;
+                } else {
+                    // Check whether we are on a comment line — don't
+                    // auto-pair inside comments.
+                    cursor.movePosition(QTextCursor::StartOfBlock,
+                                        QTextCursor::KeepAnchor);
+                    QString lineStart = cursor.selectedText().trimmed();
+                    cursor = textCursor();   // restore original position
+                    bool inComment = lineStart.startsWith(QLatin1Char('%'));
+
+                    if (!inComment) {
+                        cursor.insertText(QString(open) + QString(close));
+                        cursor.movePosition(QTextCursor::Left,
+                                            QTextCursor::MoveAnchor, 1);
+                        setTextCursor(cursor);
+                        handled = true;
+                    }
+                }
+            }
+            // Closing brackets: skip over if the next character is the same.
+            else if (text == QLatin1String("}") || text == QLatin1String("]")
+                     || text == QLatin1String(")")) {
+                QChar close = text.at(0);
+                if (!cursor.hasSelection() && !cursor.atEnd()) {
+                    cursor.movePosition(QTextCursor::Right,
+                                        QTextCursor::KeepAnchor, 1);
+                    if (cursor.selectedText().at(0) == close) {
+                        cursor.clearSelection();
+                        cursor.movePosition(QTextCursor::Right,
+                                            QTextCursor::MoveAnchor, 1);
+                        setTextCursor(cursor);
+                        handled = true;
+                    }
+                }
+            }
+
+            if (handled) {
+                if (m_completer)
+                    QTimer::singleShot(0, this,
+                                       [this]() { m_completer->tryComplete(); });
+                return;
+            }
+        }
+
+        // Backspace inside an empty bracket pair: delete both characters.
+        if (event->key() == Qt::Key_Backspace && !(mods & Qt::ShiftModifier)) {
+            QTextCursor cursor = textCursor();
+            if (!cursor.hasSelection() && cursor.position() >= 2
+                && cursor.position() < document()->characterCount() - 1) {
+                int pos = cursor.position();
+                QChar before = document()->characterAt(pos - 1);
+                QChar after  = document()->characterAt(pos);
+                bool isPair =
+                    (before == QLatin1Char('{') && after == QLatin1Char('}')) ||
+                    (before == QLatin1Char('[') && after == QLatin1Char(']')) ||
+                    (before == QLatin1Char('(') && after == QLatin1Char(')'));
+                if (isPair) {
+                    cursor.setPosition(pos);
+                    cursor.setPosition(pos + 2, QTextCursor::KeepAnchor);
+                    cursor.removeSelectedText();
+                    if (m_completer)
+                        QTimer::singleShot(0, this,
+                                           [this]() { m_completer->tryComplete(); });
+                    return;
+                }
+            }
+        }
+    }
+
     QPlainTextEdit::keyPressEvent(event);
 
     if (m_completer && !event->text().isEmpty()) {
