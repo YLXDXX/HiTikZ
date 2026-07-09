@@ -698,11 +698,12 @@ static int test_no_bogus_commands()
 
     // Must NOT be registered as \backslash commands.
     // (Note: "arrow" is intentionally excluded — \arrow is a genuine tikz-cd
-    // command, gated to the tikzcd environment.)
+    // command, gated to the tikzcd environment. "vertex" is excluded too —
+    // \vertex is a genuine tikz-feynman command, gated to that package.)
     const char *bogus[] = {
         "anchor","arc","ball","bend","circle","coordinates","cycle",
         "dataset","drawplot","forest","getref","lineto","pattern",
-        "pgfmathsetmacroglobal","pin","plot","scope","tabular","vertex","edge",
+        "pgfmathsetmacroglobal","pin","plot","scope","tabular","edge",
         // CircuiTikZ components (belong in to[...]/node[...], gated by circuitikz)
         "resistor","capacitor","inductor","voltmeter","ammeter","ohmmeter",
         "battery","lamp","buzzer","oscope","memristor","varistor",
@@ -1161,6 +1162,116 @@ static int test_pgfplots_keys_accurate()
     return failed;
 }
 
+// Verifies package-specific completion (tikz-cd, tkz-euclide, chemfig,
+// tikz-feynman) matches the installed TeX Live sources: genuine entries present
+// and correctly library-gated, bogus/removed entries absent.
+static int test_package_completion_accurate()
+{
+    int failed = 0;
+    using TikzKeywords::TikzKeywordDB;
+    using TikzKeywords::Category;
+    auto &db = TikzKeywordDB::instance();
+
+    auto reqCmd = [&](const char *n, const char *lib) {
+        const auto *k = db.find(QString::fromUtf8(n), Category::Command);
+        if (!k) { fprintf(stderr, "FAIL: PKG - command '%s' missing\n", n); failed++; }
+        else if (!k->requiredLibs.contains(QString::fromUtf8(lib))) {
+            fprintf(stderr, "FAIL: PKG - '%s' not gated by %s\n", n, lib); failed++;
+        }
+    };
+    auto reqOpt = [&](const char *n, const char *lib) {
+        const auto *k = db.find(QString::fromUtf8(n), Category::Option);
+        if (!k) { fprintf(stderr, "FAIL: PKG - option '%s' missing\n", n); failed++; }
+        else if (!k->requiredLibs.contains(QString::fromUtf8(lib))) {
+            fprintf(stderr, "FAIL: PKG - '%s' not gated by %s\n", n, lib); failed++;
+        }
+    };
+    auto absentCmd = [&](const char *n) {
+        if (db.find(QString::fromUtf8(n), Category::Command)) {
+            fprintf(stderr, "FAIL: PKG - bogus command '%s' should be gone\n", n); failed++;
+        }
+    };
+    auto absentOpt = [&](const char *n) {
+        if (db.find(QString::fromUtf8(n), Category::Option)) {
+            fprintf(stderr, "FAIL: PKG - bogus option '%s' should be gone\n", n); failed++;
+        }
+    };
+
+    // ── tikz-cd (gated by the tikzcd environment, not requiredLibs) ──
+    auto envCmd = [&](const char *n) {
+        const auto *k = db.find(QString::fromUtf8(n), Category::Command);
+        if (!k) { fprintf(stderr, "FAIL: PKG - command '%s' missing\n", n); failed++; }
+        else if (!k->environments.contains(QStringLiteral("tikzcd"))) {
+            fprintf(stderr, "FAIL: PKG - '%s' not scoped to tikzcd env\n", n); failed++;
+        }
+    };
+    auto envOpt = [&](const char *n) {
+        const auto *k = db.find(QString::fromUtf8(n), Category::Option);
+        if (!k) { fprintf(stderr, "FAIL: PKG - option '%s' missing\n", n); failed++; }
+        else if (!k->environments.contains(QStringLiteral("tikzcd"))) {
+            fprintf(stderr, "FAIL: PKG - '%s' not scoped to tikzcd env\n", n); failed++;
+        }
+    };
+    for (const char *c : {"ar","rar","lar","uar","dar","urar","ular","drar","dlar"})
+        envCmd(c);
+    for (const char *o : {"rightarrow","leftarrow","Rightarrow","hook","hook'","harpoon",
+                          "harpoon'","two heads","no head","maps to","dash","equal",
+                          "squiggly","dashed","math mode","arrows","row sep","column sep",
+                          "crossing over","phantom"})
+        envOpt(o);
+    absentCmd("obj");
+    absentOpt("tweak");
+    absentOpt("math nodes");
+
+    // ── tkz-euclide ──
+    for (const char *c : {"tkzInit","tkzDefPoint","tkzDefLine","tkzDefCircle",
+                          "tkzDefTriangle","tkzDefSquare","tkzDefRegPolygon",
+                          "tkzDrawPolygon","tkzDrawCircle","tkzDrawArc","tkzDrawSegment",
+                          "tkzInterLL","tkzInterLC","tkzInterCC","tkzMarkRightAngle",
+                          "tkzLabelPoints","tkzDefTriangleCenter","tkzClipCircle"})
+        reqCmd(c, "tkz-euclide");
+    // v4 names removed in v5.10c
+    for (const char *c : {"tkzDrawTriangle","tkzDrawSquare","tkzTangent","tkzDrawBisector",
+                          "tkzDrawMedian","tkzDrawAltitude","tkzDrawEulerLine",
+                          "tkzDrawAngle","tkzFillTriangle","tkzDrawRegPolygon",
+                          "tkzClipLine","tkzDefPolygonCenter"})
+        absentCmd(c);
+
+    // ── chemfig ──
+    for (const char *c : {"chemfig","definesubmol","redefinesubmol","chemname",
+                          "chemabove","chembelow","schemestart","schemestop",
+                          "setchemfig","charge","Charge","polymerdelim","chemleft"})
+        reqCmd(c, "chemfig");
+    for (const char *o : {"atom sep","bond offset","double bond sep","angle increment",
+                          "cram width","arrow offset","compound sep","bond style"})
+        reqOpt(o, "chemfig");
+
+    // ── tikz-feynman ──
+    for (const char *c : {"feynmandiagram","tikzfeynmanset","feynman","vertex","diagram"})
+        reqCmd(c, "tikz-feynman");
+    for (const char *o : {"fermion","anti fermion","photon","boson","charged boson",
+                          "scalar","charged scalar","ghost","gluon","majorana","plain",
+                          "momentum","momentum'","rmomentum","half left","half right",
+                          "with arrow","insertion","dot","blob"})
+        reqOpt(o, "tikz-feynman");
+
+    // Gating: none of these should appear in a plain tikzpicture without the pkg.
+    QSet<QString> none;
+    auto plainCmds = db.filter(QStringLiteral("tikzpicture"), QString(), none, Category::Command);
+    for (auto *k : plainCmds) {
+        if (k->name == QLatin1String("tkzDefPoint") || k->name == QLatin1String("chemfig")
+            || k->name == QLatin1String("feynmandiagram")) {
+            fprintf(stderr, "FAIL: PKG - '%s' leaked without its package\n",
+                    k->name.toUtf8().constData());
+            failed++;
+        }
+    }
+
+    fprintf(stderr, "%s: tikz-cd/tkz-euclide/chemfig/tikz-feynman completion source-accurate\n",
+            failed == 0 ? "PASS" : "FAIL");
+    return failed;
+}
+
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
@@ -1192,6 +1303,7 @@ int main(int argc, char *argv[])
     failed += test_decorations_accurate();
     failed += test_physics_siunitx_gated();
     failed += test_pgfplots_keys_accurate();
+    failed += test_package_completion_accurate();
 
     if (failed > 0) {
         fprintf(stderr, "\n%d test(s) failed!\n", failed);

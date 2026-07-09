@@ -99,110 +99,90 @@ void registerCommands(Vec &db)
     }
 
     // ═══════════════════════════════════════════════════════════════
-    //  tkz-euclide v5 commands
-    //  Activated by \usepackage{tkz-euclide}
+    //  tkz-euclide v5.10c commands (activated by \usepackage{tkz-euclide})
+    //  User-facing macros verified against texmf-dist/tex/latex/tkz-euclide/.
+    //  Note: v5 has no \tkzDrawTriangle/\tkzDrawSquare/\tkzTangent/etc — one
+    //  defines objects (\tkzDefTriangle/\tkzDefSquare) then draws with
+    //  \tkzDrawPolygon; those bogus v4 names were removed.
     // ═══════════════════════════════════════════════════════════════
     auto tkeEnvs = {"tikzpicture","scope"};
+    const char *tkeCmds[] = {
+        // init / setup
+        "tkzInit","tkzClip","tkzClipBB","tkzClipCircle","tkzClipPolygon",
+        "tkzClipSector","tkzShowBB","tkzGrid","tkzHelpGrid","tkzText","tkzLegend",
+        "tkzSetUpPoint","tkzSetUpLine","tkzSetUpLabel","tkzSetUpArc","tkzSetUpCircle",
+        "tkzSetUpColors","tkzSetUpCompass","tkzSetUpAxis","tkzSetUpGrid",
+        // define points
+        "tkzDefPoint","tkzDefPoints","tkzDefMidPoint","tkzDefBarycentricPoint",
+        "tkzDefShiftPoint","tkzDefShiftPointCoord","tkzDefPointBy","tkzDefPointsBy",
+        "tkzDefPointWith","tkzDefPointOnLine","tkzDefPointOnCircle",
+        "tkzDefRandPointOn","tkzDefEquiPoints","tkzDefProjExcenter",
+        // define lines
+        "tkzDefLine","tkzDefLineLL","tkzDefParallelogram","tkzDefRectangle",
+        "tkzDefMediatorLine","tkzDefBisectorLine","tkzDefBisectorOutLine",
+        "tkzDefOrthLine","tkzDefAltitudeLine","tkzDefSymmedianLine",
+        "tkzDefTangent","tkzDefEulerLine",
+        // define circles
+        "tkzDefCircle","tkzDefCircleBy","tkzDefCircleR","tkzDefCircleD",
+        "tkzDefInCircle","tkzDefExCircle","tkzDefCircumCircle","tkzDefEulerCircle",
+        "tkzDefSpiekerCircle","tkzDefApolloniusCircle","tkzDefOrthogonalCircle",
+        "tkzDefRadicalAxis","tkzDefInversionCircle","tkzDefMidArc",
+        // define polygons / triangles
+        "tkzDefSquare","tkzDefRectangle","tkzDefRegPolygon","tkzDefTriangle",
+        "tkzDefTriangleCenter","tkzDefEquilateral","tkzDefEuclideTriangle",
+        "tkzDefEulerTriangle","tkzDefExcentralTriangle","tkzDefIncentralTriangle",
+        "tkzDefOrthicTriangle","tkzDefIntouchTriangle",
+        "tkzDefExtouchTriangle","tkzDefTangentialTriangle","tkzDefGoldenTriangle",
+        "tkzDefTwoAnglesTriangle","tkzDefPythagore","tkzDefGoldRectangle",
+        // centers / getters
+        "tkzGetPoint","tkzGetPoints","tkzGetFirstPoint","tkzGetSecondPoint",
+        "tkzGetThirdPoint","tkzGetLength","tkzGetAngle","tkzGetPointCoord",
+        "tkzCentroid","tkzCircumCenter","tkzInCenter","tkzExCenter","tkzOrthoCenter",
+        "tkzEulerCenter","tkzRegPolygonCenter","tkzRenamePoint","tkzSwapPoints",
+        // intersections
+        "tkzInterLL","tkzInterLC","tkzInterCC","tkzInterLCR","tkzInterCCR",
+        // draw points/lines/segments
+        "tkzDrawPoint","tkzDrawPoints","tkzDrawLine","tkzDrawLines",
+        "tkzDrawSegment","tkzDrawSegments","tkzDrawPolySeg","tkzDrawX","tkzDrawY",
+        // draw polygons / circles / arcs / sectors
+        "tkzDrawPolygon","tkzDrawPolygons","tkzDrawCircle","tkzDrawCircles",
+        "tkzDrawSemiCircle","tkzDrawEllipse","tkzDrawArc","tkzDrawArcR",
+        "tkzDrawArcAngles","tkzDrawSector","tkzDrawSectorR",
+        // fill
+        "tkzFillPolygon","tkzFillCircle","tkzFillCircles","tkzFillAngle",
+        "tkzFillAngles","tkzFillSector",
+        // angles
+        "tkzLabelAngle","tkzLabelAngles","tkzMarkAngle",
+        "tkzMarkAngles","tkzMarkRightAngle","tkzMarkRightAngles","tkzPicAngle",
+        "tkzPicRightAngle","tkzFindAngle","tkzFindSlopeAngle",
+        // labels / marks
+        "tkzLabelPoint","tkzLabelPoints","tkzAutoLabelPoints","tkzLabelSegment",
+        "tkzLabelSegments","tkzLabelLine","tkzLabelCircle","tkzLabelArc",
+        "tkzLabelRegPolygon","tkzMarkSegment","tkzMarkSegments","tkzMarkArc",
+        // transformations / compass / show
+        "tkzCompass","tkzCompasss","tkzProtractor",
+        "tkzShowLine","tkzShowLLLine","tkzShowMediatorLine","tkzShowProjection",
+        "tkzShowTransformation","tkzCalcLength","tkzDuplicateSegment",
+        "tkzProjection","tkzTranslation","tkzInversePoint","tkzInverseNegativePoint",
+        "tkzRotateAngle","tkzURotateAngle",
+        nullptr
+    };
+    for (int i = 0; tkeCmds[i]; i++)
+        addBuiltin(db, tkeCmds[i], C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
 
-    addBuiltin(db, "tkzDefPoint",            C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-    addBuiltin(db, "tkzDefPoints",           C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-    addBuiltin(db, "tkzDefMidPoint",         C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-    addBuiltin(db, "tkzDefBarycentricPoint", C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-    addBuiltin(db, "tkzDefShiftPoint",       C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-    addBuiltin(db, "tkzDefPointBy",          C::Command, tkeEnvs, {},
+    // value hints for a few key tkz-euclide commands
+    addBuiltin(db, "tkzDefPointBy",    C::Command, tkeEnvs, {},
                {"translation","rotation","homothety","reflection","symmetry","projection","inversion"},
                {"tkz-euclide"});
-    addBuiltin(db, "tkzDefPointWith",        C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-
-    addBuiltin(db, "tkzGetPoint",            C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-    addBuiltin(db, "tkzGetPoints",           C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-    addBuiltin(db, "tkzGetLength",           C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-    addBuiltin(db, "tkzGetAngle",            C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-
-    addBuiltin(db, "tkzDefLine",             C::Command, tkeEnvs, {},
-               {"parallel","perpendicular","mediator","bisector"},
+    addBuiltin(db, "tkzDefLine",       C::Command, tkeEnvs, {},
+               {"parallel","orthogonal","perpendicular","mediator","bisector","tangent"},
                {"tkz-euclide"});
-    addBuiltin(db, "tkzDefCircle",           C::Command, tkeEnvs, {},
-               {"through","R","diameter","in","circum","ex","apollonius"},
+    addBuiltin(db, "tkzDefCircle",     C::Command, tkeEnvs, {},
+               {"through","R","diameter","in","circum","ex","apollonius","euler","orthogonal"},
                {"tkz-euclide"});
-
-    addBuiltin(db, "tkzDefSquare",           C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-    addBuiltin(db, "tkzDefRegPolygon",       C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-    addBuiltin(db, "tkzDefTriangle",         C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-    addBuiltin(db, "tkzDefTriangleCenter",   C::Command, tkeEnvs, {},
-               {"centroid","in","circum","ortho","euler","nine","ex"},
+    addBuiltin(db, "tkzDefTriangleCenter", C::Command, tkeEnvs, {},
+               {"centroid","in","circum","ortho","euler","nine","ex","median","symmedian","gergonne","nagel","spieker"},
                {"tkz-euclide"});
-    addBuiltin(db, "tkzDefPolygonCenter",    C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-
-    addBuiltin(db, "tkzDrawPoint",           C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-    addBuiltin(db, "tkzDrawPoints",          C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-
-    addBuiltin(db, "tkzDrawLine",            C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-    addBuiltin(db, "tkzDrawLines",           C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-    addBuiltin(db, "tkzDrawSegment",         C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-    addBuiltin(db, "tkzDrawSegments",        C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-    addBuiltin(db, "tkzDrawHalfLine",        C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-    addBuiltin(db, "tkzDrawHalfLines",       C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-
-    addBuiltin(db, "tkzDrawPolygon",         C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-    addBuiltin(db, "tkzDrawPolygons",        C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-    addBuiltin(db, "tkzFillPolygon",         C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-    addBuiltin(db, "tkzFillPolygons",        C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-
-    addBuiltin(db, "tkzDrawSquare",          C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-    addBuiltin(db, "tkzDrawRegPolygon",      C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-    addBuiltin(db, "tkzFillSquare",          C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-    addBuiltin(db, "tkzFillRegPolygon",      C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-
-    addBuiltin(db, "tkzDrawTriangle",        C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-    addBuiltin(db, "tkzFillTriangle",        C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-
-    addBuiltin(db, "tkzDrawCircle",          C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-    addBuiltin(db, "tkzDrawCircles",         C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-    addBuiltin(db, "tkzFillCircle",          C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-    addBuiltin(db, "tkzFillCircles",         C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-
-    addBuiltin(db, "tkzDrawArc",             C::Command, tkeEnvs, {},
-               {"R","delta"}, {"tkz-euclide"});
-    addBuiltin(db, "tkzFillArc",             C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-
-    addBuiltin(db, "tkzDrawAngle",           C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-    addBuiltin(db, "tkzFillAngle",           C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-    addBuiltin(db, "tkzFillAngles",          C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-    addBuiltin(db, "tkzLabelAngle",          C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-    addBuiltin(db, "tkzLabelAngles",         C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-    addBuiltin(db, "tkzMarkAngle",           C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-    addBuiltin(db, "tkzMarkAngles",          C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-    addBuiltin(db, "tkzMarkRightAngle",      C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-    addBuiltin(db, "tkzMarkRightAngles",     C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-
-    addBuiltin(db, "tkzLabelPoint",          C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-    addBuiltin(db, "tkzLabelPoints",         C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-    addBuiltin(db, "tkzLabelSegment",        C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-    addBuiltin(db, "tkzLabelSegments",       C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-    addBuiltin(db, "tkzLabelLine",           C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-    addBuiltin(db, "tkzLabelCircle",         C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-
-    addBuiltin(db, "tkzInterLL",             C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-    addBuiltin(db, "tkzInterLC",             C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-    addBuiltin(db, "tkzInterCC",             C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-    addBuiltin(db, "tkzGetFirstPoint",       C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-    addBuiltin(db, "tkzGetSecondPoint",      C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-
-    addBuiltin(db, "tkzTangent",             C::Command, tkeEnvs, {},
-               {"from","at","external"}, {"tkz-euclide"});
-
-    addBuiltin(db, "tkzDrawBisector",        C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-    addBuiltin(db, "tkzDrawMedian",          C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-    addBuiltin(db, "tkzDrawAltitude",        C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-    addBuiltin(db, "tkzDrawEulerLine",       C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-
-    addBuiltin(db, "tkzClipCircle",          C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-    addBuiltin(db, "tkzClipLine",            C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-
-    addBuiltin(db, "tkzSetUpPoint",          C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-    addBuiltin(db, "tkzSetUpLine",           C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
-    addBuiltin(db, "tkzSetUpLabel",          C::Command, tkeEnvs, {}, {}, {"tkz-euclide"});
 
     // ═══════════════════════════════════════════════════════════════
     //  physics package commands (heavily used in physics diagrams)

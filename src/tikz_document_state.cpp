@@ -33,7 +33,7 @@ TikzDocumentState::TikzDocumentState()
         "tikzpicture","scope","pgfonlayer",
         "axis","semilogxaxis","semilogyaxis","loglogaxis",
         "polaraxis","smithchart","ternaryaxis","groupplot",
-        "tikzcd","circuitikz","forest","mindmap"
+        "tikzcd","circuitikz","forest","mindmap","feynman"
     };
 }
 
@@ -66,6 +66,10 @@ void TikzDocumentState::clear()
             m_activeLibs.insert("siunitx");
         if (pkg.contains("pgfplots", Qt::CaseInsensitive))
             m_activeLibs.insert("pgfplots");
+        if (pkg.contains("chemfig", Qt::CaseInsensitive))
+            m_activeLibs.insert("chemfig");
+        if (pkg.contains("tikz-feynman", Qt::CaseInsensitive))
+            m_activeLibs.insert("tikz-feynman");
     }
 }
 
@@ -168,6 +172,10 @@ void TikzDocumentState::parseLine(const QString &text, int blockStartPos,
                             m_activeLibs.insert("siunitx");
                         if (trimmed == QLatin1String("pgfplots"))
                             m_activeLibs.insert("pgfplots");
+                        if (trimmed == QLatin1String("chemfig"))
+                            m_activeLibs.insert("chemfig");
+                        if (trimmed == QLatin1String("tikz-feynman"))
+                            m_activeLibs.insert("tikz-feynman");
                     }
                 }
                 pos = up.capturedEnd();

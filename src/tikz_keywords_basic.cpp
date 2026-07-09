@@ -274,6 +274,7 @@ void registerLibraries(Vec &db)
         "arrows.meta","trees",
         "topaths","graphs.standard","babel",
         "cd","circuitikz","tkz-euclide",
+        "chemfig","tikz-feynman","feynman",
         "shapes.gates.logic","shapes.gates.logic.IEC","shapes.gates.logic.US",
         nullptr};
     for (int i = 0; libs[i]; i++)

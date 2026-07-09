@@ -366,6 +366,19 @@ static int test_usepackage_activates_libs()
             failed++;
         }
     }
+    // chemfig / tikz-feynman activation
+    QTextDocument doc3;
+    doc3.setPlainText(
+        "\\usepackage{chemfig}\n"
+        "\\usepackage{tikz-feynman}\n");
+    TikzDocumentState state3;
+    state3.reparse(&doc3);
+    for (const char *lib : { "chemfig", "tikz-feynman" }) {
+        if (!state3.activeLibs().contains(QString::fromUtf8(lib))) {
+            fprintf(stderr, "FAIL: DCS-UP3 - \\usepackage should activate '%s'\n", lib);
+            failed++;
+        }
+    }
     // via the snippet packages metadata field
     TikzDocumentState state2;
     state2.setSnippetPackages({QStringLiteral("physics"), QStringLiteral("siunitx")});

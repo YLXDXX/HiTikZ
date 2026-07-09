@@ -178,9 +178,20 @@ void registerExtended(Vec &db)
     addBuiltin(db, "current/distance",   C::Option, {"circuitikz"});
     addBuiltin(db, "voltage/distance",   C::Option, {"circuitikz"});
     addBuiltin(db, "voltage/shift",      C::Option, {"circuitikz"});
+    addBuiltin(db, "voltage dir",        C::Option, {"circuitikz"}, {},
+               {"old","RP","EF"});
     addBuiltin(db, "current/shift",      C::Option, {"circuitikz"});
     addBuiltin(db, "label/align",        C::Option, {"circuitikz"});
     addBuiltin(db, "thickness",          C::Option, {"circuitikz"});
+    addBuiltin(db, "bipoles/thickness",  C::Option, {"circuitikz"});
+    addBuiltin(db, "resistors/scale",    C::Option, {"circuitikz"});
+    addBuiltin(db, "capacitors/scale",   C::Option, {"circuitikz"});
+    addBuiltin(db, "sources/scale",      C::Option, {"circuitikz"});
+    addBuiltin(db, "transistors/scale",  C::Option, {"circuitikz"});
+    addBuiltin(db, "diodes/scale",       C::Option, {"circuitikz"});
+    addBuiltin(db, "logic ports",        C::Option, {"circuitikz"}, {},
+               {"american","european","ieee"});
+    addBuiltin(db, "logic ports/scale",  C::Option, {"circuitikz"});
     addBuiltin(db, "l",   C::Option, {"circuitikz"}, {"draw","path"});
     addBuiltin(db, "l_",  C::Option, {"circuitikz"}, {"draw","path"});
     addBuiltin(db, "l^",  C::Option, {"circuitikz"}, {"draw","path"});
@@ -198,7 +209,7 @@ void registerExtended(Vec &db)
     addBuiltin(db, "mirror", C::Option, {"circuitikz"}, {"draw","path","to"});
     addBuiltin(db, "invert", C::Option, {"circuitikz"}, {"draw","path","to"});
 
-    // ── tikz-cd options ──
+    // ── tikz-cd options ── (verified in tikzlibrarycd.code.tex)
     addBuiltin(db, "from",          C::Option, {"tikzcd"});
     addBuiltin(db, "to",            C::Option, {"tikzcd"});
     addBuiltin(db, "phantom",       C::Option, {"tikzcd"}, {"node"});
@@ -206,21 +217,50 @@ void registerExtended(Vec &db)
     addBuiltin(db, "cramped",       C::Option, {"tikzcd"});
     addBuiltin(db, "shift left",    C::Option, {"tikzcd"});
     addBuiltin(db, "shift right",   C::Option, {"tikzcd"});
+    addBuiltin(db, "shift",         C::Option, {"tikzcd"});
     addBuiltin(db, "crossing over", C::Option, {"tikzcd"});
-    addBuiltin(db, "math nodes",    C::Option, {"tikzcd"});
     addBuiltin(db, "cells",         C::Option, {"tikzcd"});
-    addBuiltin(db, "arrow style",   C::Option, {"tikzcd"},
-               {"latin","tikz","knuth","computermodern"});
+    addBuiltin(db, "arrows",        C::Option, {"tikzcd"});
     addBuiltin(db, "labels",        C::Option, {"tikzcd"});
-    addBuiltin(db, "tweak",         C::Option, {"tikzcd"});
+    addBuiltin(db, "marking",       C::Option, {"tikzcd"});
+    addBuiltin(db, "math mode",     C::Option, {"tikzcd"});
+    addBuiltin(db, "diagrams",      C::Option, {"tikzcd"});
+    addBuiltin(db, "row sep",       C::Option, {"tikzcd"},
+               {"tiny","small","scriptsize","normal","large","huge"});
+    addBuiltin(db, "column sep",    C::Option, {"tikzcd"},
+               {"tiny","small","scriptsize","normal","large","huge"});
+    addBuiltin(db, "sep",           C::Option, {"tikzcd"},
+               {"tiny","small","scriptsize","normal","large","huge"});
+    addBuiltin(db, "start anchor",  C::Option, {"tikzcd"});
+    addBuiltin(db, "end anchor",    C::Option, {"tikzcd"});
+    addBuiltin(db, "transform nodes", C::Option, {"tikzcd"});
+    addBuiltin(db, "every arrow",   C::Option, {"tikzcd"});
+    addBuiltin(db, "every label",   C::Option, {"tikzcd"});
+    addBuiltin(db, "every diagram", C::Option, {"tikzcd"});
+    addBuiltin(db, "arrow style",   C::Option, {"tikzcd"},
+               {"tikz","math","Latin Modern","Computer Modern"});
+    // tikz-cd arrow-tip style keys (used inside \arrow[...])
+    const char *cdArrowStyles[] = {
+        "rightarrow","leftarrow","leftrightarrow","Rightarrow","Leftarrow",
+        "Leftrightarrow","mapsto","mapsfrom","Mapsto","Mapsfrom",
+        "hook","hook'","hookrightarrow","hookleftarrow",
+        "harpoon","harpoon'","rightharpoonup","rightharpoondown",
+        "leftharpoonup","leftharpoondown","tail","two heads","no head",
+        "to head","no tail","maps to","dash","equal","equals",
+        "dashed","dashrightarrow","dashleftarrow","squiggly",
+        "rightsquigarrow","leftsquigarrow","leftrightsquigarrow",
+        "rightarrowtail","leftarrowtail","twoheadrightarrow","twoheadleftarrow",
+        "double line",
+        nullptr };
+    for (int i = 0; cdArrowStyles[i]; i++)
+        addBuiltin(db, cdArrowStyles[i], C::Option, {"tikzcd"});
 
-    // ── tikz-cd commands ──
-    addBuiltin(db, "arrow",        C::Command, {"tikzcd"});
-    addBuiltin(db, "rar",          C::Command, {"tikzcd"});
-    addBuiltin(db, "lar",          C::Command, {"tikzcd"});
-    addBuiltin(db, "uar",          C::Command, {"tikzcd"});
-    addBuiltin(db, "dar",          C::Command, {"tikzcd"});
-    addBuiltin(db, "obj",          C::Command, {"tikzcd"});
+    // ── tikz-cd commands ── (\arrow / \ar and directional shorthands)
+    const char *cdCmds[] = {
+        "arrow","ar","rar","lar","uar","dar","urar","ular","drar","dlar",
+        nullptr };
+    for (int i = 0; cdCmds[i]; i++)
+        addBuiltin(db, cdCmds[i], C::Command, {"tikzcd"});
 
     // ── graphs library ──
     addBuiltin(db, "subgraph",       C::Option, {}, {"draw","path"}, {},
@@ -291,6 +331,62 @@ void registerExtended(Vec &db)
     addBuiltin(db, "addplot+",           C::Command, {"axis","groupplot"});
     addBuiltin(db, "pgfplotstableset",   C::Command);
     addBuiltin(db, "tikzmath",           C::Command);
+
+    // ═══════════════════════════════════════════════════════════════
+    //  chemfig 1.66 (activated by \usepackage{chemfig})
+    //  Commands + \setchemfig keys verified against
+    //  texmf-dist/tex/generic/chemfig/chemfig.tex & chemfig-lewis.tex.
+    // ═══════════════════════════════════════════════════════════════
+    const char *chemfigCmds[] = {
+        "chemfig","printatom","definesubmol","redefinesubmol","chemskipalign",
+        "hflipnext","vflipnext","chemabove","Chemabove","chembelow","Chembelow",
+        "chemname","chemnameinit","chemmove","chemleft","chemright","chemup",
+        "chemdown","polymerdelim","Lewis","lewis","charge","Charge","chargedot",
+        "chargeddot","chargerect","chargeline","setcharge","resetcharge",
+        "enableshortcuts","disableshortcuts","schemestart","schemestop","arrow",
+        "merge","subscheme","definearrow","setchemfig","resetchemfig",
+        nullptr };
+    for (int i = 0; chemfigCmds[i]; i++)
+        addBuiltin(db, chemfigCmds[i], C::Command, {}, {}, {}, {"chemfig"});
+    // \setchemfig{...} option keys
+    const char *chemfigKeys[] = {
+        "atom sep","bond offset","double bond sep","angle increment","node style",
+        "bond style","atom style","chemfig style","cram width","cram dash width",
+        "cram dash sep","cram rectangle","cycle radius coeff","stack sep",
+        "compound style","compound sep","arrow offset","arrow angle","arrow coeff",
+        "arrow style","arrow double sep","arrow double coeff","arrow label sep",
+        "arrow head","bond join","fixed length","baseline","scheme debug","debug",
+        "lewis sep","lewis length","lewis style","lewis dist","lewis radius",
+        nullptr };
+    for (int i = 0; chemfigKeys[i]; i++)
+        addBuiltin(db, chemfigKeys[i], C::Option, {}, {}, {}, {"chemfig"});
+
+    // ═══════════════════════════════════════════════════════════════
+    //  tikz-feynman 1.1.0 (activated by \usepackage{tikz-feynman})
+    //  Commands, environment and particle/edge styles verified against
+    //  texmf-dist/tex/latex/tikz-feynman/tikzlibraryfeynman.code.tex &
+    //  tikzfeynman.keys.code.tex.
+    // ═══════════════════════════════════════════════════════════════
+    const char *feynmanCmds[] = {
+        "feynmandiagram","tikzfeynmanset","feynman","vertex","diagram","graph",
+        nullptr };
+    for (int i = 0; feynmanCmds[i]; i++)
+        addBuiltin(db, feynmanCmds[i], C::Command, {}, {}, {}, {"tikz-feynman"});
+    // particle / edge line styles (used in edge[...] / diagram)
+    const char *feynmanStyles[] = {
+        "fermion","anti fermion","majorana","anti majorana","photon","boson",
+        "charged boson","anti charged boson","scalar","charged scalar",
+        "anti charged scalar","ghost","gluon","plain",
+        "dot","empty dot","square dot","crossed dot","blob","particle",
+        "with arrow","with reversed arrow","insertion",
+        "momentum","momentum'","reversed momentum","rmomentum","rmomentum'",
+        "half left","half right","quarter left","quarter right",
+        "small","medium","large","inline",
+        "every vertex","every edge","every diagram","every feynman",
+        "horizontal","vertical","layered layout","spring layout","tree layout",
+        nullptr };
+    for (int i = 0; feynmanStyles[i]; i++)
+        addBuiltin(db, feynmanStyles[i], C::Option, {}, {}, {}, {"tikz-feynman"});
 }
 
 } // namespace TikzKeywords
