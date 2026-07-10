@@ -447,6 +447,129 @@ void registerGeneralOptions(Vec &db)
         addBuiltin(db, "circular glow", C::Option, {"tikzpicture","scope"}, {}, {}, {"shadows"});
     }
 
+    // ── Fit library ── (verified against tikzlibraryfit.code.tex)
+    {
+        addBuiltin(db, "rotate fit", C::Option, {"tikzpicture","scope"}, {}, {}, {"fit"});
+        addBuiltin(db, "every fit", C::Option, {"tikzpicture","scope"}, {}, {}, {"fit"});
+    }
+
+    // ── patterns.meta ── (verified against tikzlibrarypatterns.meta.code.tex)
+    {
+        addBuiltin(db, "patterns/tile size", C::Option, {"tikzpicture","scope"}, {},
+                   {}, {"patterns.meta"});
+        addBuiltin(db, "patterns/bounding box", C::Option, {"tikzpicture","scope"}, {},
+                   {}, {"patterns.meta"});
+        addBuiltin(db, "patterns/top right", C::Option, {"tikzpicture","scope"}, {},
+                   {}, {"patterns.meta"});
+        addBuiltin(db, "patterns/bottom left", C::Option, {"tikzpicture","scope"}, {},
+                   {}, {"patterns.meta"});
+        addBuiltin(db, "patterns/tile transformation", C::Option, {"tikzpicture","scope"}, {},
+                   {}, {"patterns.meta"});
+        addBuiltin(db, "patterns/infer tile bounding box", C::Option, {"tikzpicture","scope"}, {},
+                   {}, {"patterns.meta"});
+    }
+
+    // ── perspective / 3d ── (verified against tikzlibraryperspective.code.tex)
+    {
+        addBuiltin(db, "3d view", C::Option, {"tikzpicture","scope"}, {},
+                   {}, {"perspective"});
+    }
+
+    // ── shapes.gates.logic ── (verified against tikzlibraryshapes.gates.logic.*.code.tex)
+    {
+        addBuiltin(db, "use US style logic gates", C::Option, {"tikzpicture","scope"}, {},
+                   {}, {"shapes.gates.logic.US"});
+        addBuiltin(db, "use CDH style logic gates", C::Option, {"tikzpicture","scope"}, {},
+                   {}, {"shapes.gates.logic.US"});
+        addBuiltin(db, "use IEC style logic gates", C::Option, {"tikzpicture","scope"}, {},
+                   {}, {"shapes.gates.logic.IEC"});
+
+        const char *gateStyles[] = {
+            "and gate","nand gate","or gate","nor gate",
+            "xor gate","xnor gate","not gate","buffer gate",
+            nullptr};
+        for (int i = 0; gateStyles[i]; i++)
+            addBuiltin(db, gateStyles[i], C::Option, {"tikzpicture","scope"}, {"node"},
+                       {}, {"shapes.gates.logic.US"});
+
+        const char *gateSymbols[] = {
+            "and gate symbol","nand gate symbol","or gate symbol",
+            "nor gate symbol","xor gate symbol","xnor gate symbol",
+            "not gate symbol","buffer gate symbol",
+            nullptr};
+        for (int i = 0; gateSymbols[i]; i++)
+            addBuiltin(db, gateSymbols[i], C::Option, {"tikzpicture","scope"}, {"node"},
+                       {}, {"shapes.gates.logic.IEC"});
+    }
+
+    // ── Mindmap (additional) ── (verified against tikzlibrarymindmap.code.tex)
+    {
+        addBuiltin(db, "root concept", C::Option, {"tikzpicture"}, {}, {},
+                   {"mindmap"});
+        addBuiltin(db, "concept connection", C::Option, {"tikzpicture"}, {}, {},
+                   {"mindmap"});
+        addBuiltin(db, "extra concept", C::Option, {"tikzpicture"}, {}, {},
+                   {"mindmap"});
+        addBuiltin(db, "annotation", C::Option, {"tikzpicture"}, {}, {},
+                   {"mindmap"});
+        addBuiltin(db, "circle connection bar", C::Option, {"tikzpicture"}, {}, {},
+                   {"mindmap"});
+    }
+
+    // ── Animations ── (verified against tikzlibraryanimations.code.tex)
+    {
+        addBuiltin(db, "animate", C::Option, {"tikzpicture","scope"}, {},
+                   {}, {"animations"});
+        addBuiltin(db, "make snapshot of", C::Option, {"tikzpicture","scope"}, {},
+                   {}, {"animations"});
+    }
+
+    // ── Lindenmayer systems ── (verified against tikzlibrarylindenmayersystems.code.tex)
+    {
+        addBuiltin(db, "lindenmayer system", C::Option, {"tikzpicture","scope"}, {},
+                   {}, {"lindenmayersystems"});
+    }
+
+    // ── Folding ── (verified against tikzlibraryfolding.code.tex)
+    {
+        addBuiltin(db, "folding line length", C::Option, {"tikzpicture","scope"}, {},
+                   {}, {"folding"});
+        addBuiltin(db, "face 1", C::Option, {"tikzpicture","scope"}, {}, {},
+                   {"folding"});
+    }
+
+    // ── Turtle graphics ── (verified against tikzlibraryturtle.code.tex)
+    {
+        addBuiltin(db, "turtle/distance", C::Option, {"tikzpicture","scope"}, {},
+                   {}, {"turtle"});
+        addBuiltin(db, "turtle/forward", C::Option, {"tikzpicture","scope"}, {},
+                   {}, {"turtle"});
+        addBuiltin(db, "turtle/back", C::Option, {"tikzpicture","scope"}, {},
+                   {}, {"turtle"});
+        addBuiltin(db, "turtle/left", C::Option, {"tikzpicture","scope"}, {},
+                   {}, {"turtle"});
+        addBuiltin(db, "turtle/right", C::Option, {"tikzpicture","scope"}, {},
+                   {}, {"turtle"});
+        addBuiltin(db, "turtle/how", C::Option, {"tikzpicture","scope"}, {},
+                   {}, {"turtle"});
+        addBuiltin(db, "turtle/home", C::Option, {"tikzpicture","scope"}, {},
+                   {}, {"turtle"});
+    }
+
+    // ── RDF ── (verified against tikzlibraryrdf.code.tex)
+    {
+        addBuiltin(db, "rdf engine", C::Option, {"tikzpicture","scope"}, {},
+                   {}, {"rdf"});
+        addBuiltin(db, "subject", C::Option, {"tikzpicture","scope"}, {},
+                   {}, {"rdf"});
+    }
+
+    // ── Views ── (verified against tikzlibraryviews.code.tex)
+    {
+        addBuiltin(db, "meet", C::Option, {"tikzpicture","scope"}, {}, {},
+                   {"views"});
+    }
+
     // Automata
     addBuiltin(db, "accepting",         C::Option, {"tikzpicture","scope"}, {"node"});
     addBuiltin(db, "initial",           C::Option, {"tikzpicture","scope"}, {"node"});

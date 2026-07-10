@@ -1311,6 +1311,41 @@ static int test_library_keys_present()
         {"arrow box arrows", "shapes.arrows"},
         // trees
         {"sibling angle", "trees"},
+        // fit
+        {"rotate fit", "fit"},
+        {"every fit", "fit"},
+        // patterns.meta
+        {"patterns/tile size", "patterns.meta"},
+        {"patterns/bounding box", "patterns.meta"},
+        {"patterns/top right", "patterns.meta"},
+        {"patterns/bottom left", "patterns.meta"},
+        // perspective
+        {"3d view", "perspective"},
+        // shapes.gates.logic
+        {"use US style logic gates", "shapes.gates.logic.US"},
+        {"use IEC style logic gates", "shapes.gates.logic.IEC"},
+        {"and gate", "shapes.gates.logic.US"},
+        {"and gate symbol", "shapes.gates.logic.IEC"},
+        // mindmap
+        {"root concept", "mindmap"},
+        {"concept connection", "mindmap"},
+        {"extra concept", "mindmap"},
+        {"circle connection bar", "mindmap"},
+        // animations
+        {"animate", "animations"},
+        {"make snapshot of", "animations"},
+        // lindenmayersystems
+        {"lindenmayer system", "lindenmayersystems"},
+        // folding
+        {"folding line length", "folding"},
+        // turtle
+        {"turtle/distance", "turtle"},
+        {"turtle/forward", "turtle"},
+        {"turtle/right", "turtle"},
+        // rdf
+        {"rdf engine", "rdf"},
+        // views
+        {"meet", "views"},
         {nullptr, nullptr}
     };
 
