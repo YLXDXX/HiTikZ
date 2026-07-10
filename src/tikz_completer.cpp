@@ -307,9 +307,17 @@ bool TikzCompleter::handleCompletionKey(QKeyEvent *event)
 
             // ── After completing \begin{env}: auto-insert \end{env} ──
             if (completedCtx == TkzCtxBeg && !completion.isEmpty()) {
-                // The text is now \begin{scope  (no closing brace yet)
-                // Insert closing brace + blank line + \end{scope}
                 cursor = m_editor->textCursor();
+                QTextDocument *doc = m_editor->document();
+                // Consume auto-paired '}' if it exists right after the cursor
+                int pos = cursor.position();
+                if (pos < doc->characterCount() - 1
+                    && doc->characterAt(pos) == QLatin1Char('}')) {
+                    cursor.movePosition(QTextCursor::Right,
+                                        QTextCursor::KeepAnchor, 1);
+                    cursor.removeSelectedText();
+                }
+                // Insert \end{env} on the next line, cursor stays after \begin
                 QString lineIndent;
                 {
                     QTextCursor lineCursor = cursor;
@@ -323,22 +331,27 @@ bool TikzCompleter::handleCompletionKey(QKeyEvent *event)
                         indentEnd++;
                     lineIndent = line.left(indentEnd);
                 }
-                cursor.insertText(QLatin1String("}\n\n") + lineIndent
+                cursor.insertText(QLatin1String("\n") + lineIndent
                                   + QLatin1String("\\end{") + completion
-                                  + QLatin1String("}\n"));
-                // Place cursor on the blank line between begin and end
-                cursor.movePosition(QTextCursor::Up, QTextCursor::MoveAnchor, 2);
+                                  + QLatin1String("}"));
+                // Leave cursor after \begin{scope}
+                cursor = m_editor->textCursor();
+                cursor.movePosition(QTextCursor::Up, QTextCursor::MoveAnchor, 1);
                 cursor.movePosition(QTextCursor::EndOfBlock,
                                     QTextCursor::MoveAnchor);
-                if (!lineIndent.isEmpty())
-                    cursor.insertText(lineIndent);
                 m_editor->setTextCursor(cursor);
                 if (m_docState)
                     m_docState->reparse(m_editor->document());
             } else if (completedCtx == TkzCtxEnd && !completion.isEmpty()) {
-                // \end{envname} — just close the brace
                 cursor = m_editor->textCursor();
-                cursor.insertText(QLatin1String("}"));
+                QTextDocument *doc = m_editor->document();
+                int pos = cursor.position();
+                if (pos < doc->characterCount() - 1
+                    && doc->characterAt(pos) == QLatin1Char('}')) {
+                    cursor.movePosition(QTextCursor::Right,
+                                        QTextCursor::KeepAnchor, 1);
+                    cursor.removeSelectedText();
+                }
                 m_editor->setTextCursor(cursor);
             } else {
                 m_editor->setTextCursor(cursor);
