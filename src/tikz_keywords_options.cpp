@@ -589,10 +589,21 @@ void registerGeneralOptions(Vec &db)
                    {"views"});
     }
 
-    // Automata
-    addBuiltin(db, "accepting",         C::Option, {"tikzpicture","scope"}, {"node"});
-    addBuiltin(db, "initial",           C::Option, {"tikzpicture","scope"}, {"node"});
-    addBuiltin(db, "every state",       C::Option, {"tikzpicture","scope"});
+    // Automata (verified against tikzlibraryautomata.code.tex) — gated by automata
+    {
+        const char *ks[] = {
+            "state","state with output","state without output","every state",
+            "accepting","accepting by arrow","accepting by double",
+            "accepting above","accepting below","accepting left","accepting right",
+            "accepting text","accepting where","accepting distance",
+            "initial","initial by arrow","initial by diamond",
+            "initial above","initial below","initial left","initial right",
+            "initial text","initial where","initial distance",
+            nullptr};
+        for (int i = 0; ks[i]; i++)
+            addBuiltin(db, ks[i], C::Option, {"tikzpicture","scope"}, {"node"}, {}, {"automata"});
+    }
+    // Loop styles (topaths, always available)
     addBuiltin(db, "loop above",        C::Option, {"tikzpicture","scope"});
     addBuiltin(db, "loop below",        C::Option, {"tikzpicture","scope"});
     addBuiltin(db, "loop left",         C::Option, {"tikzpicture","scope"});
@@ -612,6 +623,171 @@ void registerGeneralOptions(Vec &db)
     // Predefined styles
     addBuiltin(db, "help lines",        C::Option, {"tikzpicture","scope"});
     addBuiltin(db, "to path",           C::Option, {}, {"draw","path"});
+
+    // ── Additional TikZ library option keys (all verified against the
+    //    respective tikzlibrary*.code.tex sources) ──
+
+    // backgrounds
+    {
+        const char *ks[] = {
+            "framed","gridded","tight background","loose background",
+            "show background grid","background grid",
+            "show background top","show background bottom",
+            "show background left","show background right",
+            "background top","background bottom","background left","background right",
+            "inner frame sep","inner frame xsep","inner frame ysep",
+            "outer frame sep","outer frame xsep","outer frame ysep",
+            nullptr};
+        for (int i = 0; ks[i]; i++)
+            addBuiltin(db, ks[i], C::Option, {"tikzpicture","scope"}, {}, {}, {"backgrounds"});
+    }
+
+    // positioning
+    addBuiltin(db, "base left",  C::Option, {"tikzpicture","scope"}, {"node"}, {}, {"positioning"});
+    addBuiltin(db, "base right", C::Option, {"tikzpicture","scope"}, {"node"}, {}, {"positioning"});
+    addBuiltin(db, "mid left",   C::Option, {"tikzpicture","scope"}, {"node"}, {}, {"positioning"});
+    addBuiltin(db, "mid right",  C::Option, {"tikzpicture","scope"}, {"node"}, {}, {"positioning"});
+
+    // topaths (always available with tikz) — to[...] path keys
+    addBuiltin(db, "relative",          C::Option, {}, {"draw","path"});
+    addBuiltin(db, "in control",        C::Option, {}, {"draw","path"});
+    addBuiltin(db, "out control",       C::Option, {}, {"draw","path"});
+    addBuiltin(db, "in min distance",   C::Option, {}, {"draw","path"});
+    addBuiltin(db, "in max distance",   C::Option, {}, {"draw","path"});
+    addBuiltin(db, "out min distance",  C::Option, {}, {"draw","path"});
+    addBuiltin(db, "out max distance",  C::Option, {}, {"draw","path"});
+    addBuiltin(db, "min distance",      C::Option, {}, {"draw","path"});
+    addBuiltin(db, "max distance",      C::Option, {}, {"draw","path"});
+    addBuiltin(db, "loop",              C::Option, {"tikzpicture","scope"});
+
+    // trees
+    {
+        const char *ks[] = {
+            "edge from parent fork down","edge from parent fork up",
+            "edge from parent fork left","edge from parent fork right",
+            "grow via three points","clockwise from","counterclockwise from",
+            nullptr};
+        for (int i = 0; ks[i]; i++)
+            addBuiltin(db, ks[i], C::Option, {"tikzpicture","scope"}, {}, {}, {"trees"});
+    }
+
+    // er (entity-relationship)
+    addBuiltin(db, "entity",        C::Option, {"tikzpicture","scope"}, {"node"}, {}, {"er"});
+    addBuiltin(db, "relationship",  C::Option, {"tikzpicture","scope"}, {"node"}, {}, {"er"});
+    addBuiltin(db, "attribute",     C::Option, {"tikzpicture","scope"}, {"node"}, {}, {"er"});
+    addBuiltin(db, "key attribute", C::Option, {"tikzpicture","scope"}, {"node"}, {}, {"er"});
+
+    // matrix
+    addBuiltin(db, "above delimiter",     C::Option, {}, {"node"}, {}, {"matrix"});
+    addBuiltin(db, "below delimiter",     C::Option, {}, {"node"}, {}, {"matrix"});
+    addBuiltin(db, "nodes in empty cells",C::Option, {}, {"node"}, {}, {"matrix"});
+
+    // shadings — corner colour keys
+    addBuiltin(db, "upper left",  C::Option, {}, {"draw","path","fill","shade","shadedraw"}, {}, {"shadings"});
+    addBuiltin(db, "upper right", C::Option, {}, {"draw","path","fill","shade","shadedraw"}, {}, {"shadings"});
+    addBuiltin(db, "lower left",  C::Option, {}, {"draw","path","fill","shade","shadedraw"}, {}, {"shadings"});
+    addBuiltin(db, "lower right", C::Option, {}, {"draw","path","fill","shade","shadedraw"}, {}, {"shadings"});
+
+    // mindmap (extends existing mindmap keys)
+    {
+        const char *ks[] = {
+            "small mindmap","large mindmap","huge mindmap",
+            "level 1 concept","level 2 concept","level 3 concept","level 4 concept",
+            "level 1","level 2","level 3","level 4",
+            "circle connection bar switch color",
+            nullptr};
+        for (int i = 0; ks[i]; i++)
+            addBuiltin(db, ks[i], C::Option, {"tikzpicture","scope"}, {}, {}, {"mindmap"});
+    }
+
+    // 3d — canvas plane keys
+    {
+        const char *ks[] = {
+            "canvas is xz plane at y","canvas is yz plane at x",
+            "canvas is yx plane at z","canvas is zx plane at y","canvas is zy plane at x",
+            "plane origin","plane x","plane y",
+            nullptr};
+        for (int i = 0; ks[i]; i++)
+            addBuiltin(db, ks[i], C::Option, {"tikzpicture","scope"}, {}, {}, {"3d"});
+    }
+
+    // quotes
+    addBuiltin(db, "node quotes mean",   C::Option, {"tikzpicture","scope"}, {}, {}, {"quotes"});
+    addBuiltin(db, "edge quotes mean",   C::Option, {"tikzpicture","scope"}, {}, {}, {"quotes"});
+    addBuiltin(db, "pic quotes mean",    C::Option, {"tikzpicture","scope"}, {}, {}, {"quotes"});
+    addBuiltin(db, "quotes mean label",  C::Option, {"tikzpicture","scope"}, {}, {}, {"quotes"});
+    addBuiltin(db, "quotes mean pin",    C::Option, {"tikzpicture","scope"}, {}, {}, {"quotes"});
+    addBuiltin(db, "direction shorthands", C::Option, {"tikzpicture","scope"}, {}, {}, {"quotes"});
+
+    // decorations.text
+    {
+        const char *ks[] = {
+            "text effects","group letters","group letters into words",
+            "reverse text","repeat text","replace characters","style characters",
+            "scale text to path","fit text to path","path from text",
+            "path from text angle","word separator","character command",
+            nullptr};
+        for (int i = 0; ks[i]; i++)
+            addBuiltin(db, ks[i], C::Option, {}, {"draw","path"}, {}, {"decorations.text"});
+    }
+
+    // calendar
+    {
+        const char *ks[] = {
+            "dates","day list downward","day list upward","day list left","day list right",
+            "week list","month list","day text","month text","year text",
+            "day code","month code","year code","day xshift","day yshift",
+            "month xshift","month yshift",
+            "month label above centered","month label above left","month label above right",
+            "month label below centered","month label below left",
+            "month label left","month label left vertical",
+            "month label right","month label right vertical",
+            nullptr};
+        for (int i = 0; ks[i]; i++)
+            addBuiltin(db, ks[i], C::Option, {"tikzpicture","scope"}, {}, {}, {"calendar"});
+    }
+
+    // turtle
+    addBuiltin(db, "fd", C::Option, {"tikzpicture","scope"}, {}, {}, {"turtle"});
+    addBuiltin(db, "bk", C::Option, {"tikzpicture","scope"}, {}, {}, {"turtle"});
+    addBuiltin(db, "lt", C::Option, {"tikzpicture","scope"}, {}, {}, {"turtle"});
+    addBuiltin(db, "rt", C::Option, {"tikzpicture","scope"}, {}, {}, {"turtle"});
+
+    // lindenmayersystems
+    addBuiltin(db, "l-system", C::Option, {}, {"draw","path"}, {}, {"lindenmayersystems"});
+    addBuiltin(db, "axiom",    C::Option, {}, {}, {}, {"lindenmayersystems"});
+    addBuiltin(db, "rule set", C::Option, {}, {}, {}, {"lindenmayersystems"});
+
+    // intersections (extends existing)
+    addBuiltin(db, "name path local", C::Option, {}, {"draw","path"}, {}, {"intersections"});
+
+    // perspective
+    addBuiltin(db, "isometric view", C::Option, {"tikzpicture","scope"}, {}, {}, {"perspective"});
+
+    // spy
+    addBuiltin(db, "spy scope", C::Option, {"tikzpicture","scope"}, {}, {}, {"spy"});
+
+    // views
+    addBuiltin(db, "slice", C::Option, {"tikzpicture","scope"}, {}, {}, {"views"});
+
+    // shadows
+    addBuiltin(db, "general shadow", C::Option, {}, {}, {}, {"shadows"});
+
+    // shapes.gates.logic (IEC/US) — symbol styling keys
+    addBuiltin(db, "logic gate symbol align", C::Option, {"tikzpicture","scope"}, {"node"}, {},
+               {"shapes.gates.logic.IEC"});
+    addBuiltin(db, "logic gate symbol color", C::Option, {"tikzpicture","scope"}, {"node"}, {},
+               {"shapes.gates.logic.IEC"});
+
+    // rdf
+    {
+        const char *ks[] = {
+            "has type","has as member","is a bag","is a container",
+            "is a sequence","is an alternative","scope is new context",
+            nullptr};
+        for (int i = 0; ks[i]; i++)
+            addBuiltin(db, ks[i], C::Option, {"tikzpicture","scope"}, {}, {}, {"rdf"});
+    }
 
     // Coordinate systems
     addBuiltin(db, "x",                 C::Option, {}, {});

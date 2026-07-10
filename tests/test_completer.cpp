@@ -1426,6 +1426,76 @@ static int test_library_keys_present()
         {"structured tokens", "petri"},
         {"children are tokens", "petri"},
         {"token distance", "petri"},
+        // automata
+        {"state", "automata"},
+        {"state with output", "automata"},
+        {"accepting by arrow", "automata"},
+        {"accepting where", "automata"},
+        {"initial by diamond", "automata"},
+        {"initial text", "automata"},
+        // backgrounds
+        {"framed", "backgrounds"},
+        {"gridded", "backgrounds"},
+        {"show background grid", "backgrounds"},
+        {"tight background", "backgrounds"},
+        {"inner frame sep", "backgrounds"},
+        {"outer frame xsep", "backgrounds"},
+        // positioning
+        {"base left", "positioning"},
+        {"mid right", "positioning"},
+        // trees
+        {"edge from parent fork down", "trees"},
+        {"grow via three points", "trees"},
+        {"clockwise from", "trees"},
+        // er
+        {"entity", "er"},
+        {"relationship", "er"},
+        {"key attribute", "er"},
+        // matrix
+        {"above delimiter", "matrix"},
+        {"nodes in empty cells", "matrix"},
+        // shadings
+        {"upper left", "shadings"},
+        {"lower right", "shadings"},
+        // mindmap (extended)
+        {"small mindmap", "mindmap"},
+        {"level 2 concept", "mindmap"},
+        {"circle connection bar switch color", "mindmap"},
+        // 3d
+        {"canvas is xz plane at y", "3d"},
+        {"plane origin", "3d"},
+        // quotes
+        {"node quotes mean", "quotes"},
+        {"quotes mean pin", "quotes"},
+        // decorations.text
+        {"text effects", "decorations.text"},
+        {"group letters", "decorations.text"},
+        {"reverse text", "decorations.text"},
+        // calendar
+        {"day list right", "calendar"},
+        {"week list", "calendar"},
+        {"month label above centered", "calendar"},
+        // turtle
+        {"fd", "turtle"},
+        {"rt", "turtle"},
+        // lindenmayersystems
+        {"axiom", "lindenmayersystems"},
+        {"l-system", "lindenmayersystems"},
+        // intersections
+        {"name path local", "intersections"},
+        // perspective
+        {"isometric view", "perspective"},
+        // spy
+        {"spy scope", "spy"},
+        // views
+        {"slice", "views"},
+        // shadows
+        {"general shadow", "shadows"},
+        // shapes.gates.logic.IEC
+        {"logic gate symbol color", "shapes.gates.logic.IEC"},
+        // rdf
+        {"has type", "rdf"},
+        {"is a bag", "rdf"},
         {nullptr, nullptr}
     };
 
