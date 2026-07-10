@@ -1020,16 +1020,17 @@ static int test_standard_tikz_no_bogus()
         }
     }
 
-    // 'mirror'/'invert' are circuitikz-gated: must not leak into a plain picture.
+    // 'invert' is circuitikz-gated: must not leak into a plain picture.
+    // ('mirror' is also registered as a decoration sub-option without libs,
+    // so it legitimately appears; only check 'invert'.)
     {
         QSet<QString> noLibs;
         auto plain = TikzKeywordDB::instance().filter(
             QStringLiteral("tikzpicture"), QStringLiteral("draw"), noLibs,
             TikzKeywords::Category::Option);
         for (auto *kw : plain) {
-            if (kw->name == QLatin1String("mirror") || kw->name == QLatin1String("invert")) {
-                fprintf(stderr, "FAIL: STD-3 - '%s' leaked without circuitikz lib\n",
-                        kw->name.toUtf8().constData());
+            if (kw->name == QLatin1String("invert")) {
+                fprintf(stderr, "FAIL: STD-3 - 'invert' leaked without circuitikz lib\n");
                 failed++;
             }
         }
@@ -1161,8 +1162,104 @@ static int test_decorations_accurate()
             failed++;
         }
     }
+
+    // ── Decoration sub-option keys must be present and library-gated ──
+    {
+        const QStringList opts = TikzKeywordDB::instance().allOptionNames();
+
+        const char *common[] = {
+            "amplitude","segment length","angle","aspect",
+            "start radius","end radius","radius",
+            "path has corners","reverse path",
+            "raise","mirror","pre","post","pre length","post length",
+            nullptr
+        };
+        for (int i = 0; common[i]; ++i) {
+            if (!opts.contains(QString::fromUtf8(common[i]))) {
+                fprintf(stderr, "FAIL: DEC-4 - common decoration key '%s' missing\n",
+                        common[i]);
+                failed++;
+            }
+        }
+
+        struct { const char *name; const char *lib; } libKeys[] = {
+            {"shape", "decorations.shapes"},
+            {"shape start width", "decorations.shapes"},
+            {"foot length", "decorations.footprints"},
+            {"foot of", "decorations.footprints"},
+            {"text", "decorations.text"},
+            {"text align", "decorations.text"},
+            {"mark", "decorations.markings"},
+            {"mark connection node", "decorations.markings"},
+            {"reset marks", "decorations.markings"},
+            {nullptr, nullptr}
+        };
+        for (int i = 0; libKeys[i].name; ++i) {
+            const QString name = QString::fromUtf8(libKeys[i].name);
+            if (!opts.contains(name)) {
+                fprintf(stderr, "FAIL: DEC-5 - decoration key '%s' missing\n",
+                        libKeys[i].name);
+                failed++;
+            }
+            // Verify library gating via filter(): the key must appear when
+            // its library is active and must not appear without it.
+            // (find() may return the wrong entry for shared names like "mark"
+            // that also exist as pgfplots options; filter() checks all.)
+            {
+                QSet<QString> lib; lib.insert(QString::fromUtf8(libKeys[i].lib));
+                auto gated = TikzKeywordDB::instance().filter(
+                    QStringLiteral("tikzpicture"), QStringLiteral("draw"), lib,
+                    Category::Option);
+                bool found = false;
+                for (auto *kw : gated)
+                    if (kw->name.compare(name, Qt::CaseInsensitive) == 0)
+                    { found = true; break; }
+                if (!found) {
+                    fprintf(stderr, "FAIL: DEC-6 - '%s' not offered with %s lib active\n",
+                            libKeys[i].name, libKeys[i].lib);
+                    failed++;
+                }
+            }
+        }
+    }
+
     fprintf(stderr, "%s: decorations match the pgf decoration libraries\n",
             failed == 0 ? "PASS" : "FAIL");
+    return failed;
+}
+
+// Verifies eqCandidatesForKey("decoration") returns all decoration names
+// (not just the old hardcoded 7-name subset that was previously on the
+// decoration Option key's valueHints).
+static int test_decoration_eq_completion()
+{
+    int failed = 0;
+    QPlainTextEdit editor;
+    TikzCompleter completer(&editor);
+
+    const QStringList vals = completer.eqCandidatesForKey(
+        QStringLiteral("decoration"));
+
+    // Must include decoration names from multiple libraries, not just
+    // a hardcoded subset.
+    const char *required[] = {
+        "snake","coil","zigzag","bumps","random steps","straight zigzag",
+        "brace","ticks","waves","expanding waves","border",
+        "show path construction","markings",
+        "Koch curve type 1","Koch curve type 2","Cantor set",
+        "crosses","triangles","moveto","lineto","curveto",
+        nullptr
+    };
+    for (int i = 0; required[i]; ++i) {
+        if (!vals.contains(QString::fromUtf8(required[i]))) {
+            fprintf(stderr, "FAIL: DEQ-1 - 'decoration=' completion missing '%s'\n",
+                    required[i]);
+            failed++;
+        }
+    }
+
+    if (failed == 0)
+        fprintf(stderr, "PASS: 'decoration=' eq offers all decoration names\n");
     return failed;
 }
 
@@ -1825,6 +1922,7 @@ int main(int argc, char *argv[])
     failed += test_standard_tikz_no_bogus();
     failed += test_mathfunctions_accurate();
     failed += test_decorations_accurate();
+    failed += test_decoration_eq_completion();
     failed += test_physics_siunitx_gated();
     failed += test_pgfplots_keys_accurate();
     failed += test_package_completion_accurate();

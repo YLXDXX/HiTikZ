@@ -159,9 +159,73 @@ void registerGeneralOptions(Vec &db)
 
     // Path decorations
     addBuiltin(db, "decorate",        C::Option, {}, {"draw","path"}, {}, {"decorations.pathmorphing","decorations.pathreplacing","decorations.markings"});
-    addBuiltin(db, "decoration",      C::Option, {}, {"draw","path"},
-               {"snake","coil","saw","zigzag","bumps","brace","markings"},
+    // Hints intentionally empty — eqCandidatesForKey falls through to the
+    // "decoration" special case which returns ALL decoration names via
+    // tikzDecorationNames() (26 entries), not a hardcoded subset.
+    addBuiltin(db, "decoration",      C::Option, {}, {"draw","path"}, {},
                {"decorations.pathmorphing","decorations.pathreplacing","decorations.markings"});
+
+    // ── Decoration sub-option keys (common to all decorations) ──
+    // Verified against pgfmoduledecorations.code.tex (core) and
+    // tikzlibrarydecorations.code.tex (TikZ frontend). These are
+    // always available once any decoration is used.
+    {
+        const char *common[] = {
+            "amplitude","segment length","angle","aspect",
+            "start radius","end radius","radius",
+            "path has corners","reverse path",
+            "raise","mirror","transform",
+            "pre","post","pre length","post length",
+            nullptr};
+        for (int i = 0; common[i]; i++)
+            addBuiltin(db, common[i], C::Option, {}, {"draw","path"});
+    }
+
+    // ── decorations.shapes sub-keys ──
+    // Verified against pgflibrarydecorations.shapes.code.tex.
+    {
+        const char *keys[] = {
+            "shape","shape start width","shape start height",
+            "shape end width","shape end height","anchor",
+            nullptr};
+        for (int i = 0; keys[i]; i++)
+            addBuiltin(db, keys[i], C::Option, {}, {"draw","path"}, {},
+                       {"decorations.shapes"});
+    }
+
+    // ── decorations.text sub-keys ──
+    // Verified against pgflibrarydecorations.text.code.tex.
+    {
+        addBuiltin(db, "text", C::Option, {}, {"draw","path"}, {},
+                   {"decorations.text"});
+        addBuiltin(db, "text align", C::Option, {}, {"draw","path"},
+                   {"left","right","center"}, {"decorations.text"});
+    }
+
+    // ── decorations.footprints sub-keys ──
+    // Verified against pgflibrarydecorations.footprints.code.tex.
+    {
+        const char *keys[] = {
+            "foot length","stride length","foot sep","foot angle",
+            nullptr};
+        for (int i = 0; keys[i]; i++)
+            addBuiltin(db, keys[i], C::Option, {}, {"draw","path"}, {},
+                       {"decorations.footprints"});
+        addBuiltin(db, "foot of", C::Option, {}, {"draw","path"},
+                   {"human","bird","dog","frog","gnu"},
+                   {"decorations.footprints"});
+    }
+
+    // ── decorations.markings sub-keys ──
+    // Verified against pgflibrarydecorations.markings.code.tex.
+    {
+        addBuiltin(db, "mark", C::Option, {}, {"draw","path"}, {},
+                   {"decorations.markings"});
+        addBuiltin(db, "mark connection node", C::Option, {}, {"draw","path"}, {},
+                   {"decorations.markings"});
+        addBuiltin(db, "reset marks", C::Option, {}, {"draw","path"}, {},
+                   {"decorations.markings"});
+    }
 
     // Bends / curves
     addBuiltin(db, "bend left",        C::Option, {}, {"draw","path","edge"},
