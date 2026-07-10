@@ -332,15 +332,13 @@ bool TikzCompleter::handleCompletionKey(QKeyEvent *event)
                 else
                     cursor.movePosition(QTextCursor::Right,
                                         QTextCursor::MoveAnchor, 1);
+                int afterBeginPos = cursor.position();
                 cursor.insertText(QLatin1String("\n") + lineIndent
                                   + QLatin1String("\\end{") + completion
                                   + QLatin1String("}"));
-                // Position cursor after \begin{scope} (on the begin line)
-                QTextCursor endCur = m_editor->textCursor();
-                endCur.movePosition(QTextCursor::Up, QTextCursor::MoveAnchor, 1);
-                endCur.movePosition(QTextCursor::EndOfBlock,
-                                    QTextCursor::MoveAnchor);
-                m_editor->setTextCursor(endCur);
+                // Position cursor after \begin{scope} on the begin line
+                cursor.setPosition(afterBeginPos);
+                m_editor->setTextCursor(cursor);
                 if (m_docState)
                     m_docState->reparse(m_editor->document());
             } else if (completedCtx == TkzCtxEnd && !completion.isEmpty()) {
