@@ -296,6 +296,14 @@ static int test_detect_context()
         {QStringLiteral("[right=of"), TikzCompleter::TkzCtxEq, "positioning right=of"},
         // Regular bracket context without = should still work.
         {QStringLiteral("[draw, below"), TikzCompleter::TkzCtxBrk, "below as key in bracket"},
+        // Eq-value context triggered by = as word boundary (inside braces
+        // where no bracket exists), e.g. .style={->,>=s} should complete
+        // arrow names just like [>=s] does.
+        {QStringLiteral("{->,>=s"), TikzCompleter::TkzCtxEq, ">= value inside braces"},
+        {QStringLiteral("{fill=re"), TikzCompleter::TkzCtxEq, "= value inside braces (color)"},
+        // Word after = that is long enough for generic word detection must
+        // still route to TkzCtxEq, not TkzCtxWord (no space between = and value).
+        {QStringLiteral("{>=st"), TikzCompleter::TkzCtxEq, "= value >=2 chars inside braces (no space)"},
         {QStringLiteral("\\node[draw] at (0.5,"), TikzCompleter::TkzCtxNone, "coordinates"},
         {QStringLiteral("\\usetikzlibrary{"), TikzCompleter::TkzCtxLib, "empty usetikzlibrary brace"},
         {QStringLiteral("\\usetikzlibrary{inters"), TikzCompleter::TkzCtxLib, "single library typing"},
@@ -355,6 +363,50 @@ static int test_arrow_specs_not_duplicated()
     }
 
     if (failed == 0) fprintf(stderr, "PASS: arrow specs in correct list (options, not commands)\n");
+    return failed;
+}
+
+// Verifies that both case variants of arrow tips exist in the completion
+// lists — e.g. "stealth" (classic pgf) and "Stealth" (arrows.meta) are
+// distinct arrow tips with different renderings and must both be offered.
+static int test_arrow_case_variants_present()
+{
+    int failed = 0;
+    QPlainTextEdit editor;
+    TikzCompleter completer(&editor);
+
+    // eqCandidatesForKey(">") returns raw allArrowNames() — case variants survive.
+    const QStringList arrowVals = completer.eqCandidatesForKey(QStringLiteral(">"));
+
+    if (!arrowVals.contains(QStringLiteral("stealth"))) {
+        fprintf(stderr, "FAIL: ACV-1 - '>' eq should offer 'stealth' (lowercase)\n");
+        failed++;
+    }
+    if (!arrowVals.contains(QStringLiteral("Stealth"))) {
+        fprintf(stderr, "FAIL: ACV-2 - '>' eq should offer 'Stealth' (arrows.meta)\n");
+        failed++;
+    }
+
+    // Also check >= as a key.
+    const QStringList geqVals = completer.eqCandidatesForKey(QStringLiteral(">="));
+    if (!geqVals.contains(QStringLiteral("Stealth"))) {
+        fprintf(stderr, "FAIL: ACV-3 - '>=' eq should offer 'Stealth'\n");
+        failed++;
+    }
+
+    // Both must also appear in the raw arrow list.
+    const QStringList allArrows = TikzWords::tikzArrows();
+    if (!allArrows.contains(QStringLiteral("stealth"))) {
+        fprintf(stderr, "FAIL: ACV-4 - tikzArrows() should contain 'stealth'\n");
+        failed++;
+    }
+    if (!allArrows.contains(QStringLiteral("Stealth"))) {
+        fprintf(stderr, "FAIL: ACV-5 - tikzArrows() should contain 'Stealth'\n");
+        failed++;
+    }
+
+    if (failed == 0)
+        fprintf(stderr, "PASS: arrow case variants present in completion\n");
     return failed;
 }
 
@@ -1754,6 +1806,7 @@ int main(int argc, char *argv[])
     failed += test_detect_context();
     failed += test_all_completable_words_no_duplicates();
     failed += test_arrow_specs_not_duplicated();
+    failed += test_arrow_case_variants_present();
     failed += test_colors_in_options();
     failed += test_value_hints_arc_angles();
     failed += test_value_hints_curve_angles();

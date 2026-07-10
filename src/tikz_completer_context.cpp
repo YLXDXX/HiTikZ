@@ -118,12 +118,13 @@ TikzCompleter::Context TikzCompleter::detectContext(const QString &textBefore) c
     }
 
     if (lastChar.isLetterOrNumber() || lastChar == '_') {
-        static const QRegularExpression wordBoundary(QStringLiteral("[\\s\\\\\\[\\{,(\"]"));
+        static const QRegularExpression wordBoundary(QStringLiteral("[\\s\\\\\\[\\{=(,\"]"));
         int wordStart = textBefore.lastIndexOf(wordBoundary);
         if (wordStart >= 0) {
             QChar bc = textBefore.at(wordStart);
             if (bc == '\\') return TkzCtxCmd;
             if (bc == '(') return TkzCtxCoord;
+            if (bc == '=') return TkzCtxEq;
         }
         QString word;
         int j = len - 1;
