@@ -66,6 +66,13 @@ void TikzCompleter::setModelForContext(Context ctx, const QStringList &words)
         m_models[ctx]->setStringList(words);
 }
 
+QStringList TikzCompleter::modelWordsForContext(Context ctx) const
+{
+    if (m_models.contains(ctx))
+        return m_models[ctx]->stringList();
+    return {};
+}
+
 void TikzCompleter::refreshParamWords(const QStringList &params)
 {
     if (params.isEmpty()) return;
@@ -312,6 +319,13 @@ void TikzCompleter::updateUserModels()
         coords << c;
     for (const auto &n : m_docState->userNodes())
         coords << n;
+    // With the intersections library, \path[name intersections={...}] creates
+    // auto-named coordinates intersection-1, intersection-2, ... Offer the first
+    // couple as examples so they can be referenced without typing blindly.
+    if (m_docState->activeLibs().contains(QStringLiteral("intersections"))) {
+        coords << QStringLiteral("intersection-1")
+               << QStringLiteral("intersection-2");
+    }
     coords.removeDuplicates();
     setModelForContext(TkzCtxCoord, coords);
 

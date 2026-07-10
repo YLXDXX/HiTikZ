@@ -48,6 +48,14 @@ public:
     // Exposed for testing.
     QStringList eqCandidatesForKey(const QString &keyName) const;
 
+    // Returns the current completion-candidate list for a context model.
+    // Exposed for testing (e.g. verifying coord model includes intersection-N).
+    QStringList modelWordsForContext(Context ctx) const;
+
+    // Rebuilds the user-defined completion models (coords/nodes/commands/...)
+    // from the current document state. Exposed for testing.
+    void updateUserModels();
+
     // Extracts the option key governing the value being typed at the cursor for
     // '=' value completion. Correctly ignores '=', ',' and '[' that are nested
     // inside a value's braces (e.g. [a={x,y}, fill=] -> "fill"). Exposed for
@@ -67,7 +75,6 @@ private:
     void updateDotModel();
     void updateEndModel();
     void updateEqModel(const QString &keyName);
-    void updateUserModels();
     QStringList buildBrkCandidates(Context ctx);
     // Index of the '=' governing the value at the cursor (brace-depth 0), or -1.
     static int governingEqIndex(const QString &textBefore);

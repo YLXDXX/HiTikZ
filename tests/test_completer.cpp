@@ -2056,6 +2056,68 @@ static int test_positioning_key_coord_completion()
     return failed;
 }
 
+// With \usetikzlibrary{intersections}, \path[name intersections={...}] auto-
+// names coordinates intersection-1, intersection-2, ... These must be offered
+// as coordinate-completion examples when the library is active, and must NOT
+// appear otherwise.
+static int test_intersections_coord_completion()
+{
+    int failed = 0;
+
+    // Library active -> intersection-1/-2 offered.
+    {
+        QPlainTextEdit editor;
+        TikzCompleter completer(&editor);
+        QTextDocument doc;
+        doc.setPlainText(
+            "\\usetikzlibrary{intersections}\n"
+            "\\path[name path=D] (0,0) -- (2,2);\n"
+            "\\path[name path=E] (0,2) -- (2,0);\n"
+            "\\path[name intersections={of=D and E}];\n"
+            "\\coordinate (C) at (0,0);\n");
+        TikzDocumentState state;
+        state.reparse(&doc);
+        completer.setDocumentState(&state);
+        completer.updateUserModels();
+        const QStringList coords =
+            completer.modelWordsForContext(TikzCompleter::TkzCtxCoord);
+        if (!coords.contains(QStringLiteral("intersection-1"))) {
+            fprintf(stderr, "FAIL: ISEC-1 - coord model should offer 'intersection-1'\n");
+            failed++;
+        }
+        if (!coords.contains(QStringLiteral("intersection-2"))) {
+            fprintf(stderr, "FAIL: ISEC-2 - coord model should offer 'intersection-2'\n");
+            failed++;
+        }
+        if (!coords.contains(QStringLiteral("C"))) {
+            fprintf(stderr, "FAIL: ISEC-3 - real user coord 'C' still offered\n");
+            failed++;
+        }
+    }
+
+    // Library not loaded -> no intersection-N entries.
+    {
+        QPlainTextEdit editor;
+        TikzCompleter completer(&editor);
+        QTextDocument doc;
+        doc.setPlainText("\\coordinate (C) at (0,0);\n");
+        TikzDocumentState state;
+        state.reparse(&doc);
+        completer.setDocumentState(&state);
+        completer.updateUserModels();
+        const QStringList coords =
+            completer.modelWordsForContext(TikzCompleter::TkzCtxCoord);
+        if (coords.contains(QStringLiteral("intersection-1"))) {
+            fprintf(stderr, "FAIL: ISEC-4 - 'intersection-1' offered without intersections lib\n");
+            failed++;
+        }
+    }
+
+    if (failed == 0)
+        fprintf(stderr, "PASS: intersections library offers intersection-N coords\n");
+    return failed;
+}
+
 // Verifies anchors are source-accurate against TeXLive PGF/circuitikz:
 // universal PGF anchors always present, circuitikz anchors gated, and
 // bogus/hallucinated entries removed (angle numbers, "substrate",
@@ -2273,6 +2335,7 @@ int main(int argc, char *argv[])
     failed += test_path_word_set_restricted();
     failed += test_path_word_completion_correctness();
     failed += test_positioning_key_coord_completion();
+    failed += test_intersections_coord_completion();
     failed += test_anchors_source_accurate();
     failed += test_anchor_library_gating();
 
