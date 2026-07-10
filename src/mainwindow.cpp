@@ -1495,7 +1495,30 @@ void MainWindow::updateTabUiState()
     // user edits should mutate the cached per-tab state and tab title.
     if (m_loadingDepth != 0) return;
     saveCurrentTabUiState();
+    syncDocStateLibraries();
     onCurrentSnippetChanged();
+}
+
+void MainWindow::syncDocStateLibraries()
+{
+    CodeEditor *editor = currentEditor();
+    if (!editor || !editor->documentState()) return;
+
+    QStringList libs;
+    if (!tikzLibrariesEdit->text().isEmpty()) {
+        for (const QString &lib : tikzLibrariesEdit->text().split(',', Qt::SkipEmptyParts))
+            libs << lib.trimmed();
+    }
+    editor->documentState()->setSnippetLibraries(libs);
+
+    QStringList pkgs;
+    if (!packagesEdit->text().isEmpty()) {
+        for (const QString &pkg : packagesEdit->text().split(',', Qt::SkipEmptyParts))
+            pkgs << pkg.trimmed();
+    }
+    editor->documentState()->setSnippetPackages(pkgs);
+
+    editor->reparseDocumentState();
 }
 
 void MainWindow::onCurrentSnippetChanged()

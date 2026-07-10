@@ -8,6 +8,9 @@
 #include "../src/snippet_manager.h"
 #include "../src/search_panel.h"
 #include "../src/code_editor.h"
+#include "../src/tikz_document_state.h"
+#include "../src/tikz_completer.h"
+#include <QLineEdit>
 
 static int g_testsPassed = 0;
 static int g_testsFailed = 0;
@@ -349,6 +352,73 @@ static void test_tab_metadata_isolation(MainWindow *mw, SnippetManager *snippetM
     snippetMgr->deleteSnippet(idB);
 }
 
+// Regression: editing the right-panel "TikZ库" (TikZ libraries) field must
+// propagate the library into the active editor's document state so completion
+// reflects it immediately — without requiring \usetikzlibrary{...} in the code.
+// Reproduces the reported bug: adding "through" via the UI field did not enable
+// the "circle through" completion (only typing \usetikzlibrary{through} did).
+static void test_ui_library_field_activates_completion(
+    MainWindow *mw, SnippetManager *snippetMgr,
+    SearchPanel *searchPanel, QTabWidget *tabWidget)
+{
+    QString id = snippetMgr->createSnippet("UILib Test", "test/uilib");
+    Snippet s = snippetMgr->loadSnippet(id);
+    s.tikzLibraries = QString();   // start with no libraries
+    s.code = "\\begin{tikzpicture}\n\\end{tikzpicture}\n";
+    snippetMgr->saveSnippet(s);
+
+    emit searchPanel->snippetSelected(id);
+    QApplication::processEvents();
+
+    int idx = -1;
+    for (int i = 0; i < tabWidget->count(); ++i)
+        if (tabWidget->tabBar()->tabData(i).toString() == id) { idx = i; break; }
+    TEST_ASSERT(idx >= 0, "UILib test tab should exist");
+    if (idx < 0) { snippetMgr->deleteSnippet(id); return; }
+
+    CodeEditor *editor = qobject_cast<CodeEditor*>(tabWidget->widget(idx));
+    TEST_ASSERT(editor != nullptr, "UILib tab should have a CodeEditor");
+    QLineEdit *libEdit =
+        mw->findChild<QLineEdit*>(QStringLiteral("metaTikzLibrariesEdit"));
+    TEST_ASSERT(libEdit != nullptr, "should find metaTikzLibrariesEdit");
+    if (!editor || !libEdit) { snippetMgr->deleteSnippet(id); return; }
+
+    // Baseline: without the "through" library, "circle through" must NOT be an
+    // active library and thus not offered in the option completion model.
+    TEST_ASSERT(!editor->documentState()->activeLibs().contains(QStringLiteral("through")),
+                "'through' should not be active before adding it via the UI field");
+
+    // Simulate the user typing "through" into the "TikZ库" field.
+    libEdit->setText(QStringLiteral("through"));
+    QApplication::processEvents();
+
+    // The edit must now be reflected in the editor's document state.
+    TEST_ASSERT(editor->documentState()->activeLibs().contains(QStringLiteral("through")),
+                "'through' must be active in doc state after UI field edit");
+
+    // And the "circle through" option must be offered by the completer's
+    // bracket/option model (node option context).
+    QTextCursor cur = editor->textCursor();
+    cur.movePosition(QTextCursor::Start);
+    // Position inside the tikzpicture body so env context resolves correctly.
+    cur.movePosition(QTextCursor::Down);
+    editor->setTextCursor(cur);
+    editor->completer()->updateUserModels();
+    const QStringList opts =
+        editor->completer()->modelWordsForContext(TikzCompleter::TkzCtxBrk);
+    TEST_ASSERT(opts.contains(QStringLiteral("circle through")),
+                "'circle through' should be offered once 'through' is added via UI");
+
+    // Multiple comma-separated libraries added via the UI must all activate.
+    libEdit->setText(QStringLiteral("calc, through"));
+    QApplication::processEvents();
+    TEST_ASSERT(editor->documentState()->activeLibs().contains(QStringLiteral("calc"))
+                && editor->documentState()->activeLibs().contains(QStringLiteral("through")),
+                "comma-separated UI libraries should all activate");
+
+    snippetMgr->deleteSnippet(id);
+}
+
 static void cleanup_snippets(SnippetManager *mgr)
 {
     QList<Snippet> all = mgr->getAllSnippets(true);
@@ -417,6 +487,8 @@ int main(int argc, char *argv[])
         test_metadata_dirty_detection(&mw, snippetMgr, searchPanel, tabWidget);
 
         test_tab_metadata_isolation(&mw, snippetMgr, searchPanel, tabWidget);
+
+        test_ui_library_field_activates_completion(&mw, snippetMgr, searchPanel, tabWidget);
 
         cleanup_snippets(snippetMgr);
     }

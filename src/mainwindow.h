@@ -85,6 +85,10 @@ private:
     void saveCurrentTabUiState();
     void restoreTabUiState(const QString &sid);
     void updateTabUiState();
+    // Push the current metadata fields (extra packages + TikZ libraries) into
+    // the active editor's document state so completion/highlighting reflect
+    // libraries added via the UI, not just \usetikzlibrary{...} in the code.
+    void syncDocStateLibraries();
     void setFitPageChecked(bool checked);
     void setFitWidthChecked(bool checked);
     void setFitHeightChecked(bool checked);

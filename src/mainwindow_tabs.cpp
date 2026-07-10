@@ -173,6 +173,9 @@ void MainWindow::setEditorForTab(int index)
     }
 
     m_loadingDepth--;
+    // Ensure the arriving tab's editor reflects its own package/library metadata
+    // for completion/highlighting, even when populated programmatically above.
+    syncDocStateLibraries();
     performParseParams();
 }
 
