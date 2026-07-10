@@ -113,11 +113,25 @@ TikzCompleter::Context TikzCompleter::detectContext(const QString &textBefore) c
         else if (ch == '[' && braceDepth == 0) {
             if (bracketDepth > 0) bracketDepth--;
             else {
-                QString afterBracket = textBefore.mid(i + 1);
-                if (afterBracket.contains(']'))
-                    continue;
-                int eqIdx = afterBracket.lastIndexOf('=');
-                int commaIdx = afterBracket.lastIndexOf(',');
+                // Reached the unclosed '[' that encloses the cursor. The
+                // bracketDepth/braceDepth tracking above already guarantees this
+                // '[' is genuinely open, so any ']' remaining after it lives
+                // inside a value's braces (e.g. >={Stealth[round]}) and must be
+                // ignored — a naive contains(']') check would misfire here and
+                // suppress completion. Decide key (TkzCtxBrk) vs value
+                // (TkzCtxEq) using the same brace-depth-aware scan.
+                const QString afterBracket = textBefore.mid(i + 1);
+                int eqIdx = -1, commaIdx = -1, bd = 0;
+                for (int k = afterBracket.length() - 1; k >= 0; --k) {
+                    const QChar c = afterBracket.at(k);
+                    if (c == '}') { bd++; }
+                    else if (c == '{') { if (bd > 0) bd--; }
+                    else if (bd == 0) {
+                        if (c == '=' && eqIdx < 0) eqIdx = k;
+                        else if (c == ',' && commaIdx < 0) commaIdx = k;
+                    }
+                    if (eqIdx >= 0 && commaIdx >= 0) break;
+                }
                 if (eqIdx >= 0 && (commaIdx < 0 || commaIdx <= eqIdx))
                     return TkzCtxEq;
                 return TkzCtxBrk;

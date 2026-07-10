@@ -311,6 +311,18 @@ static int test_detect_context()
         {QStringLiteral("\\usetikzlibrary{"), TikzCompleter::TkzCtxLib, "empty usetikzlibrary brace"},
         {QStringLiteral("\\usetikzlibrary{inters"), TikzCompleter::TkzCtxLib, "single library typing"},
         {QStringLiteral("\\usetikzlibrary{intersections,angles,quo"), TikzCompleter::TkzCtxLib, "library after commas"},
+        // Options that embed a bracketed value inside braces (e.g. arrow tip
+        // specs like >={Stealth[round]}) must NOT break subsequent completion in
+        // the SAME '[...]' option list. The ']' inside the braces is nested and
+        // must be ignored when locating the enclosing '['.
+        {QStringLiteral("[post,>={Stealth[round]},"), TikzCompleter::TkzCtxBrk, "new key after bracketed-brace value"},
+        {QStringLiteral("[post,>={Stealth[round]},semi"), TikzCompleter::TkzCtxBrk, "typing key after bracketed-brace value"},
+        {QStringLiteral("[auto,pre/.style={<-,>={Stealth[round]},semithick},"), TikzCompleter::TkzCtxBrk, "new key after style with bracketed arrow"},
+        {QStringLiteral("[auto,pre/.style={<-,>={Stealth[round]},semithick},th"), TikzCompleter::TkzCtxBrk, "typing key after style with bracketed arrow"},
+        {QStringLiteral("[>={Stealth[round]},fill="), TikzCompleter::TkzCtxEq, "value context after bracketed-brace value"},
+        // A ']' nested in braces must not be mistaken for the closer of an
+        // earlier bracket group when the cursor is genuinely inside brackets.
+        {QStringLiteral("[a={x]y},b"), TikzCompleter::TkzCtxBrk, "key after value containing a stray-looking ]"},
     };
 
     for (const auto &tc : tests) {
@@ -810,9 +822,61 @@ static int test_multiline_context()
     return failed;
 }
 
-// Verifies path operations/options/environments and CircuiTikZ components are
-// NOT offered as \backslash commands, while genuine commands remain, and path
-// operations stay completable as bare words.
+// Regression: an option value that embeds a bracketed argument inside braces
+// (e.g. the arrow-tip spec >={Stealth[round]}) must not break completion for
+// the rest of the SAME '[...]' option list. The ']' inside the braces is nested
+// and had previously fooled both the back-tracking scan and detectContext into
+// treating the enclosing '[' as already closed, suppressing completion.
+static int test_bracketed_brace_value_context()
+{
+    int failed = 0;
+    QPlainTextEdit editor;
+    TikzCompleter completer(&editor);
+
+    struct { const char *text; TikzCompleter::Context ctx; const char *desc; } cases[] = {
+        // Cursor right after the comma that follows a >={...[...]} value.
+        { "\\path edge [post,>={Stealth[round]},",
+          TikzCompleter::TkzCtxBrk, "new key after arrow spec with brackets" },
+        // Cursor while typing the next key.
+        { "\\path edge [post,>={Stealth[round]},semi",
+          TikzCompleter::TkzCtxBrk, "typing key after arrow spec with brackets" },
+        // The multi-line pgfset-style form from the report, split across lines.
+        { "\\begin{tikzpicture}[\n    auto,\n    pre/.style={<-,shorten <=1pt,>={Stealth[round]},semithick},\n    ",
+          TikzCompleter::TkzCtxBrk, "new key after style def spanning lines" },
+        // Value context (after '=') must still resolve past a bracketed-brace value.
+        { "\\path edge [post,>={Stealth[round]},fill=",
+          TikzCompleter::TkzCtxEq, "value context after arrow spec with brackets" },
+        { nullptr, TikzCompleter::TkzCtxNone, nullptr }
+    };
+
+    for (int i = 0; cases[i].text != nullptr; ++i) {
+        editor.setPlainText(QString::fromUtf8(cases[i].text));
+        editor.moveCursor(QTextCursor::End);
+        QString tb = completer.textBeforeForContext();
+        TikzCompleter::Context got = completer.detectContext(tb);
+        if (got != cases[i].ctx) {
+            fprintf(stderr, "FAIL: BBV-%d (%s) - expected ctx %d, got %d (textBefore='%s')\n",
+                    i, cases[i].desc, static_cast<int>(cases[i].ctx),
+                    static_cast<int>(got), tb.toUtf8().constData());
+            failed++;
+        }
+    }
+
+    // The back-tracked context must reach the enclosing '[' (not stop short at
+    // the ']' nested in braces).
+    editor.setPlainText(QStringLiteral("\\path edge [post,>={Stealth[round]},"));
+    editor.moveCursor(QTextCursor::End);
+    QString tb = completer.textBeforeForContext();
+    if (!tb.startsWith(QLatin1Char('['))) {
+        fprintf(stderr, "FAIL: BBV-KEEP - back-track should start at the enclosing '[' (got '%s')\n",
+                tb.toUtf8().constData());
+        failed++;
+    }
+
+    fprintf(stderr, "%s: bracketed-brace value does not break option completion\n",
+            failed == 0 ? "PASS" : "FAIL");
+    return failed;
+}
 static int test_no_bogus_commands()
 {
     int failed = 0;
@@ -2033,6 +2097,7 @@ int main(int argc, char *argv[])
     failed += test_eq_key_name_extraction();
     failed += test_command_for_option_context();
     failed += test_multiline_context();
+    failed += test_bracketed_brace_value_context();
     failed += test_no_bogus_commands();
     failed += test_usetikzlibrary_context();
     failed += test_circuitikz_components_accurate();

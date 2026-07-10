@@ -89,10 +89,12 @@ QString TikzCompleter::textBeforeForContext() const
     while (scan > limitPos) {
         const QChar ch = doc->characterAt(scan - 1);
         if (ch == QLatin1Char(']')) {
-            bracketDepth++;
+            if (braceDepth == 0) bracketDepth++; // ignore ']' nested in braces
         } else if (ch == QLatin1Char('[')) {
-            if (bracketDepth == 0) { scan--; break; } // include the unclosed '['
-            bracketDepth--;
+            if (braceDepth == 0) {               // ignore '[' nested in braces
+                if (bracketDepth == 0) { scan--; break; } // include unclosed '['
+                bracketDepth--;
+            }
         } else if (ch == QLatin1Char('}')) {
             braceDepth++;
         } else if (ch == QLatin1Char('{')) {
