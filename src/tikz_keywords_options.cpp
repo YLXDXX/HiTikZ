@@ -357,6 +357,25 @@ void registerGeneralOptions(Vec &db)
     addBuiltin(db, "sort by",           C::Option, {}, {}, {}, {"intersections"});
     addBuiltin(db, "total",             C::Option, {}, {}, {}, {"intersections"});
 
+    // Petri library (verified against tikzlibrarypetri.code.tex)
+    // Node styles for places, transitions and tokens.
+    addBuiltin(db, "place",              C::Option, {}, {"node"}, {}, {"petri"});
+    addBuiltin(db, "every place",        C::Option, {}, {"node"}, {}, {"petri"});
+    addBuiltin(db, "transition",         C::Option, {}, {"node"}, {}, {"petri"});
+    addBuiltin(db, "every transition",   C::Option, {}, {"node"}, {}, {"petri"});
+    addBuiltin(db, "token",              C::Option, {}, {"node"}, {}, {"petri"});
+    addBuiltin(db, "every token",        C::Option, {}, {"node"}, {}, {"petri"});
+    // Relationship (edge) style unique to petri (pre/post already exist).
+    addBuiltin(db, "pre and post",       C::Option, {}, {}, {}, {"petri"});
+    // Token-placement keys/options.
+    addBuiltin(db, "tokens",             C::Option, {}, {"node"},
+               {"1","2","3","4","5","6","7","8","9"}, {"petri"});
+    addBuiltin(db, "colored tokens",     C::Option, {}, {"node"}, {}, {"petri"});
+    addBuiltin(db, "structured tokens",  C::Option, {}, {"node"}, {}, {"petri"});
+    addBuiltin(db, "children are tokens",C::Option, {}, {"node"}, {}, {"petri"});
+    addBuiltin(db, "token distance",     C::Option, {}, {},
+               {"1ex","1.5ex","2ex","3ex"}, {"petri"});
+
     // Shape-specific options
     addBuiltin(db, "regular polygon sides", C::Option, {"tikzpicture","scope"}, {"node"},
                {"3","4","5","6","7","8","10","12"}, {"shapes.geometric"});

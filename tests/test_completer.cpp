@@ -1413,6 +1413,19 @@ static int test_library_keys_present()
         {"rdf engine", "rdf"},
         // views
         {"meet", "views"},
+        // petri
+        {"place", "petri"},
+        {"every place", "petri"},
+        {"transition", "petri"},
+        {"every transition", "petri"},
+        {"token", "petri"},
+        {"every token", "petri"},
+        {"pre and post", "petri"},
+        {"tokens", "petri"},
+        {"colored tokens", "petri"},
+        {"structured tokens", "petri"},
+        {"children are tokens", "petri"},
+        {"token distance", "petri"},
         {nullptr, nullptr}
     };
 
@@ -1441,6 +1454,60 @@ static int test_library_keys_present()
 
     if (failed == 0)
         fprintf(stderr, "PASS: library-specific keys registered and gated\n");
+    return failed;
+}
+
+// Petri net library: place/transition/token styles and token-count options must
+// be offered in node option context when \usetikzlibrary{petri} is active, and
+// must NOT appear when the library is absent. Mirrors the reported example
+// \node [transition,tokens=2] (n) [left=of critical] {};
+static int test_petri_library_gated()
+{
+    int failed = 0;
+    using TikzKeywords::TikzKeywordDB;
+    using TikzKeywords::Category;
+
+    const char *petriKeys[] = {
+        "place", "transition", "token", "every place", "every transition",
+        "every token", "tokens", "colored tokens", "structured tokens",
+        "children are tokens", "token distance", "pre and post", nullptr
+    };
+
+    QSet<QString> withPetri; withPetri.insert(QStringLiteral("petri"));
+    QSet<QString> noLibs;
+
+    for (int i = 0; petriKeys[i]; ++i) {
+        const QString name = QString::fromUtf8(petriKeys[i]);
+
+        // Present in node option context when petri is active.
+        auto gated = TikzKeywordDB::instance().filter(
+            QStringLiteral("tikzpicture"), QStringLiteral("node"),
+            withPetri, Category::Option);
+        bool found = false;
+        for (auto *kw : gated)
+            if (kw->name.compare(name, Qt::CaseInsensitive) == 0) { found = true; break; }
+        if (!found) {
+            fprintf(stderr, "FAIL: PETRI-1 - '%s' not offered in node context with petri active\n",
+                    petriKeys[i]);
+            failed++;
+        }
+
+        // Absent when petri is not loaded.
+        auto ungated = TikzKeywordDB::instance().filter(
+            QStringLiteral("tikzpicture"), QStringLiteral("node"),
+            noLibs, Category::Option);
+        for (auto *kw : ungated) {
+            if (kw->name.compare(name, Qt::CaseInsensitive) == 0) {
+                fprintf(stderr, "FAIL: PETRI-2 - '%s' offered without petri library\n",
+                        petriKeys[i]);
+                failed++;
+                break;
+            }
+        }
+    }
+
+    if (failed == 0)
+        fprintf(stderr, "PASS: petri library styles/options gated correctly\n");
     return failed;
 }
 
@@ -2106,6 +2173,7 @@ int main(int argc, char *argv[])
     failed += test_decorations_accurate();
     failed += test_decoration_eq_completion();
     failed += test_library_keys_present();
+    failed += test_petri_library_gated();
     failed += test_physics_siunitx_gated();
     failed += test_pgfplots_keys_accurate();
     failed += test_package_completion_accurate();
