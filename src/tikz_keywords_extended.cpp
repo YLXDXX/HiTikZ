@@ -237,6 +237,8 @@ void registerExtended(Vec &db)
     addBuiltin(db, "every arrow",   C::Option, {"tikzcd"});
     addBuiltin(db, "every label",   C::Option, {"tikzcd"});
     addBuiltin(db, "every diagram", C::Option, {"tikzcd"});
+    addBuiltin(db, "every cell",    C::Option, {"tikzcd"});
+    addBuiltin(db, "every matrix",  C::Option, {"tikzcd"});
     addBuiltin(db, "arrow style",   C::Option, {"tikzcd"},
                {"tikz","math","Latin Modern","Computer Modern"});
     // tikz-cd arrow-tip style keys (used inside \arrow[...])

@@ -233,6 +233,9 @@ void registerCommands(Vec &db)
         "qfor","qin","qunless",
         "coth","sech","csch",
         "arccot","arcsec","arccsc","acot","asec","acsc",
+        // Added after cross-check with physics.sty + manual (all documented):
+        "acos","asin","atan","acommutator","div","op",
+        "smallmatrixquantity","qall","qas","qeven","qodd","qinteger",
         nullptr
     };
     for (int i = 0; physicsCmds[i]; i++)
