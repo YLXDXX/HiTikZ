@@ -32,6 +32,7 @@ void TikzCompleter::initCompleters()
     // Commands are dynamically populated in updateUserModels
     makeCompleter(TkzCtxCmd, {});
     makeCompleter(TkzCtxBeg, TikzWords::tikzEnvironments());
+    makeCompleter(TkzCtxEnd, TikzWords::tikzEnvironments());
     makeCompleter(TkzCtxBrk, TikzWords::tikzOptions());
 
     {
@@ -207,6 +208,24 @@ void TikzCompleter::updateDotModel()
     setModelForContext(TkzCtxDot, words);
 }
 
+void TikzCompleter::updateEndModel()
+{
+    QStringList words = TikzWords::tikzEnvironments();
+
+    // Prioritise the current innermost unclosed environment so that
+    // \end{...} completes to the matching environment first.
+    if (m_docState) {
+        QTextCursor cursor = m_editor->textCursor();
+        QString currentEnv = m_docState->currentEnvName(cursor.position());
+        if (!currentEnv.isEmpty() && words.contains(currentEnv)) {
+            words.removeAll(currentEnv);
+            words.prepend(currentEnv);
+        }
+    }
+
+    setModelForContext(TkzCtxEnd, words);
+}
+
 QStringList TikzCompleter::eqCandidatesForKey(const QString &keyName) const
 {
     QStringList vals;
@@ -279,6 +298,7 @@ void TikzCompleter::updateUserModels()
 {
     if (!m_docState) {
         updateDotModel();
+        updateEndModel();
         return;
     }
 
@@ -333,4 +353,7 @@ void TikzCompleter::updateUserModels()
 
     // Update dot completion (anchors + handlers) filtered by active libs
     updateDotModel();
+
+    // Update \end{...} completion — current env first
+    updateEndModel();
 }

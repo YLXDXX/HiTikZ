@@ -30,6 +30,14 @@ TikzCompleter::Context TikzCompleter::detectContext(const QString &textBefore) c
             return TkzCtxBeg;
     }
 
+    static const QRegularExpression endRe(QStringLiteral("\\\\end\\s*\\{"));
+    int lastEndIdx = textBefore.lastIndexOf(endRe);
+    if (lastEndIdx >= 0) {
+        QString afterEnd = textBefore.mid(lastEndIdx);
+        if (afterEnd.count('{') > afterEnd.count('}'))
+            return TkzCtxEnd;
+    }
+
     if (textBefore.contains(QRegularExpression(QStringLiteral("\\\\usetikzlibrary\\s*\\{")))) {
         int idx = textBefore.lastIndexOf(QRegularExpression(QStringLiteral("\\\\usetikzlibrary")));
         QString after = textBefore.mid(idx);

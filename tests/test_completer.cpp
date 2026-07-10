@@ -269,6 +269,9 @@ static int test_detect_context()
         {QStringLiteral("node.30"), TikzCompleter::TkzCtxDot, "node angle anchor"},
         {QStringLiteral(" \\"), TikzCompleter::TkzCtxCmd, "backslash after space"},
         {QStringLiteral("\\begin{tikzpictu"), TikzCompleter::TkzCtxBeg, "inside begin"},
+        {QStringLiteral("\\end{tikzpictu"), TikzCompleter::TkzCtxEnd, "inside end"},
+        {QStringLiteral("\\end{scop"), TikzCompleter::TkzCtxEnd, "end with partial name"},
+        {QStringLiteral("\\end{"), TikzCompleter::TkzCtxEnd, "empty end brace"},
         {QStringLiteral("\\draw[help lines] (0,0) gr"), TikzCompleter::TkzCtxPathWord, "keyword after bracket (path body)"},
         // Path-word context: bare words in the path body (outside braces) route to
         // TkzCtxPathWord with a restricted set, while words inside '{...}' remain

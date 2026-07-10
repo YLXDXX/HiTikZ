@@ -158,7 +158,8 @@ void TikzCompleter::tryComplete()
         if (lastSlash >= 0) prefix = textBefore.mid(lastSlash);
         break;
     }
-    case TkzCtxBeg: {
+    case TkzCtxBeg:
+    case TkzCtxEnd: {
         int lastBrace = textBefore.lastIndexOf('{');
         if (lastBrace >= 0) {
             int closePos = textBefore.indexOf('}', lastBrace);
@@ -260,8 +261,8 @@ void TikzCompleter::tryComplete()
     comp->setCompletionPrefix(prefix);
 
     if (prefix.isEmpty() && ctx != TkzCtxCmd && ctx != TkzCtxBeg
-        && ctx != TkzCtxLib && ctx != TkzCtxBrk && ctx != TkzCtxDot
-        && ctx != TkzCtxCoord) {
+        && ctx != TkzCtxEnd && ctx != TkzCtxLib && ctx != TkzCtxBrk
+        && ctx != TkzCtxDot && ctx != TkzCtxCoord) {
         comp->popup()->hide();
         return;
     }
@@ -301,8 +302,48 @@ bool TikzCompleter::handleCompletionKey(QKeyEvent *event)
             cursor.movePosition(QTextCursor::Left, QTextCursor::KeepAnchor, prefixLen);
             cursor.insertText(completion);
             comp->popup()->hide();
+            Context completedCtx = m_activeContext;
             m_activeContext = TkzCtxNone;
-            m_editor->setTextCursor(cursor);
+
+            // ── After completing \begin{env}: auto-insert \end{env} ──
+            if (completedCtx == TkzCtxBeg && !completion.isEmpty()) {
+                // The text is now \begin{scope  (no closing brace yet)
+                // Insert closing brace + blank line + \end{scope}
+                cursor = m_editor->textCursor();
+                QString lineIndent;
+                {
+                    QTextCursor lineCursor = cursor;
+                    lineCursor.movePosition(QTextCursor::StartOfBlock,
+                                            QTextCursor::KeepAnchor);
+                    QString line = lineCursor.selectedText();
+                    int indentEnd = 0;
+                    while (indentEnd < line.length()
+                           && (line.at(indentEnd) == ' '
+                               || line.at(indentEnd) == '\t'))
+                        indentEnd++;
+                    lineIndent = line.left(indentEnd);
+                }
+                cursor.insertText(QLatin1String("}\n\n") + lineIndent
+                                  + QLatin1String("\\end{") + completion
+                                  + QLatin1String("}\n"));
+                // Place cursor on the blank line between begin and end
+                cursor.movePosition(QTextCursor::Up, QTextCursor::MoveAnchor, 2);
+                cursor.movePosition(QTextCursor::EndOfBlock,
+                                    QTextCursor::MoveAnchor);
+                if (!lineIndent.isEmpty())
+                    cursor.insertText(lineIndent);
+                m_editor->setTextCursor(cursor);
+                if (m_docState)
+                    m_docState->reparse(m_editor->document());
+            } else if (completedCtx == TkzCtxEnd && !completion.isEmpty()) {
+                // \end{envname} — just close the brace
+                cursor = m_editor->textCursor();
+                cursor.insertText(QLatin1String("}"));
+                m_editor->setTextCursor(cursor);
+            } else {
+                m_editor->setTextCursor(cursor);
+            }
+
             return true;
         }
         break;

@@ -14,6 +14,7 @@ public:
         TkzCtxNone,
         TkzCtxCmd,
         TkzCtxBeg,
+        TkzCtxEnd,
         TkzCtxBrk,
         TkzCtxDot,
         TkzCtxEq,
@@ -64,6 +65,7 @@ private:
     void initCompleters();
     void updateBrkModel();
     void updateDotModel();
+    void updateEndModel();
     void updateEqModel(const QString &keyName);
     void updateUserModels();
     QStringList buildBrkCandidates(Context ctx);
