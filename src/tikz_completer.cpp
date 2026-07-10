@@ -309,15 +309,10 @@ bool TikzCompleter::handleCompletionKey(QKeyEvent *event)
             if (completedCtx == TkzCtxBeg && !completion.isEmpty()) {
                 cursor = m_editor->textCursor();
                 QTextDocument *doc = m_editor->document();
-                // Consume auto-paired '}' if it exists right after the cursor
                 int pos = cursor.position();
-                if (pos < doc->characterCount() - 1
-                    && doc->characterAt(pos) == QLatin1Char('}')) {
-                    cursor.movePosition(QTextCursor::Right,
-                                        QTextCursor::KeepAnchor, 1);
-                    cursor.removeSelectedText();
-                }
-                // Insert \end{env} on the next line, cursor stays after \begin
+                bool hasAutoPair = (pos < doc->characterCount() - 1
+                    && doc->characterAt(pos) == QLatin1Char('}'));
+
                 QString lineIndent;
                 {
                     QTextCursor lineCursor = cursor;
@@ -331,27 +326,31 @@ bool TikzCompleter::handleCompletionKey(QKeyEvent *event)
                         indentEnd++;
                     lineIndent = line.left(indentEnd);
                 }
+
+                if (!hasAutoPair)
+                    cursor.insertText(QLatin1String("}"));
+                else
+                    cursor.movePosition(QTextCursor::Right,
+                                        QTextCursor::MoveAnchor, 1);
                 cursor.insertText(QLatin1String("\n") + lineIndent
                                   + QLatin1String("\\end{") + completion
                                   + QLatin1String("}"));
-                // Leave cursor after \begin{scope}
-                cursor = m_editor->textCursor();
-                cursor.movePosition(QTextCursor::Up, QTextCursor::MoveAnchor, 1);
-                cursor.movePosition(QTextCursor::EndOfBlock,
+                // Position cursor after \begin{scope} (on the begin line)
+                QTextCursor endCur = m_editor->textCursor();
+                endCur.movePosition(QTextCursor::Up, QTextCursor::MoveAnchor, 1);
+                endCur.movePosition(QTextCursor::EndOfBlock,
                                     QTextCursor::MoveAnchor);
-                m_editor->setTextCursor(cursor);
+                m_editor->setTextCursor(endCur);
                 if (m_docState)
                     m_docState->reparse(m_editor->document());
             } else if (completedCtx == TkzCtxEnd && !completion.isEmpty()) {
                 cursor = m_editor->textCursor();
                 QTextDocument *doc = m_editor->document();
                 int pos = cursor.position();
-                if (pos < doc->characterCount() - 1
-                    && doc->characterAt(pos) == QLatin1Char('}')) {
-                    cursor.movePosition(QTextCursor::Right,
-                                        QTextCursor::KeepAnchor, 1);
-                    cursor.removeSelectedText();
-                }
+                bool hasAutoPair = (pos < doc->characterCount() - 1
+                    && doc->characterAt(pos) == QLatin1Char('}'));
+                if (!hasAutoPair)
+                    cursor.insertText(QLatin1String("}"));
                 m_editor->setTextCursor(cursor);
             } else {
                 m_editor->setTextCursor(cursor);
