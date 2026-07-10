@@ -1779,6 +1779,16 @@ static int test_package_completion_accurate()
                           "tkzInterLL","tkzInterLC","tkzInterCC","tkzMarkRightAngle",
                           "tkzLabelPoints","tkzDefTriangleCenter","tkzClipCircle"})
         reqCmd(c, "tkz-euclide");
+    // v5.10c commands added after full source cross-check (verified defined
+    // under xelatex): transformations, tangents, random points, extra
+    // triangles/circles, sector variants, tests, vectors.
+    for (const char *c : {"tkzTgtAt","tkzTgtFromP","tkzRandPointOnCircle",
+                          "tkzRandPointOnDisk","tkzDefFeuerbachTriangle",
+                          "tkzDefSimilitudeCenter","tkzDefCircleRotation",
+                          "tkzDrawSectorRotate","tkzFillSectorAngles",
+                          "tkzTestInterCC","tkzVecKOrth","tkzHomo","tkzSymOrth",
+                          "tkzPowerCircle","tkzNagelCenter","tkzInterLLxy"})
+        reqCmd(c, "tkz-euclide");
     // v4 names removed in v5.10c
     for (const char *c : {"tkzDrawTriangle","tkzDrawSquare","tkzTangent","tkzDrawBisector",
                           "tkzDrawMedian","tkzDrawAltitude","tkzDrawEulerLine",
