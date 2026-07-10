@@ -291,7 +291,7 @@ void registerCommands(Vec &db)
         "tdplotdefinepoints","tdplotcalctransformmainrot",
         "tdplotcalctransformrotmain","tdplotcalctransformmainscreen",
         "tdplottransformmainrot","tdplottransformrotmain",
-        "tdplottransformmainscreen","tdplotgetpolarcoords",
+        "tdplottransformmainscreen","tdplottransform","tdplotgetpolarcoords",
         "tdplotcrossprod","tdplotsinandcos","tdplotmult","tdplotdiv",
         "pgfmathtruncatemacro","pgfmathparse","pgfmathresult",
         "pgfmathprintnumber","pgfmathrandominteger","pgfmathsetseed",
