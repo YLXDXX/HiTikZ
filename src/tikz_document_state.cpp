@@ -11,17 +11,25 @@ TikzDocumentState::TikzDocumentState()
     m_tikzstyleRe = QRegularExpression(QStringLiteral("\\\\tikzstyle\\s*\\{([^}]*)\\}"));
     m_definecolorRe = QRegularExpression(QStringLiteral("\\\\definecolor\\s*\\{([^}]*)\\}"));
     m_colorletRe = QRegularExpression(QStringLiteral("\\\\colorlet\\s*\\{([^}]*)\\}"));
+    // A TikZ option list [ ... ] may itself contain ']' inside a brace group
+    // (e.g. label={[blue]right:$B$}). A naive "[^\]]*" stops at the first ']'
+    // and swallows the wrong span, so the following (name) is never seen. This
+    // sub-pattern matches a balanced option group, allowing brackets nested in
+    // up to two levels of braces (covers essentially all real TikZ code).
+    static const QString optGroup = QStringLiteral(
+        "\\[(?:[^\\[\\]{}]|\\{(?:[^{}]|\\{[^{}]*\\})*\\})*\\]");
     m_coordinateRe = QRegularExpression(
-        QStringLiteral("\\\\coordinate\\s*(?:\\[[^\\]]*\\]\\s*)?\\(([^)]+)\\)"));
+        QStringLiteral("\\\\coordinate\\s*(?:") + optGroup +
+        QStringLiteral("\\s*)?\\(([^)]+)\\)"));
     m_foreachRe = QRegularExpression(
         QStringLiteral("\\\\foreach\\s+((?:\\\\[a-zA-Z]+\\s*(?:/\\s*)?)+)"
-                       "(?:\\s*\\[[^\\]]*\\])?\\s*in"));
+                       "(?:\\s*") + optGroup + QStringLiteral(")?\\s*in"));
     m_newcmdRe = QRegularExpression(
         QStringLiteral("\\\\(?:new|renew|provide)command\\*?\\s*\\{?\\\\([a-zA-Z@]+)"));
     m_defRe = QRegularExpression(QStringLiteral("\\\\def\\s*\\\\([a-zA-Z]+)"));
     m_nodeRe = QRegularExpression(
-        QStringLiteral("\\\\(?:node|pic)\\s*(?:\\[[^\\]]*\\]\\s*)?"
-                       "(?:at\\s*\\([^)]*\\)\\s*)?\\(([^)]+)\\)"));
+        QStringLiteral("\\\\(?:node|pic)\\s*(?:") + optGroup +
+        QStringLiteral("\\s*)?(?:at\\s*\\([^)]*\\)\\s*)?\\(([^)]+)\\)"));
     m_styleInTikzsetRe = QRegularExpression(
         QStringLiteral("([\\w\\s]+)/\\.(style|code|pic|append style|prefix style)"
                        "\\s*=\\s*\\{"));

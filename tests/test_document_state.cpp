@@ -97,13 +97,19 @@ static int test_coordinate_node_parsing()
         "\\coordinate (A) at (0,0);\n"
         "\\coordinate[red] (B) at (1,2);\n"
         "\\node (myNode) at (3,4) {label};\n"
-        "\\node[draw] (otherNode) at (5,6) {text};\n");
+        "\\node[draw] (otherNode) at (5,6) {text};\n"
+        // Option list contains ']' nested inside a brace group (label={[blue]..}).
+        // The name after such an option must still be extracted.
+        "\\coordinate [label={[blue]right:$B$}] (tempB) at ($ (1.5,0.5)+0.1*(rand,rand) $);\n"
+        "\\node[pin={[red]above:x}] (pinNode) at (7,8) {n};\n");
     TikzDocumentState state;
     state.reparse(&doc);
     if (!state.userCoordinates().contains("A")) { fprintf(stderr, "FAIL: DCS-C1\n"); failed++; }
     if (!state.userCoordinates().contains("B")) { fprintf(stderr, "FAIL: DCS-C2\n"); failed++; }
     if (!state.userNodes().contains("myNode")) { fprintf(stderr, "FAIL: DCS-C3\n"); failed++; }
     if (!state.userNodes().contains("otherNode")) { fprintf(stderr, "FAIL: DCS-C4\n"); failed++; }
+    if (!state.userCoordinates().contains("tempB")) { fprintf(stderr, "FAIL: DCS-C5 (coord name after label={[..]..} option)\n"); failed++; }
+    if (!state.userNodes().contains("pinNode")) { fprintf(stderr, "FAIL: DCS-C6 (node name after pin={[..]..} option)\n"); failed++; }
     if (failed == 0) fprintf(stderr, "PASS: coordinate/node parsing\n");
     return failed;
 }
