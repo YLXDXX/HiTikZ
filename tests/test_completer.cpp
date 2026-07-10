@@ -960,6 +960,14 @@ static int test_circuitikz_components_accurate()
         "emptygeneric", "fourport", "transformercore", "delayline",
         "nchenh", "nchdep", "pchdep", "coils", "vcoils", "resistorshape",
         "capacitorshape", "pTy", "qqQ", "vQshape", "diacshape",
+        // Internal bipole shape names (2nd arg of \pgfcirc@activate@bipole) that
+        // are NOT valid to[...]/node[...] keys — verified to error under xelatex.
+        // The spaced/shortcut forms (e.g. "cute inductor", "polar capacitor",
+        // "push button", "solar") are the real keys and remain.
+        "cuteinductor", "americaninductor", "europeaninductor", "polarcapacitor",
+        "pushbutton", "toggleswitch", "solarsource", "batteryone", "batterytwo",
+        "vcapacitor", "cutechoke", "thermistorntc", "thermistorptc", "ojumper",
+        "ccapacitor", "oosource", "vsourceam", "cuteopenswitch",
         nullptr
     };
     for (int i = 0; bogus[i]; ++i) {
@@ -986,10 +994,15 @@ static int test_circuitikz_components_accurate()
     // exactly the ones a previous mis-"fix" would have wrongly removed/renamed).
     const char *validComponents[] = {
         "rmeterwa", "pR", "vR", "sR", "phR", "ldR", "thR", "Tr", "Ty",
-        "elko", "solar", "solarsource", "closing switch", "opening switch",
+        "elko", "solar", "closing switch", "opening switch",
         "cute choke", "cute inductor", "american inductor", "variable capacitor",
         "polar capacitor", "thermistor ntc", "thermistor ptc", "cspst",
         "R", "L", "C", "D", "V", "I", "pC", "pD",
+        // Common base components that were previously missing (verified valid
+        // to[...] keys under xelatex against CircuiTikZ 1.7.1).
+        "resistor", "inductor", "potentiometer", "variable resistor",
+        "variable inductor", "inductive sensor", "resistive sensor",
+        "light dependent resistor", "vcc", "vee",
         nullptr
     };
     for (int i = 0; validComponents[i]; ++i) {
