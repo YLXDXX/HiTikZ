@@ -1263,6 +1263,85 @@ static int test_decoration_eq_completion()
     return failed;
 }
 
+// Verifies library-specific keys (chains/spy/through/shadows/multipart/etc.)
+// are registered with proper library gating.
+static int test_library_keys_present()
+{
+    int failed = 0;
+    using TikzKeywords::TikzKeywordDB;
+    using TikzKeywords::Category;
+    const QStringList opts = TikzKeywordDB::instance().allOptionNames();
+
+    struct { const char *name; const char *lib; } keys[] = {
+        // chains
+        {"start chain", "chains"},
+        {"continue chain", "chains"},
+        {"on chain", "chains"},
+        {"join", "chains"},
+        {"chain default direction", "chains"},
+        {"start branch", "chains"},
+        {"continue branch", "chains"},
+        // spy
+        {"spy using outlines", "spy"},
+        {"spy using overlays", "spy"},
+        {"connect spies", "spy"},
+        {"lens", "spy"},
+        {"magnification", "spy"},
+        {"spy connection path", "spy"},
+        // through
+        {"circle through", "through"},
+        // shadows
+        {"shadow scale", "shadows"},
+        {"shadow xshift", "shadows"},
+        {"shadow yshift", "shadows"},
+        {"copy shadow", "shadows"},
+        {"double copy shadow", "shadows"},
+        {"circular glow", "shadows"},
+        // shapes.multipart
+        {"rectangle split draw splits", "shapes.multipart"},
+        {"rectangle split part align", "shapes.multipart"},
+        {"rectangle split part fill", "shapes.multipart"},
+        {"rectangle split use custom fill", "shapes.multipart"},
+        // shapes.symbols
+        {"shape border uses incircle", "shapes.symbols"},
+        // shapes.callouts
+        {"callout absolute pointer", "shapes.callouts"},
+        {"callout relative pointer", "shapes.callouts"},
+        // shapes.arrows
+        {"arrow box arrows", "shapes.arrows"},
+        // trees
+        {"sibling angle", "trees"},
+        {nullptr, nullptr}
+    };
+
+    for (int i = 0; keys[i].name; ++i) {
+        const QString name = QString::fromUtf8(keys[i].name);
+        if (!opts.contains(name)) {
+            fprintf(stderr, "FAIL: LIB-1 - '%s' (%s) missing from options\n",
+                    keys[i].name, keys[i].lib);
+            failed++;
+        }
+
+        // Verify library gating via filter()
+        QSet<QString> lib; lib.insert(QString::fromUtf8(keys[i].lib));
+        auto gated = TikzKeywordDB::instance().filter(
+            QStringLiteral("tikzpicture"), QString(), lib, Category::Option);
+        bool found = false;
+        for (auto *kw : gated)
+            if (kw->name.compare(name, Qt::CaseInsensitive) == 0)
+            { found = true; break; }
+        if (!found) {
+            fprintf(stderr, "FAIL: LIB-2 - '%s' not offered with %s active\n",
+                    keys[i].name, keys[i].lib);
+            failed++;
+        }
+    }
+
+    if (failed == 0)
+        fprintf(stderr, "PASS: library-specific keys registered and gated\n");
+    return failed;
+}
+
 // Verifies physics/siunitx package commands are present and correctly gated:
 // not offered without the package, offered when \usepackage is detected.
 static int test_physics_siunitx_gated()
@@ -1923,6 +2002,7 @@ int main(int argc, char *argv[])
     failed += test_mathfunctions_accurate();
     failed += test_decorations_accurate();
     failed += test_decoration_eq_completion();
+    failed += test_library_keys_present();
     failed += test_physics_siunitx_gated();
     failed += test_pgfplots_keys_accurate();
     failed += test_package_completion_accurate();

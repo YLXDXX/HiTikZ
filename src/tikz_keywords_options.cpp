@@ -367,6 +367,24 @@ void registerGeneralOptions(Vec &db)
     addBuiltin(db, "aspect",                C::Option, {"tikzpicture","scope"}, {"node"}, {}, {"shapes.geometric"});
     addBuiltin(db, "shape border rotate",   C::Option, {"tikzpicture","scope"}, {"node"});
     addBuiltin(db, "rectangle split parts", C::Option, {"tikzpicture","scope"}, {"node"}, {}, {"shapes.multipart"});
+    // Additional shapes.multipart keys (verified against tikzlibraryshapes.multipart.code.tex)
+    addBuiltin(db, "rectangle split draw splits", C::Option, {"tikzpicture","scope"}, {"node"}, {}, {"shapes.multipart"});
+    addBuiltin(db, "rectangle split part align", C::Option, {"tikzpicture","scope"}, {"node"}, {}, {"shapes.multipart"});
+    addBuiltin(db, "rectangle split part fill", C::Option, {"tikzpicture","scope"}, {"node"}, {}, {"shapes.multipart"});
+    addBuiltin(db, "rectangle split use custom fill", C::Option, {"tikzpicture","scope"}, {"node"}, {}, {"shapes.multipart"});
+    addBuiltin(db, "rectangle split empty part width", C::Option, {"tikzpicture","scope"}, {"node"}, {}, {"shapes.multipart"});
+    addBuiltin(db, "rectangle split empty part height", C::Option, {"tikzpicture","scope"}, {"node"}, {}, {"shapes.multipart"});
+    addBuiltin(db, "rectangle split empty part depth", C::Option, {"tikzpicture","scope"}, {"node"}, {}, {"shapes.multipart"});
+
+    // shapes.symbols
+    addBuiltin(db, "shape border uses incircle", C::Option, {"tikzpicture","scope"}, {"node"}, {}, {"shapes.symbols"});
+
+    // shapes.callouts
+    addBuiltin(db, "callout absolute pointer", C::Option, {"tikzpicture","scope"}, {"node"}, {}, {"shapes.callouts"});
+    addBuiltin(db, "callout relative pointer", C::Option, {"tikzpicture","scope"}, {"node"}, {}, {"shapes.callouts"});
+
+    // shapes.arrows
+    addBuiltin(db, "arrow box arrows", C::Option, {"tikzpicture","scope"}, {"node"}, {}, {"shapes.arrows"});
 
     // Tree / graph
     addBuiltin(db, "grow",              C::Option, {"tikzpicture","scope"}, {},
@@ -387,11 +405,47 @@ void registerGeneralOptions(Vec &db)
     addBuiltin(db, "child anchor",      C::Option, {"tikzpicture","scope"});
     addBuiltin(db, "counterclockwise",  C::Option, {"tikzpicture","scope"}, {"node"});
     addBuiltin(db, "clockwise",         C::Option, {"tikzpicture","scope"}, {"node"});
+    addBuiltin(db, "sibling angle",     C::Option, {"tikzpicture","scope"}, {}, {}, {"trees"});
 
     // Mindmap
     addBuiltin(db, "mindmap",           C::Option, {"tikzpicture"});
     addBuiltin(db, "concept",           C::Option, {"tikzpicture"}, {}, {}, {"mindmap"});
     addBuiltin(db, "concept color",     C::Option, {"tikzpicture"}, {}, {}, {"mindmap"});
+
+    // ── Chains ── (verified against tikzlibrarychains.code.tex)
+    {
+        const char *keys[] = {
+            "start chain","continue chain","on chain","join",
+            "chain default direction","start branch","continue branch",
+            nullptr};
+        for (int i = 0; keys[i]; i++)
+            addBuiltin(db, keys[i], C::Option, {"tikzpicture","scope"}, {}, {}, {"chains"});
+    }
+
+    // ── Spy ── (verified against tikzlibraryspy.code.tex)
+    {
+        addBuiltin(db, "spy using outlines", C::Option, {"tikzpicture","scope"}, {}, {}, {"spy"});
+        addBuiltin(db, "spy using overlays", C::Option, {"tikzpicture","scope"}, {}, {}, {"spy"});
+        addBuiltin(db, "connect spies", C::Option, {"tikzpicture","scope"}, {}, {}, {"spy"});
+        addBuiltin(db, "lens", C::Option, {"tikzpicture","scope"}, {}, {}, {"spy"});
+        addBuiltin(db, "magnification", C::Option, {"tikzpicture","scope"}, {}, {}, {"spy"});
+        addBuiltin(db, "spy connection path", C::Option, {"tikzpicture","scope"}, {}, {}, {"spy"});
+    }
+
+    // ── Through ── (verified against tikzlibrarythrough.code.tex)
+    {
+        addBuiltin(db, "circle through", C::Option, {"tikzpicture","scope"}, {}, {}, {"through"});
+    }
+
+    // ── Shadows (additional) ── (verified against tikzlibraryshadows.code.tex)
+    {
+        addBuiltin(db, "shadow scale", C::Option, {"tikzpicture","scope"}, {}, {}, {"shadows"});
+        addBuiltin(db, "shadow xshift", C::Option, {"tikzpicture","scope"}, {}, {}, {"shadows"});
+        addBuiltin(db, "shadow yshift", C::Option, {"tikzpicture","scope"}, {}, {}, {"shadows"});
+        addBuiltin(db, "copy shadow", C::Option, {"tikzpicture","scope"}, {}, {}, {"shadows"});
+        addBuiltin(db, "double copy shadow", C::Option, {"tikzpicture","scope"}, {}, {}, {"shadows"});
+        addBuiltin(db, "circular glow", C::Option, {"tikzpicture","scope"}, {}, {}, {"shadows"});
+    }
 
     // Automata
     addBuiltin(db, "accepting",         C::Option, {"tikzpicture","scope"}, {"node"});
