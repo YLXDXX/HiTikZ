@@ -158,7 +158,16 @@ void registerGeneralOptions(Vec &db)
     addBuiltin(db, "text badly centered",    C::Option, {"tikzpicture","scope"}, {"node"});
     addBuiltin(db, "align",            C::Option, {"tikzpicture","scope"}, {"node"},
                {"left","center","right","justify","none"});
-    addBuiltin(db, "font",             C::Option, {"tikzpicture","scope"}, {"node"});
+    addBuiltin(db, "font",             C::Option, {"tikzpicture","scope"}, {"node"},
+               {"\\rmfamily","\\sffamily","\\ttfamily","\\bfseries","\\mdseries",
+                "\\upshape","\\itshape","\\slshape","\\scshape",
+                "\\tiny","\\scriptsize","\\footnotesize","\\small",
+                "\\normalsize","\\large","\\Large","\\LARGE","\\huge","\\Huge"});
+    addBuiltin(db, "node font",        C::Option, {"tikzpicture","scope"}, {"node"},
+               {"\\rmfamily","\\sffamily","\\ttfamily","\\bfseries","\\mdseries",
+                "\\upshape","\\itshape","\\slshape","\\scshape",
+                "\\tiny","\\scriptsize","\\footnotesize","\\small",
+                "\\normalsize","\\large","\\Large","\\LARGE","\\huge","\\Huge"});
     addBuiltin(db, "node contents",    C::Option, {"tikzpicture","scope"}, {"node"});
     addBuiltin(db, "node distance",    C::Option, {"tikzpicture","scope"}, {"node"},
                {"0.5cm","1cm","1.5cm","2cm","2.5cm","3cm","4cm"});

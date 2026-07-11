@@ -2431,6 +2431,57 @@ static int test_of_path_completion()
     return failed;
 }
 
+// 'font' and 'node font' keys must be registered node options and offer LaTeX
+// font-command value completions (\itshape, \bfseries, \tiny, ...).
+static int test_font_completion()
+{
+    int failed = 0;
+    using TikzKeywords::TikzKeywordDB;
+    using TikzKeywords::Category;
+    QPlainTextEdit editor;
+    TikzCompleter completer(&editor);
+
+    const QStringList opts = TikzKeywordDB::instance().allOptionNames();
+    if (!opts.contains(QStringLiteral("font"))) {
+        fprintf(stderr, "FAIL: FNT-1 - 'font' option missing\n"); failed++;
+    }
+    if (!opts.contains(QStringLiteral("node font"))) {
+        fprintf(stderr, "FAIL: FNT-2 - 'node font' option missing\n"); failed++;
+    }
+
+    const char *cmds[] = {
+        "\\rmfamily","\\sffamily","\\ttfamily","\\bfseries","\\mdseries",
+        "\\upshape","\\itshape","\\slshape","\\scshape",
+        "\\tiny","\\scriptsize","\\footnotesize","\\small",
+        "\\normalsize","\\large","\\Large","\\LARGE","\\huge","\\Huge", nullptr
+    };
+    for (const char *key : { "font", "node font" }) {
+        const QStringList vals = completer.eqCandidatesForKey(QString::fromUtf8(key));
+        for (int i = 0; cmds[i]; ++i) {
+            if (!vals.contains(QString::fromUtf8(cmds[i]))) {
+                fprintf(stderr, "FAIL: FNT-3 - '%s=' should offer '%s'\n", key, cmds[i]);
+                failed++;
+            }
+        }
+    }
+
+    // 'node font' is valid in node context on \draw (draw shares node options).
+    QSet<QString> noLibs;
+    auto drawOpts = TikzKeywordDB::instance().filter(
+        QStringLiteral("tikzpicture"), QStringLiteral("draw"), noLibs, Category::Option);
+    bool foundNodeFont = false;
+    for (auto *kw : drawOpts)
+        if (kw->name == QLatin1String("node font")) { foundNodeFont = true; break; }
+    if (!foundNodeFont) {
+        fprintf(stderr, "FAIL: FNT-4 - 'node font' should be offered in \\draw option context\n");
+        failed++;
+    }
+
+    if (failed == 0)
+        fprintf(stderr, "PASS: font / node font value completion\n");
+    return failed;
+}
+
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
@@ -2478,6 +2529,7 @@ int main(int argc, char *argv[])
     failed += test_label_position_completion();
     failed += test_name_path_in_node();
     failed += test_of_path_completion();
+    failed += test_font_completion();
 
     if (failed > 0) {
         fprintf(stderr, "\n%d test(s) failed!\n", failed);
