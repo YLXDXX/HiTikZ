@@ -641,7 +641,12 @@ void registerGeneralOptions(Vec &db)
 
     // Predefined styles
     addBuiltin(db, "help lines",        C::Option, {"tikzpicture","scope"});
-    addBuiltin(db, "to path",           C::Option, {}, {"draw","path"});
+    // 'to path' is a general TikZ option (\tikzoption{to path}), commonly set in
+    // \tikzset{}/styles (no command context) as well as directly on \draw/\path
+    // via the 'to'/'edge' operations — so keep it unrestricted rather than gated
+    // to draw/path. Its value is a path expression that may reference the
+    // \tikztostart, \tikztotarget and \tikztonodes macros.
+    addBuiltin(db, "to path",           C::Option, {"tikzpicture","scope"});
 
     // ── Additional TikZ library option keys (all verified against the
     //    respective tikzlibrary*.code.tex sources) ──

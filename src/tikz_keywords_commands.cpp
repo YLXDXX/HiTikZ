@@ -312,7 +312,8 @@ void registerCommands(Vec &db)
         "pgftransformxscale","pgftransformyscale",
         "pgftransformxslant","pgftransformyslant",
         "pgftransformcm","pgftransformreset",
-        "useasboundingbox","tikztonodes","tikzlastnode","tikzmark","legend",
+        "useasboundingbox","tikztonodes","tikztostart","tikztotarget",
+        "tikzlastnode","tikzmark","legend",
         // Greek
         "alpha","beta","gamma","delta","epsilon","varepsilon",
         "zeta","eta","theta","vartheta","iota","kappa",

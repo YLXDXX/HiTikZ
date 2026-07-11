@@ -2581,6 +2581,49 @@ static int test_spaced_completion_accept_no_stray_char()
     return failed;
 }
 
+// The 'to path' option and the to-path coordinate macros (\tikztostart,
+// \tikztotarget, \tikztonodes) must be completable. 'to path' is a general
+// option (settable in \tikzset/styles, not only on \draw/\path), and the three
+// macros are \backslash commands available for completion.
+static int test_to_path_completion()
+{
+    int failed = 0;
+    using TikzKeywords::TikzKeywordDB;
+    using TikzKeywords::Category;
+
+    // 'to path' present among option names.
+    const QStringList opts = TikzKeywordDB::instance().allOptionNames();
+    if (!opts.contains(QStringLiteral("to path"))) {
+        fprintf(stderr, "FAIL: TP-1 - 'to path' option missing\n"); failed++;
+    }
+
+    // 'to path' must be offered even without a command context (e.g. in a
+    // \tikzset/style body): filter with empty command and no libs.
+    QSet<QString> noLibs;
+    auto styleOpts = TikzKeywordDB::instance().filter(
+        QStringLiteral("tikzpicture"), QString(), noLibs, Category::Option);
+    bool foundToPath = false;
+    for (auto *kw : styleOpts)
+        if (kw->name == QLatin1String("to path")) { foundToPath = true; break; }
+    if (!foundToPath) {
+        fprintf(stderr, "FAIL: TP-2 - 'to path' should be offered in style/no-command context\n");
+        failed++;
+    }
+
+    // The to-path coordinate macros must be registered \commands.
+    const QStringList cmds = TikzKeywordDB::instance().allCommandNames();
+    for (const char *m : { "tikztostart", "tikztotarget", "tikztonodes" }) {
+        if (!cmds.contains(QString::fromUtf8(m))) {
+            fprintf(stderr, "FAIL: TP-3 - to-path macro '\\%s' missing from commands\n", m);
+            failed++;
+        }
+    }
+
+    if (failed == 0)
+        fprintf(stderr, "PASS: to path option + \\tikztostart/\\tikztotarget/\\tikztonodes\n");
+    return failed;
+}
+
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
@@ -2630,6 +2673,7 @@ int main(int argc, char *argv[])
     failed += test_of_path_completion();
     failed += test_font_completion();
     failed += test_spaced_completion_accept_no_stray_char();
+    failed += test_to_path_completion();
 
     if (failed > 0) {
         fprintf(stderr, "\n%d test(s) failed!\n", failed);
