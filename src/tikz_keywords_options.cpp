@@ -348,8 +348,12 @@ void registerGeneralOptions(Vec &db)
     // Matrix
     addBuiltin(db, "matrix of nodes",       C::Option, {}, {"node"}, {}, {"matrix"});
     addBuiltin(db, "matrix of math nodes",  C::Option, {}, {"node"}, {}, {"matrix"});
-    addBuiltin(db, "column sep",            C::Option, {}, {"node"}, {}, {"matrix"});
-    addBuiltin(db, "row sep",               C::Option, {}, {"node"}, {}, {"matrix"});
+    addBuiltin(db, "column sep",            C::Option, {}, {"node"},
+               {"1mm","2mm","3mm","5mm","1em","1cm","2cm",
+                "small","large","between origins"}, {"matrix"});
+    addBuiltin(db, "row sep",               C::Option, {}, {"node"},
+               {"1mm","2mm","3mm","5mm","1em","1cm","2cm",
+                "small","large","between origins"}, {"matrix"});
     addBuiltin(db, "nodes",                 C::Option, {}, {"draw","path"}, {}, {"matrix"});
     addBuiltin(db, "delimiters",            C::Option, {}, {"node"}, {}, {"matrix"});
     addBuiltin(db, "left delimiter",        C::Option, {}, {"node"}, {}, {"matrix"});

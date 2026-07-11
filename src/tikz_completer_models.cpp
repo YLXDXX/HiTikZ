@@ -252,10 +252,16 @@ QStringList TikzCompleter::eqCandidatesForKey(const QString &keyName) const
                 vals << c;
         }
     } else {
-        const auto *kw = TikzKeywords::TikzKeywordDB::instance().find(
-            keyName, TikzKeywords::Category::Option);
-        if (kw && !kw->valueHints.isEmpty()) {
-            vals = kw->valueHints;
+        // Aggregate value hints from ALL Option keywords sharing this name, not
+        // just the first match. Some keys are registered by several libraries
+        // with different hint sets (e.g. 'column sep'/'row sep' exist for both
+        // tikz-cd, with tiny/small/..., and matrix, with distances/between
+        // origins); the union offers every valid value regardless of which
+        // registration find() would return first.
+        const QStringList merged =
+            TikzKeywords::TikzKeywordDB::instance().allValueHintsForName(keyName);
+        if (!merged.isEmpty()) {
+            vals = merged;
         } else if (lower.contains("width") || lower.contains("sep")
                    || lower.contains("distance") || lower.contains("size")
                    || lower.contains("radius")) {

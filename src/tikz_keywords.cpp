@@ -214,6 +214,23 @@ QStringList TikzKeywordDB::valueHintsFor(const QString &keyName) const
     return {};
 }
 
+QStringList TikzKeywordDB::allValueHintsForName(const QString &keyName) const
+{
+    QStringList vals;
+    for (const auto &kw : m_builtin) {
+        if (kw.category == Category::Option
+            && kw.name.compare(keyName, Qt::CaseInsensitive) == 0)
+            vals << kw.valueHints;
+    }
+    for (const auto &kw : m_userDefined) {
+        if (kw.category == Category::Option
+            && kw.name.compare(keyName, Qt::CaseInsensitive) == 0)
+            vals << kw.valueHints;
+    }
+    vals.removeDuplicates();
+    return vals;
+}
+
 void TikzKeywordDB::registerUserDefined(const QString &name, Category cat,
                                          const QString &doc)
 {

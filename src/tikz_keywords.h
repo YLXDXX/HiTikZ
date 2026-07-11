@@ -71,6 +71,11 @@ public:
 
     QStringList valueHintsFor(const QString &keyName) const;
 
+    // Union of valueHints across ALL Option keywords with this name. Names that
+    // are registered by several libraries (e.g. 'column sep' by both tikz-cd and
+    // matrix) accumulate every valid value rather than only the first match's.
+    QStringList allValueHintsForName(const QString &keyName) const;
+
     void registerUserDefined(const QString &name, Category cat,
                              const QString &doc = QString());
     void clearUserDefined();

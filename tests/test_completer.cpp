@@ -1771,7 +1771,20 @@ static int test_package_completion_accurate()
         envOpt(o);
     absentCmd("obj");
     absentOpt("tweak");
-    absentOpt("math nodes");
+    // 'math nodes' is NOT a tikz-cd key, but it IS a genuine graphs library
+    // option (verified in tikzlibrarygraphs.code.tex). Assert it is gated to the
+    // 'graphs' library rather than absent everywhere.
+    {
+        const auto *k = db.find(QStringLiteral("math nodes"), Category::Option);
+        if (!k) {
+            fprintf(stderr, "FAIL: PKG - 'math nodes' should exist as a graphs option\n");
+            failed++;
+        } else if (!k->requiredLibs.contains(QStringLiteral("graphs"))
+                   || k->environments.contains(QStringLiteral("tikzcd"))) {
+            fprintf(stderr, "FAIL: PKG - 'math nodes' must be a graphs (not tikz-cd) option\n");
+            failed++;
+        }
+    }
 
     // ── tkz-euclide ──
     for (const char *c : {"tkzInit","tkzDefPoint","tkzDefLine","tkzDefCircle",
@@ -2624,6 +2637,101 @@ static int test_to_path_completion()
     return failed;
 }
 
+// The graphs library and \matrix option completion: grow/branch growth keys,
+// placement strategies, node/edge appearance keys and matrix column/row sep.
+static int test_graphs_and_matrix_options()
+{
+    int failed = 0;
+    using TikzKeywords::TikzKeywordDB;
+    using TikzKeywords::Category;
+
+    const QStringList opts = TikzKeywordDB::instance().allOptionNames();
+
+    // graphs library keys must be present.
+    const char *graphKeys[] = {
+        "grow right", "grow left", "grow up", "grow down",
+        "grow right sep", "grow down sep", "branch down", "branch right sep",
+        "edges", "edge", "math nodes", "empty nodes",
+        "Cartesian placement", "circular placement", "no placement",
+        "clockwise", "counterclockwise", "phase",
+        "chain shift", "group shift", "number nodes",
+        "complete bipartite", "matching", "butterfly'", "every graph",
+        "default edge kind", "left anchor", "right anchor",
+        nullptr
+    };
+    for (int i = 0; graphKeys[i]; ++i) {
+        if (!opts.contains(QString::fromUtf8(graphKeys[i]))) {
+            fprintf(stderr, "FAIL: GRA-1 - graphs key '%s' missing\n", graphKeys[i]);
+            failed++;
+        }
+    }
+
+    // graphs keys must be gated by the 'graphs' library.
+    QSet<QString> graphsLib; graphsLib.insert(QStringLiteral("graphs"));
+    QSet<QString> noLibs;
+    auto gated = TikzKeywordDB::instance().filter(
+        QStringLiteral("tikzpicture"), QString(), graphsLib, Category::Option);
+    bool foundGrow = false;
+    for (auto *kw : gated)
+        if (kw->name == QLatin1String("grow right")) { foundGrow = true; break; }
+    if (!foundGrow) {
+        fprintf(stderr, "FAIL: GRA-2 - 'grow right' not offered with graphs lib\n");
+        failed++;
+    }
+    auto ungated = TikzKeywordDB::instance().filter(
+        QStringLiteral("tikzpicture"), QString(), noLibs, Category::Option);
+    for (auto *kw : ungated) {
+        if (kw->name == QLatin1String("grow right")) {
+            fprintf(stderr, "FAIL: GRA-3 - 'grow right' leaked without graphs lib\n");
+            failed++;
+            break;
+        }
+    }
+
+    // grow/branch keys offer a distance hint.
+    QPlainTextEdit editor;
+    TikzCompleter completer(&editor);
+    const QStringList grVals = completer.eqCandidatesForKey(QStringLiteral("grow right"));
+    if (!grVals.contains(QStringLiteral("1cm"))) {
+        fprintf(stderr, "FAIL: GRA-4 - 'grow right=' should offer a distance like '1cm'\n");
+        failed++;
+    }
+
+    // matrix column sep / row sep present, gated by matrix, and offer hints.
+    for (const char *k : { "column sep", "row sep" }) {
+        if (!opts.contains(QString::fromUtf8(k))) {
+            fprintf(stderr, "FAIL: GRA-5 - matrix key '%s' missing\n", k);
+            failed++;
+        }
+    }
+    QSet<QString> matrixLib; matrixLib.insert(QStringLiteral("matrix"));
+    auto mGated = TikzKeywordDB::instance().filter(
+        QStringLiteral("tikzpicture"), QString(), matrixLib, Category::Option);
+    bool foundColSep = false;
+    for (auto *kw : mGated)
+        if (kw->name == QLatin1String("column sep")) { foundColSep = true; break; }
+    if (!foundColSep) {
+        fprintf(stderr, "FAIL: GRA-6 - 'column sep' not offered with matrix lib\n");
+        failed++;
+    }
+    const QStringList csVals = completer.eqCandidatesForKey(QStringLiteral("column sep"));
+    if (!csVals.contains(QStringLiteral("between origins"))) {
+        fprintf(stderr, "FAIL: GRA-7 - 'column sep=' should offer 'between origins'\n");
+        failed++;
+    }
+    // The value hints for a name registered by several libraries (matrix +
+    // tikz-cd) must be the union: matrix distances AND tikz-cd size words.
+    if (!csVals.contains(QStringLiteral("small"))
+        || !csVals.contains(QStringLiteral("tiny"))) {
+        fprintf(stderr, "FAIL: GRA-8 - 'column sep=' should merge tikz-cd size words (tiny/small)\n");
+        failed++;
+    }
+
+    if (failed == 0)
+        fprintf(stderr, "PASS: graphs library + \\matrix column/row sep completion\n");
+    return failed;
+}
+
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
@@ -2674,6 +2782,7 @@ int main(int argc, char *argv[])
     failed += test_font_completion();
     failed += test_spaced_completion_accept_no_stray_char();
     failed += test_to_path_completion();
+    failed += test_graphs_and_matrix_options();
 
     if (failed > 0) {
         fprintf(stderr, "\n%d test(s) failed!\n", failed);

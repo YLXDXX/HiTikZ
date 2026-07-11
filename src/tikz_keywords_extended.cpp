@@ -225,11 +225,11 @@ void registerExtended(Vec &db)
     addBuiltin(db, "marking",       C::Option, {"tikzcd"});
     addBuiltin(db, "math mode",     C::Option, {"tikzcd"});
     addBuiltin(db, "diagrams",      C::Option, {"tikzcd"});
-    addBuiltin(db, "row sep",       C::Option, {"tikzcd"},
+    addBuiltin(db, "row sep",       C::Option, {"tikzcd"}, {},
                {"tiny","small","scriptsize","normal","large","huge"});
-    addBuiltin(db, "column sep",    C::Option, {"tikzcd"},
+    addBuiltin(db, "column sep",    C::Option, {"tikzcd"}, {},
                {"tiny","small","scriptsize","normal","large","huge"});
-    addBuiltin(db, "sep",           C::Option, {"tikzcd"},
+    addBuiltin(db, "sep",           C::Option, {"tikzcd"}, {},
                {"tiny","small","scriptsize","normal","large","huge"});
     addBuiltin(db, "start anchor",  C::Option, {"tikzcd"});
     addBuiltin(db, "end anchor",    C::Option, {"tikzcd"});
@@ -283,6 +283,51 @@ void registerExtended(Vec &db)
                {"graphs"});
     addBuiltin(db, "grid",           C::Option, {}, {"draw","path"}, {},
                {"graphs"});
+
+    // ── graphs library: placement / growth / structure keys ──
+    // (verified against tikzlibrarygraphs.code.tex). These are set on \graph[...]
+    // (no draw/path command), so gate them by the 'graphs' library only. The
+    // grow*/branch* keys take a distance; offer common distance hints.
+    for (const char *k : { "grow right", "grow left", "grow up", "grow down",
+                           "branch right", "branch left", "branch up", "branch down" })
+        addBuiltin(db, k, C::Option, {}, {},
+                   {"1cm","1.5cm","2cm","5mm","1em"}, {"graphs"});
+    // The 'sep' variants use the current inter-node distance when given no
+    // value, but also accept one; keep hints minimal.
+    for (const char *k : { "grow right sep", "grow left sep", "grow up sep",
+                           "grow down sep", "branch right sep", "branch left sep",
+                           "branch up sep", "branch down sep" })
+        addBuiltin(db, k, C::Option, {}, {}, {}, {"graphs"});
+    // Placement strategies and their parameters. ('radius', 'clique', 'cycle',
+    // 'grid', 'nodes', 'name' are already registered above/elsewhere.)
+    for (const char *k : { "Cartesian placement", "circular placement",
+                           "grid placement", "no placement",
+                           "chain shift", "group shift",
+                           "chain polar shift", "group polar shift",
+                           "clockwise", "counterclockwise", "phase",
+                           "chain count", "group count",
+                           "compute position", "place" })
+        addBuiltin(db, k, C::Option, {}, {}, {}, {"graphs"});
+    // Node / edge appearance and structure keys.
+    for (const char *k : { "edges", "edge", "edge node", "edge label",
+                           "edge label'", "edge quotes", "edge quotes center",
+                           "edge quotes mid", "math nodes", "empty nodes",
+                           "number nodes", "number nodes sep", "typeset",
+                           "name separator", "as", "wrap after",
+                           "default edge kind", "default edge operator",
+                           "operator", "set", "new set", "color class",
+                           "left anchor", "right anchor",
+                           "source edge style", "source edge node", "source edge clear",
+                           "target edge style", "target edge node", "target edge clear" })
+        addBuiltin(db, k, C::Option, {}, {}, {}, {"graphs"});
+    // Named-graph structure styles (component syntax used inside \graph{...}).
+    for (const char *k : { "complete bipartite", "induced complete bipartite",
+                           "induced independent set", "path", "induced path",
+                           "induced cycle", "matching", "matching and star",
+                           "butterfly", "butterfly'" })
+        addBuiltin(db, k, C::Option, {}, {}, {}, {"graphs"});
+    // 'every graph' style hook.
+    addBuiltin(db, "every graph", C::Option, {"tikzpicture","scope"}, {}, {}, {"graphs"});
 
     // ── foreach options ──
     addBuiltin(db, "evaluate", C::Option, {}, {"foreach"});
