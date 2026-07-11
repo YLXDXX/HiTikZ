@@ -139,13 +139,17 @@ TikzCompleter::Context TikzCompleter::detectContext(const QString &textBefore) c
         }
     }
 
-    // Inside a brace group, the intersections library's 'of=' value takes two
-    // path names joined by " and " (e.g. \path[name intersections={of=D--F and
-    // circle K}]). Because that value contains spaces, the generic word-boundary
-    // logic below would misclassify it; the single-word in-brace cases
-    // (e.g. {fill=re, {>=s) are already handled there via the '=' boundary.
-    // Scope this to the 'of' key only so ordinary node text containing '='
-    // (e.g. \node {x = y}) is never mistaken for a value context.
+    // Inside a brace group, some keys take values the generic word-boundary
+    // logic below would misclassify:
+    //   • the intersections 'of=' value joins two path names with " and "
+    //     (e.g. \path[name intersections={of=D--F and circle K}]), and
+    //   • 'font='/'node font=' values are backslash macros (\itshape, \ttfamily,
+    //     ...) which would otherwise be rerouted to command completion when
+    //     written in a style body (e.g. foo/.style={draw,font=\it}).
+    // Scope this to those keys so ordinary node text containing '=' or '\'
+    // (e.g. \node {x = y}) is never mistaken for a value context. The
+    // single-word in-brace cases (e.g. {fill=re, {>=s) remain handled by the
+    // '=' word boundary below.
     {
         const int eqIdx = governingEqIndex(textBefore);
         if (eqIdx >= 0) {
@@ -155,8 +159,15 @@ TikzCompleter::Context TikzCompleter::detectContext(const QString &textBefore) c
                                || textBefore.at(ks) == ' '))
                 ks--;
             const QString key = textBefore.mid(ks + 1, eqIdx - ks - 1).trimmed();
-            if (key.compare(QStringLiteral("of"), Qt::CaseInsensitive) == 0) {
-                const QString afterEq = textBefore.mid(eqIdx + 1);
+            const QString lkey = key.toLower();
+            const QString afterEq = textBefore.mid(eqIdx + 1);
+            if (lkey == QLatin1String("of")) {
+                if (!afterEq.contains(QLatin1Char(',')))
+                    return TkzCtxEq;
+            } else if (lkey == QLatin1String("font")
+                       || lkey == QLatin1String("node font")) {
+                // Value is a run of font macros like "\bfseries\itshape"; stay in
+                // value context as long as there is no comma ending the option.
                 if (!afterEq.contains(QLatin1Char(',')))
                     return TkzCtxEq;
             }

@@ -2477,6 +2477,38 @@ static int test_font_completion()
         failed++;
     }
 
+    // font/node font values must resolve to value context (TkzCtxEq) not just in
+    // a bracketed option list, but also inside a style body — including when the
+    // value already begins with a backslash macro (font=\it), where the generic
+    // word logic would otherwise reroute to command completion. This is the
+    // scenario "foo/.style={draw,font=\itshape}". textBeforeForContext truncates
+    // at the enclosing '{', so we feed those brace-prefixed strings directly.
+    {
+        struct { const char *text; const char *desc; } eqCases[] = {
+            { "{draw,font=",                        "font= in style body" },
+            { "{draw,font=\\it",                    "font=\\it in style body" },
+            { "{draw,font=\\bfseries\\it",          "font= run of macros" },
+            { "{rounded corners=3mm,node font=",    "node font= in style body" },
+            { "{rounded corners=3mm,node font=\\tt","node font=\\tt in style body" },
+            { nullptr, nullptr }
+        };
+        for (int i = 0; eqCases[i].text; ++i) {
+            TikzCompleter::Context got =
+                completer.detectContext(QString::fromUtf8(eqCases[i].text));
+            if (got != TikzCompleter::TkzCtxEq) {
+                fprintf(stderr, "FAIL: FNT-5 (%s) - expected TkzCtxEq, got %d\n",
+                        eqCases[i].desc, static_cast<int>(got));
+                failed++;
+            }
+        }
+        // Sanity: node text containing '=' must NOT be treated as a value context.
+        if (completer.detectContext(QStringLiteral("{x = y"))
+            == TikzCompleter::TkzCtxEq) {
+            fprintf(stderr, "FAIL: FNT-6 - node text '{x = y' should not be a value context\n");
+            failed++;
+        }
+    }
+
     if (failed == 0)
         fprintf(stderr, "PASS: font / node font value completion\n");
     return failed;

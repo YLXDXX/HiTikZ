@@ -201,13 +201,21 @@ void TikzCompleter::tryComplete()
             const QString keyName = eqKeyName(textBefore);
             updateEqModel(keyName);
             prefix = textBefore.mid(eqIdx + 1).trimmed();
+            const QString lkey = keyName.toLower();
             // The 'of=' key of name intersections takes two path names joined by
             // " and " (of=A and B). Match/replace only the segment after the last
             // " and " so completing the second path doesn't clobber the first.
-            if (keyName.compare(QLatin1String("of"), Qt::CaseInsensitive) == 0) {
+            if (lkey == QLatin1String("of")) {
                 int andIdx = prefix.lastIndexOf(QLatin1String(" and "));
                 if (andIdx >= 0)
                     prefix = prefix.mid(andIdx + 5).trimmed();
+            } else if (lkey == QLatin1String("font")
+                       || lkey == QLatin1String("node font")) {
+                // font values are a run of macros (\bfseries\itshape); complete
+                // only the last "\..." segment so a preceding macro is preserved.
+                int bs = prefix.lastIndexOf(QLatin1Char('\\'));
+                if (bs >= 0)
+                    prefix = prefix.mid(bs);
             }
         }
         break;
