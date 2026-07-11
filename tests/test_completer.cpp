@@ -5,6 +5,7 @@
 #include <QPair>
 #include <QSet>
 #include <cstdio>
+#include <QKeyEvent>
 #include "tikz_words.h"
 #include "tikz_completer.h"
 #include "tikz_keywords.h"
@@ -2514,6 +2515,72 @@ static int test_font_completion()
     return failed;
 }
 
+// Regression: accepting a completion for a value that contains a space must not
+// leave a stray leading character. Reproduces the reported bug where, after
+// typing "right=of " (trailing space) or "below " and accepting from the popup,
+// the result gained a duplicated first letter ("right=oof digit", "bbelow left").
+// Root cause: the popup prefix was trimmed (dropping the trailing space) so the
+// acceptance deletion undercounted the on-screen token by one+ characters.
+static int test_spaced_completion_accept_no_stray_char()
+{
+    int failed = 0;
+    QPlainTextEdit editor;
+    editor.show();
+    TikzCompleter completer(&editor);
+    QTextDocument doc;
+    doc.setPlainText(
+        "\\usetikzlibrary{positioning}\n"
+        "\\node (digit) at (0,0) {d};\n");
+    TikzDocumentState state;
+    state.reparse(&doc);
+    completer.setDocumentState(&state);
+
+    // Case 1: positioning value after "right=of " (trailing space). Accepting a
+    // suggestion must not duplicate the 'o' ("=oof...").
+    {
+        editor.setPlainText(QStringLiteral("\\node [right=of "));
+        editor.moveCursor(QTextCursor::End);
+        completer.tryComplete();
+        if (completer.isPopupVisible()) {
+            QKeyEvent ret(QEvent::KeyPress, Qt::Key_Return, Qt::NoModifier);
+            completer.handleCompletionKey(&ret);
+            const QString result = editor.toPlainText();
+            const int eq = result.indexOf(QLatin1Char('='));
+            const QString after = (eq >= 0) ? result.mid(eq + 1) : result;
+            if (after.startsWith(QStringLiteral("oo"))
+                || result.contains(QStringLiteral("=oof"))) {
+                fprintf(stderr, "FAIL: SPC-1 - stray char after '=': '%s'\n",
+                        result.toUtf8().constData());
+                failed++;
+            }
+        }
+    }
+
+    // Case 2: bracket positional value after "below " (trailing space). Accepting
+    // must not duplicate the 'b' ("bbelow left").
+    {
+        editor.setPlainText(QStringLiteral("\\node [below "));
+        editor.moveCursor(QTextCursor::End);
+        completer.tryComplete();
+        if (completer.isPopupVisible()) {
+            QKeyEvent ret(QEvent::KeyPress, Qt::Key_Return, Qt::NoModifier);
+            completer.handleCompletionKey(&ret);
+            const QString result = editor.toPlainText();
+            const int br = result.indexOf(QLatin1Char('['));
+            const QString token = (br >= 0) ? result.mid(br + 1) : result;
+            if (token.startsWith(QStringLiteral("bb"))) {
+                fprintf(stderr, "FAIL: SPC-2 - duplicated leading char: '%s'\n",
+                        token.toUtf8().constData());
+                failed++;
+            }
+        }
+    }
+
+    if (failed == 0)
+        fprintf(stderr, "PASS: spaced completion accept leaves no stray character\n");
+    return failed;
+}
+
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
@@ -2562,6 +2629,7 @@ int main(int argc, char *argv[])
     failed += test_name_path_in_node();
     failed += test_of_path_completion();
     failed += test_font_completion();
+    failed += test_spaced_completion_accept_no_stray_char();
 
     if (failed > 0) {
         fprintf(stderr, "\n%d test(s) failed!\n", failed);

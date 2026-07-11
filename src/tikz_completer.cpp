@@ -10,6 +10,19 @@
 #include <QRegularExpression>
 #include <QWindow>
 
+// Strip only leading whitespace, preserving trailing and internal spaces. Used
+// for completion prefixes of multi-word values (e.g. "below left", "of digit"):
+// the prefix must remain an exact suffix of the text before the cursor so that
+// deleting completionPrefix().length() characters at acceptance replaces the
+// whole on-screen token. QString::trimmed() would also drop the significant
+// trailing space, undercounting the deletion and leaving a stray character.
+static QString leftTrimmed(const QString &s)
+{
+    int i = 0;
+    while (i < s.length() && s.at(i).isSpace()) ++i;
+    return s.mid(i);
+}
+
 TikzCompleter::TikzCompleter(QPlainTextEdit *editor, QObject *parent)
     : QObject(parent), m_editor(editor)
 {
@@ -191,7 +204,13 @@ void TikzCompleter::tryComplete()
         int lastComma = textBefore.lastIndexOf(',');
         if (lastBracket >= 0) {
             int start = qMax(lastBracket, lastComma) + 1;
-            prefix = textBefore.mid(start).trimmed();
+            // Strip only LEADING whitespace, not trailing/internal: the on-screen
+            // token to replace at acceptance must equal completionPrefix() so its
+            // length is correct. A trailing space is significant here — e.g. after
+            // typing "below " the prefix "below " still matches "below left" via
+            // startsWith, and deleting exactly 6 chars replaces the whole token
+            // (trimming to "below" would delete only 5, leaving a stray char).
+            prefix = leftTrimmed(textBefore.mid(start));
         }
         break;
     }
@@ -200,7 +219,7 @@ void TikzCompleter::tryComplete()
         if (eqIdx >= 0) {
             const QString keyName = eqKeyName(textBefore);
             updateEqModel(keyName);
-            prefix = textBefore.mid(eqIdx + 1).trimmed();
+            prefix = leftTrimmed(textBefore.mid(eqIdx + 1));
             const QString lkey = keyName.toLower();
             // The 'of=' key of name intersections takes two path names joined by
             // " and " (of=A and B). Match/replace only the segment after the last
@@ -208,7 +227,7 @@ void TikzCompleter::tryComplete()
             if (lkey == QLatin1String("of")) {
                 int andIdx = prefix.lastIndexOf(QLatin1String(" and "));
                 if (andIdx >= 0)
-                    prefix = prefix.mid(andIdx + 5).trimmed();
+                    prefix = leftTrimmed(prefix.mid(andIdx + 5));
             } else if (lkey == QLatin1String("font")
                        || lkey == QLatin1String("node font")) {
                 // font values are a run of macros (\bfseries\itshape); complete
