@@ -89,6 +89,7 @@ private:
     QRegularExpression m_definecolorRe;
     QRegularExpression m_colorletRe;
     QRegularExpression m_coordinateRe;
+    QRegularExpression m_coordOpRe;
     QRegularExpression m_foreachRe;
     QRegularExpression m_newcmdRe;
     QRegularExpression m_defRe;

@@ -30,6 +30,10 @@ public:
 
     bool isPopupVisible() const;
     void tryComplete();
+    // Manual invocation (Ctrl+Space): forces the popup to appear even when the
+    // current context has an empty prefix (e.g. an empty '[' or '(' group),
+    // which the automatic path suppresses to avoid noise.
+    void tryCompleteManual();
     bool handleCompletionKey(QKeyEvent *event);
 
     Context detectContext(const QString &textBeforeCursor) const;
@@ -71,6 +75,7 @@ public:
 
 private:
     void initCompleters();
+    void doComplete(bool manual);
     void updateBrkModel();
     void updateDotModel();
     void updateEndModel();

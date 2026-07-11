@@ -530,6 +530,72 @@ static void test_dollar_autopair()
     }
 }
 
+// Feature: pressing Enter inside a "{|}" pair that sits alone on a line splits
+// it over three lines with the closing brace realigned and the cursor on an
+// indented middle line.
+static void test_brace_enter_split()
+{
+    // Line-start "{|}" with leading indentation.
+    {
+        CodeEditor editor;
+        editor.setPlainText(QStringLiteral("\\foreach \\x in {1,2,3,4,5}\n{}"));
+        // Place cursor between the braces on line 2 (i.e. after '{').
+        QTextCursor c = editor.textCursor();
+        int idx = editor.toPlainText().indexOf(QStringLiteral("{}"));
+        c.setPosition(idx + 1);
+        editor.setTextCursor(c);
+        QKeyEvent ev(QEvent::KeyPress, Qt::Key_Return, Qt::NoModifier, QStringLiteral("\n"));
+        QApplication::sendEvent(&editor, &ev);
+        const QString expected =
+            QStringLiteral("\\foreach \\x in {1,2,3,4,5}\n{\n    \n}");
+        TEST_ASSERT(editor.toPlainText() == expected,
+                    "Enter inside line-start '{|}' should split into three lines");
+    }
+}
+
+// Feature: Tab / Shift+Tab (de)indent the selected line range.
+static void test_tab_block_indent()
+{
+    // Tab indents every line in a multi-line selection by 4 spaces.
+    {
+        CodeEditor editor;
+        editor.setPlainText(QStringLiteral("a\nb\nc"));
+        QTextCursor c = editor.textCursor();
+        c.setPosition(0);
+        c.setPosition(3, QTextCursor::KeepAnchor); // select "a\nb"
+        editor.setTextCursor(c);
+        QKeyEvent tab(QEvent::KeyPress, Qt::Key_Tab, Qt::NoModifier, QStringLiteral("\t"));
+        QApplication::sendEvent(&editor, &tab);
+        TEST_ASSERT(editor.toPlainText() == QStringLiteral("    a\n    b\nc"),
+                    "Tab on multi-line selection should indent each line");
+    }
+
+    // Shift+Tab removes one indent level from each selected line.
+    {
+        CodeEditor editor;
+        editor.setPlainText(QStringLiteral("        a\n    b\nc"));
+        QTextCursor c = editor.textCursor();
+        c.setPosition(0);
+        c.setPosition(13, QTextCursor::KeepAnchor); // covers first two lines
+        editor.setTextCursor(c);
+        QKeyEvent bt(QEvent::KeyPress, Qt::Key_Backtab, Qt::ShiftModifier, QString());
+        QApplication::sendEvent(&editor, &bt);
+        TEST_ASSERT(editor.toPlainText() == QStringLiteral("    a\nb\nc"),
+                    "Shift+Tab on multi-line selection should dedent each line");
+    }
+
+    // Shift+Tab with no selection dedents the current line.
+    {
+        CodeEditor editor;
+        editor.setPlainText(QStringLiteral("        x"));
+        editor.moveCursor(QTextCursor::End);
+        QKeyEvent bt(QEvent::KeyPress, Qt::Key_Backtab, Qt::ShiftModifier, QString());
+        QApplication::sendEvent(&editor, &bt);
+        TEST_ASSERT(editor.toPlainText() == QStringLiteral("    x"),
+                    "Shift+Tab without selection should dedent the current line");
+    }
+}
+
 // Feature 1: the packages and TikZ-libraries metadata fields have a
 // CommaListCompleter that completes only the last comma-separated segment.
 static void test_metadata_field_completers(MainWindow *mw)
@@ -612,6 +678,8 @@ int main(int argc, char *argv[])
 
     test_word_wrap_toggle();
     test_dollar_autopair();
+    test_brace_enter_split();
+    test_tab_block_indent();
 
     QTabWidget *tabWidget = nullptr;
     SnippetManager *snippetMgr = nullptr;

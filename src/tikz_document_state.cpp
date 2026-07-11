@@ -21,6 +21,15 @@ TikzDocumentState::TikzDocumentState()
     m_coordinateRe = QRegularExpression(
         QStringLiteral("\\\\coordinate\\s*(?:") + optGroup +
         QStringLiteral("\\s*)?\\(([^)]+)\\)"));
+    // The path-operation form 'coordinate (name)' (no backslash) appears inside
+    // a \draw/\path/\fill path, e.g.
+    //   \draw (2,1) coordinate (test) circle [radius=2mm];
+    // It may carry an optional [options] group before the (name). A negative
+    // look-behind on a letter/backslash keeps this from matching \coordinate or
+    // words ending in "coordinate".
+    m_coordOpRe = QRegularExpression(
+        QStringLiteral("(?<![\\\\a-zA-Z])coordinate\\s*(?:") + optGroup +
+        QStringLiteral("\\s*)?\\(([^)]+)\\)"));
     m_foreachRe = QRegularExpression(
         QStringLiteral("\\\\foreach\\s+((?:\\\\[a-zA-Z]+\\s*(?:/\\s*)?)+)"
                        "(?:\\s*") + optGroup + QStringLiteral(")?\\s*in"));
@@ -408,6 +417,19 @@ void TikzDocumentState::parseLine(const QString &text, int blockStartPos,
             m_userPics.insert(sName);
         else
             m_userStyles[sName] = kind;
+    }
+
+    // Scan for the path-operation coordinate form 'coordinate (name)' used
+    // inside a path, e.g. \draw (2,1) coordinate (test) circle [radius=2mm];
+    // (The \coordinate command form is already handled above.)
+    QRegularExpressionMatchIterator coit = m_coordOpRe.globalMatch(text);
+    while (coit.hasNext()) {
+        QRegularExpressionMatch cm = coit.next();
+        QString name = cm.captured(1).trimmed();
+        if (!name.isEmpty()) {
+            m_userCoords.insert(name);
+            m_userNodes.insert(name);
+        }
     }
 
     // Scan for named paths: name path[ global|local]=<name>. These feed the

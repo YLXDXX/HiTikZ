@@ -131,6 +131,16 @@ void CodeEditor::resizeEvent(QResizeEvent *event)
 
 void CodeEditor::keyPressEvent(QKeyEvent *event)
 {
+    // Manual completion trigger: Ctrl+Space forces the completion popup even in
+    // contexts that are otherwise silent until the user types (e.g. an empty
+    // '[' or '(' group).
+    if (m_completer && event->key() == Qt::Key_Space
+        && (event->modifiers() & Qt::ControlModifier)
+        && !(event->modifiers() & (Qt::AltModifier | Qt::ShiftModifier))) {
+        m_completer->tryCompleteManual();
+        return;
+    }
+
     bool completionHandled = false;
 
     if (m_completer) {
@@ -139,6 +149,83 @@ void CodeEditor::keyPressEvent(QKeyEvent *event)
 
     if (completionHandled) {
         return;
+    }
+
+    // ── Tab / Shift+Tab block (de)indentation ──
+    // With a selection spanning one or more lines, Tab indents every touched
+    // line by one level (4 spaces) and Shift+Tab removes one level. Shift+Tab
+    // with no selection dedents the current line. A plain Tab with no selection
+    // falls through to the default (insert spaces) behaviour below.
+    if ((event->key() == Qt::Key_Tab || event->key() == Qt::Key_Backtab)
+        && !(event->modifiers() & (Qt::ControlModifier | Qt::AltModifier))) {
+        const bool dedent = (event->key() == Qt::Key_Backtab)
+                            || (event->modifiers() & Qt::ShiftModifier);
+        QTextCursor cursor = textCursor();
+        const bool hasSel = cursor.hasSelection();
+
+        if (hasSel || dedent) {
+            static const QString kIndentUnit = QStringLiteral("    ");
+            const int indentWidth = kIndentUnit.length();
+
+            int selStart = cursor.selectionStart();
+            int selEnd = cursor.selectionEnd();
+
+            QTextCursor c(document());
+            c.setPosition(selStart);
+            const int firstBlock = c.blockNumber();
+            c.setPosition(selEnd);
+            // A selection ending exactly at a line start does not include that
+            // trailing (empty) line.
+            int lastBlock = c.blockNumber();
+            if (c.positionInBlock() == 0 && lastBlock > firstBlock)
+                lastBlock--;
+
+            cursor.beginEditBlock();
+            for (int b = firstBlock; b <= lastBlock; ++b) {
+                QTextBlock block = document()->findBlockByNumber(b);
+                if (!block.isValid()) continue;
+                QTextCursor lineCur(block);
+                lineCur.movePosition(QTextCursor::StartOfBlock);
+                const QString lineText = block.text();
+                if (dedent) {
+                    // Remove up to one indent level worth of leading whitespace.
+                    int remove = 0;
+                    while (remove < indentWidth && remove < lineText.length()) {
+                        const QChar ch = lineText.at(remove);
+                        if (ch == QLatin1Char('\t')) { remove++; break; }
+                        if (ch == QLatin1Char(' ')) { remove++; continue; }
+                        break;
+                    }
+                    if (remove > 0) {
+                        lineCur.movePosition(QTextCursor::Right,
+                                             QTextCursor::KeepAnchor, remove);
+                        lineCur.removeSelectedText();
+                    }
+                } else {
+                    // Do not indent completely empty lines.
+                    if (!lineText.isEmpty())
+                        lineCur.insertText(kIndentUnit);
+                }
+            }
+            cursor.endEditBlock();
+
+            // Re-select the affected line range so repeated Tab presses keep
+            // operating on the same block — but only when the user started with
+            // a selection. A bare Shift+Tab on one line just keeps the caret.
+            if (hasSel) {
+                QTextBlock fb = document()->findBlockByNumber(firstBlock);
+                QTextBlock lb = document()->findBlockByNumber(lastBlock);
+                if (fb.isValid() && lb.isValid()) {
+                    QTextCursor sel(document());
+                    sel.setPosition(fb.position());
+                    sel.setPosition(lb.position() + lb.length() - 1,
+                                    QTextCursor::KeepAnchor);
+                    setTextCursor(sel);
+                }
+            }
+            return;
+        }
+        // No selection + plain Tab: fall through to default indentation below.
     }
 
     if (event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter) {
@@ -152,6 +239,37 @@ void CodeEditor::keyPressEvent(QKeyEvent *event)
             indentEnd++;
         }
         QString indent = currentLine.left(indentEnd);
+
+        // Special case: cursor sits directly between '{' and '}' (i.e. "{|}")
+        // and the '{' is at the start of the line (only indentation precedes
+        // it). Split the pair over three lines, placing the closing brace on
+        // its own line aligned with the opening brace's indentation and leaving
+        // the cursor on an indented middle line:
+        //     {
+        //         |
+        //     }
+        {
+            QTextCursor probe = textCursor();
+            if (!probe.hasSelection() && currentLine.trimmed() == QLatin1String("{")) {
+                QTextDocument *d = document();
+                int p = probe.position();
+                QChar before = p >= 1 ? d->characterAt(p - 1) : QChar();
+                QChar after  = d->characterAt(p);
+                if (before == QLatin1Char('{') && after == QLatin1Char('}')) {
+                    QTextCursor edit = textCursor();
+                    edit.beginEditBlock();
+                    edit.insertText(QLatin1String("\n") + indent
+                                    + QLatin1String("    ")
+                                    + QLatin1String("\n") + indent);
+                    edit.endEditBlock();
+                    // Position the cursor on the middle (indented) line.
+                    int mid = p + 1 + indent.length() + 4;
+                    edit.setPosition(mid);
+                    setTextCursor(edit);
+                    return;
+                }
+            }
+        }
 
         QString trimmed = currentLine.trimmed();
         bool extraIndent = false;

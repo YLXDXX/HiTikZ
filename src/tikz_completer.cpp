@@ -145,6 +145,16 @@ QString TikzCompleter::textBeforeForContext() const
 
 void TikzCompleter::tryComplete()
 {
+    doComplete(false);
+}
+
+void TikzCompleter::tryCompleteManual()
+{
+    doComplete(true);
+}
+
+void TikzCompleter::doComplete(bool manual)
+{
     QString textBefore = textBeforeForContext();
 
     // Update user models from document state
@@ -298,11 +308,23 @@ void TikzCompleter::tryComplete()
 
     comp->setCompletionPrefix(prefix);
 
-    if (prefix.isEmpty() && ctx != TkzCtxCmd && ctx != TkzCtxBeg
-        && ctx != TkzCtxEnd && ctx != TkzCtxLib && ctx != TkzCtxBrk
-        && ctx != TkzCtxDot && ctx != TkzCtxCoord) {
-        comp->popup()->hide();
-        return;
+    // When the prefix is empty, most contexts would flood the popup with the
+    // entire word list before the user has typed anything. Suppress that for
+    // automatic triggers; a manual invocation (Ctrl+Space) still shows it.
+    //   • TkzCtxCmd/Beg/End/Lib/Dot always have a leading delimiter (\, {, .),
+    //     so an "empty" prefix there is still a meaningful trigger.
+    //   • TkzCtxBrk (inside '[') and TkzCtxCoord (inside '(') previously popped
+    //     up immediately on an empty group; now they only do so when manual.
+    if (prefix.isEmpty()) {
+        const bool alwaysShow = (ctx == TkzCtxCmd || ctx == TkzCtxBeg
+                                 || ctx == TkzCtxEnd || ctx == TkzCtxLib
+                                 || ctx == TkzCtxDot);
+        const bool showOnManual = manual && (ctx == TkzCtxBrk
+                                             || ctx == TkzCtxCoord);
+        if (!alwaysShow && !showOnManual) {
+            comp->popup()->hide();
+            return;
+        }
     }
 
     if (comp->completionCount() == 0) {

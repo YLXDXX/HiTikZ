@@ -514,6 +514,28 @@ static int test_by_coordinate_parsing()
     return failed;
 }
 
+// The path-operation coordinate form 'coordinate (name)' (no backslash), used
+// inside a \draw/\path, must be extracted for highlight + completion.
+static int test_inline_coordinate_op_parsing()
+{
+    int failed = 0;
+    QTextDocument doc;
+    doc.setPlainText(
+        "\\draw [fill=blue,blue,opacity=0.3] (2,1) coordinate (test) circle [radius=2mm];\n"
+        "\\draw (0,0) -- (1,1) coordinate[pos=0.5] (mid) -- (2,0);\n"
+        "\\path (5,5) coordinate (corner);\n");
+    TikzDocumentState state;
+    state.reparse(&doc);
+    const auto &coords = state.userCoordinates();
+    if (!coords.contains("test")) { fprintf(stderr, "FAIL: DCS-CO1 - inline 'coordinate (test)' missing\n"); failed++; }
+    if (!coords.contains("mid")) { fprintf(stderr, "FAIL: DCS-CO2 - inline 'coordinate[pos=..] (mid)' missing\n"); failed++; }
+    if (!coords.contains("corner")) { fprintf(stderr, "FAIL: DCS-CO3 - inline 'coordinate (corner)' missing\n"); failed++; }
+    // Must also be treated as a node target for highlight/anchoring.
+    if (!state.userNodes().contains("test")) { fprintf(stderr, "FAIL: DCS-CO4 - 'test' not registered as node\n"); failed++; }
+    if (failed == 0) fprintf(stderr, "PASS: inline coordinate path-op parsing\n");
+    return failed;
+}
+
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
@@ -538,6 +560,7 @@ int main(int argc, char *argv[])
     failed += test_node_both_name_styles();
     failed += test_name_path_parsing();
     failed += test_by_coordinate_parsing();
+    failed += test_inline_coordinate_op_parsing();
     if (failed > 0) { fprintf(stderr, "\n%d test(s) failed!\n", failed); return 1; }
     fprintf(stderr, "\nAll TikzDocumentState tests passed!\n");
     return 0;
