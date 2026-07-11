@@ -2657,6 +2657,16 @@ static int test_graphs_and_matrix_options()
         "chain shift", "group shift", "number nodes",
         "complete bipartite", "matching", "butterfly'", "every graph",
         "default edge kind", "left anchor", "right anchor",
+        // Newly added, verified against tikzlibrarygraphs(.standard).code.tex:
+        "use existing nodes", "fresh nodes", "multi", "simple", "quick",
+        "no edges", "trie", "clear >", "clear <",
+        "put node text on incoming edges", "put node text on outgoing edges",
+        "V", "W", "n", "m", "name shore V", "name shore W", "declare",
+        "new ->", "new --", "new <-", "new <->", "new -!-",
+        "default edge operator", "name separator", "as", "typeset",
+        "chain count", "element count", "compute position", "place",
+        "subgraph I_n", "subgraph I_nm", "subgraph K_n", "subgraph K_nm",
+        "subgraph C_n", "subgraph P_n", "subgraph Grid_n", "subgraph G_np",
         nullptr
     };
     for (int i = 0; graphKeys[i]; ++i) {
@@ -2664,6 +2674,13 @@ static int test_graphs_and_matrix_options()
             fprintf(stderr, "FAIL: GRA-1 - graphs key '%s' missing\n", graphKeys[i]);
             failed++;
         }
+    }
+
+    // 'group count' is NOT a real key (only chain count / element count exist in
+    // the source). Make sure it did not creep back in.
+    if (opts.contains(QStringLiteral("group count"))) {
+        fprintf(stderr, "FAIL: GRA-1b - spurious 'group count' key present\n");
+        failed++;
     }
 
     // graphs keys must be gated by the 'graphs' library.
@@ -2688,12 +2705,64 @@ static int test_graphs_and_matrix_options()
         }
     }
 
+    // Newly-added graphs keys must also be gated by the 'graphs' library and
+    // must not leak when no library is active.
+    const char *gatedKeys[] = {
+        "use existing nodes", "fresh nodes", "multi", "quick", "no edges",
+        "trie", "put node text on incoming edges", "V", "W", "declare",
+        "new ->", "clear >", nullptr
+    };
+    for (int i = 0; gatedKeys[i]; ++i) {
+        const QString key = QString::fromUtf8(gatedKeys[i]);
+        bool inGraphs = false, leaked = false;
+        for (auto *kw : gated)
+            if (kw->name == key) { inGraphs = true; break; }
+        for (auto *kw : ungated)
+            if (kw->name == key) { leaked = true; break; }
+        if (!inGraphs) {
+            fprintf(stderr, "FAIL: GRA-2b - '%s' not offered with graphs lib\n",
+                    gatedKeys[i]);
+            failed++;
+        }
+        if (leaked) {
+            fprintf(stderr, "FAIL: GRA-3b - '%s' leaked without graphs lib\n",
+                    gatedKeys[i]);
+            failed++;
+        }
+    }
+
+    // graphs.standard subgraph components must be gated by 'graphs.standard'.
+    QSet<QString> stdLib; stdLib.insert(QStringLiteral("graphs.standard"));
+    auto stdGated = TikzKeywordDB::instance().filter(
+        QStringLiteral("tikzpicture"), QString(), stdLib,
+        Category::Option);
+    bool foundSubgraph = false;
+    for (auto *kw : stdGated)
+        if (kw->name == QLatin1String("subgraph K_nm")) { foundSubgraph = true; break; }
+    if (!foundSubgraph) {
+        fprintf(stderr, "FAIL: GRA-2c - 'subgraph K_nm' not offered with graphs.standard\n");
+        failed++;
+    }
+    for (auto *kw : ungated) {
+        if (kw->name == QLatin1String("subgraph K_nm")) {
+            fprintf(stderr, "FAIL: GRA-3c - 'subgraph K_nm' leaked without graphs.standard\n");
+            failed++;
+            break;
+        }
+    }
+
     // grow/branch keys offer a distance hint.
     QPlainTextEdit editor;
     TikzCompleter completer(&editor);
     const QStringList grVals = completer.eqCandidatesForKey(QStringLiteral("grow right"));
     if (!grVals.contains(QStringLiteral("1cm"))) {
         fprintf(stderr, "FAIL: GRA-4 - 'grow right=' should offer a distance like '1cm'\n");
+        failed++;
+    }
+    // 'default edge kind' offers the edge-kind shorthands as values.
+    const QStringList dekVals = completer.eqCandidatesForKey(QStringLiteral("default edge kind"));
+    if (!dekVals.contains(QStringLiteral("->"))) {
+        fprintf(stderr, "FAIL: GRA-4b - 'default edge kind=' should offer '->'\n");
         failed++;
     }
 

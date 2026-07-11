@@ -265,24 +265,26 @@ void registerExtended(Vec &db)
         addBuiltin(db, cdCmds[i], C::Command, {"tikzcd"});
 
     // ── graphs library ──
-    addBuiltin(db, "subgraph",       C::Option, {}, {"draw","path"}, {},
-               {"graphs.standard"});
-    addBuiltin(db, "subgraph K_n",   C::Option, {}, {"draw","path"}, {},
-               {"graphs.standard"});
-    addBuiltin(db, "subgraph C_n",   C::Option, {}, {"draw","path"}, {},
-               {"graphs.standard"});
-    addBuiltin(db, "subgraph I_n",   C::Option, {}, {"draw","path"}, {},
-               {"graphs.standard"});
-    addBuiltin(db, "subgraph P_n",   C::Option, {}, {"draw","path"}, {},
-               {"graphs.standard"});
-    addBuiltin(db, "simple",         C::Option, {}, {"draw","path"}, {},
-               {"graphs"});
-    addBuiltin(db, "clique",         C::Option, {}, {"draw","path"}, {},
-               {"graphs"});
-    addBuiltin(db, "cycle",          C::Option, {}, {"draw","path"}, {},
-               {"graphs"});
-    addBuiltin(db, "grid",           C::Option, {}, {"draw","path"}, {},
-               {"graphs"});
+    // (\graph, the entry command, is already registered in
+    // tikz_keywords_commands.cpp.)
+    // Named subgraph structures (graphs.standard library). Verified against
+    // tikzlibrarygraphs.standard.code.tex: subgraph I_n / I_nm / K_n / K_nm /
+    // C_n / P_n / Grid_n / G_np. These are components used inside \graph{...}.
+    for (const char *k : { "subgraph", "subgraph I_n", "subgraph I_nm",
+                           "subgraph K_n", "subgraph K_nm", "subgraph C_n",
+                           "subgraph P_n", "subgraph Grid_n", "subgraph G_np" })
+        addBuiltin(db, k, C::Option, {}, {"draw","path"}, {},
+                   {"graphs.standard"});
+    // 'p' is the edge-probability key for the G_np random-graph model.
+    addBuiltin(db, "p", C::Option, {}, {},
+               {"0.5","0.25","0.75"}, {"graphs.standard"});
+
+    // Simple/multi graph mode + the basic structure operators (verified in
+    // tikzlibrarygraphs.code.tex). These apply to \graph, not a draw/path
+    // command, so gate them by the 'graphs' library only.
+    for (const char *k : { "simple", "multi", "clique", "cycle", "grid",
+                           "no edges" })
+        addBuiltin(db, k, C::Option, {}, {}, {}, {"graphs"});
 
     // ── graphs library: placement / growth / structure keys ──
     // (verified against tikzlibrarygraphs.code.tex). These are set on \graph[...]
@@ -292,34 +294,69 @@ void registerExtended(Vec &db)
                            "branch right", "branch left", "branch up", "branch down" })
         addBuiltin(db, k, C::Option, {}, {},
                    {"1cm","1.5cm","2cm","5mm","1em"}, {"graphs"});
-    // The 'sep' variants use the current inter-node distance when given no
-    // value, but also accept one; keep hints minimal.
+    // The 'sep' variants default to 1em when given no value, but also accept
+    // one; offer a small set of distance hints.
     for (const char *k : { "grow right sep", "grow left sep", "grow up sep",
                            "grow down sep", "branch right sep", "branch left sep",
                            "branch up sep", "branch down sep" })
-        addBuiltin(db, k, C::Option, {}, {}, {}, {"graphs"});
+        addBuiltin(db, k, C::Option, {}, {},
+                   {"1em","5mm","1cm","2mm"}, {"graphs"});
     // Placement strategies and their parameters. ('radius', 'clique', 'cycle',
-    // 'grid', 'nodes', 'name' are already registered above/elsewhere.)
+    // 'grid', 'nodes', 'name' are already registered above/elsewhere; 'radius'
+    // is a general TikZ option so it is not re-registered here.)
+    // NOTE: 'group count' is NOT a real key — the source only defines
+    // 'chain count' and 'element count' (placement/.cd), so it is omitted.
     for (const char *k : { "Cartesian placement", "circular placement",
                            "grid placement", "no placement",
                            "chain shift", "group shift",
                            "chain polar shift", "group polar shift",
                            "clockwise", "counterclockwise", "phase",
-                           "chain count", "group count",
+                           "chain count", "element count",
                            "compute position", "place" })
         addBuiltin(db, k, C::Option, {}, {}, {}, {"graphs"});
     // Node / edge appearance and structure keys.
     for (const char *k : { "edges", "edge", "edge node", "edge label",
                            "edge label'", "edge quotes", "edge quotes center",
                            "edge quotes mid", "math nodes", "empty nodes",
-                           "number nodes", "number nodes sep", "typeset",
-                           "name separator", "as", "wrap after",
-                           "default edge kind", "default edge operator",
+                           "nodes", "number nodes", "number nodes sep", "typeset",
+                           "name separator", "name", "as", "wrap after",
                            "operator", "set", "new set", "color class",
-                           "left anchor", "right anchor",
+                           "left anchor", "right anchor", "trie",
+                           "put node text on incoming edges",
+                           "put node text on outgoing edges",
                            "source edge style", "source edge node", "source edge clear",
-                           "target edge style", "target edge node", "target edge clear" })
+                           "target edge style", "target edge node", "target edge clear",
+                           "clear >", "clear <" })
         addBuiltin(db, k, C::Option, {}, {}, {}, {"graphs"});
+    // 'default edge kind' / 'default edge operator' accept the edge-kind
+    // shorthands and structure operators respectively.
+    addBuiltin(db, "default edge kind", C::Option, {}, {},
+               {"--","->","<-","<->","-!-"}, {"graphs"});
+    addBuiltin(db, "default edge operator", C::Option, {}, {},
+               {"matching and star","complete bipartite","clique","cycle",
+                "path","matching"}, {"graphs"});
+
+    // Node-existence policy keys (verified: 'use existing nodes'/.is if and
+    // 'fresh nodes'/.is if in tikzlibrarygraphs.code.tex). Boolean switches.
+    for (const char *k : { "use existing nodes", "fresh nodes" })
+        addBuiltin(db, k, C::Option, {}, {}, {}, {"graphs"});
+
+    // The 'quick' switch enables the restricted fast-parsing syntax.
+    addBuiltin(db, "quick", C::Option, {}, {}, {}, {"graphs"});
+
+    // Edge-kind declarations and shorthands (new -> / new -- / ... and the
+    // --, ->, <-, <->, -!- default-edge-kind shortcuts).
+    for (const char *k : { "new ->", "new --", "new <-", "new <->", "new -!-" })
+        addBuiltin(db, k, C::Option, {}, {}, {}, {"graphs"});
+
+    // Node-set specification keys used with \graph[...]: V/W give explicit node
+    // sets, n/m give counts, and name shore V/W name the two shores.
+    for (const char *k : { "V", "W", "n", "m", "name shore V", "name shore W" })
+        addBuiltin(db, k, C::Option, {}, {}, {}, {"graphs"});
+
+    // 'declare' registers a new named subgraph macro.
+    addBuiltin(db, "declare", C::Option, {}, {}, {}, {"graphs"});
+
     // Named-graph structure styles (component syntax used inside \graph{...}).
     for (const char *k : { "complete bipartite", "induced complete bipartite",
                            "induced independent set", "path", "induced path",
