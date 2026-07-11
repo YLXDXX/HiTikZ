@@ -198,8 +198,17 @@ void TikzCompleter::tryComplete()
     case TkzCtxEq: {
         int eqIdx = governingEqIndex(textBefore);
         if (eqIdx >= 0) {
-            updateEqModel(eqKeyName(textBefore));
+            const QString keyName = eqKeyName(textBefore);
+            updateEqModel(keyName);
             prefix = textBefore.mid(eqIdx + 1).trimmed();
+            // The 'of=' key of name intersections takes two path names joined by
+            // " and " (of=A and B). Match/replace only the segment after the last
+            // " and " so completing the second path doesn't clobber the first.
+            if (keyName.compare(QLatin1String("of"), Qt::CaseInsensitive) == 0) {
+                int andIdx = prefix.lastIndexOf(QLatin1String(" and "));
+                if (andIdx >= 0)
+                    prefix = prefix.mid(andIdx + 5).trimmed();
+            }
         }
         break;
     }

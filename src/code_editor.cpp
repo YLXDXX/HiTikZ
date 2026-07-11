@@ -225,6 +225,56 @@ void CodeEditor::keyPressEvent(QKeyEvent *event)
                     }
                 }
             }
+            // Inline math '$': behaves like the brackets above but is its own
+            // closer. Wrap a selection as $selection$; otherwise insert a '$$'
+            // pair with the cursor between them — except when the next character
+            // is already a '$', in which case skip over it (mirrors the
+            // closing-bracket skip below) so typing '$' to close a pair doesn't
+            // produce '$$'.
+            else if (text == QLatin1String("$")) {
+                if (cursor.hasSelection()) {
+                    int selStart = cursor.selectionStart();
+                    int selEnd = cursor.selectionEnd();
+                    cursor.beginEditBlock();
+                    cursor.setPosition(selStart);
+                    cursor.insertText(QStringLiteral("$"));
+                    cursor.setPosition(selEnd + 1);
+                    cursor.insertText(QStringLiteral("$"));
+                    cursor.endEditBlock();
+                    cursor.setPosition(selStart + 1);
+                    cursor.setPosition(selEnd + 1, QTextCursor::KeepAnchor);
+                    setTextCursor(cursor);
+                    handled = true;
+                } else {
+                    // Skip over a following '$' that closes an existing pair.
+                    bool skipped = false;
+                    if (!cursor.atEnd()) {
+                        QTextCursor probe = cursor;
+                        probe.movePosition(QTextCursor::Right,
+                                           QTextCursor::KeepAnchor, 1);
+                        if (probe.selectedText() == QLatin1String("$")) {
+                            probe.clearSelection();
+                            setTextCursor(probe);
+                            handled = true;
+                            skipped = true;
+                        }
+                    }
+                    if (!skipped) {
+                        cursor.movePosition(QTextCursor::StartOfBlock,
+                                            QTextCursor::KeepAnchor);
+                        QString lineStart = cursor.selectedText().trimmed();
+                        cursor = textCursor();   // restore original position
+                        bool inComment = lineStart.startsWith(QLatin1Char('%'));
+                        if (!inComment) {
+                            cursor.insertText(QStringLiteral("$$"));
+                            cursor.movePosition(QTextCursor::Left,
+                                                QTextCursor::MoveAnchor, 1);
+                            setTextCursor(cursor);
+                            handled = true;
+                        }
+                    }
+                }
+            }
             // Closing brackets: skip over if the next character is the same.
             else if (text == QLatin1String("}") || text == QLatin1String("]")
                      || text == QLatin1String(")")) {
@@ -253,7 +303,7 @@ void CodeEditor::keyPressEvent(QKeyEvent *event)
         // Backspace inside an empty bracket pair: delete both characters.
         if (event->key() == Qt::Key_Backspace && !(mods & Qt::ShiftModifier)) {
             QTextCursor cursor = textCursor();
-            if (!cursor.hasSelection() && cursor.position() >= 2
+            if (!cursor.hasSelection() && cursor.position() >= 1
                 && cursor.position() < document()->characterCount() - 1) {
                 int pos = cursor.position();
                 QChar before = document()->characterAt(pos - 1);
@@ -261,7 +311,8 @@ void CodeEditor::keyPressEvent(QKeyEvent *event)
                 bool isPair =
                     (before == QLatin1Char('{') && after == QLatin1Char('}')) ||
                     (before == QLatin1Char('[') && after == QLatin1Char(']')) ||
-                    (before == QLatin1Char('(') && after == QLatin1Char(')'));
+                    (before == QLatin1Char('(') && after == QLatin1Char(')')) ||
+                    (before == QLatin1Char('$') && after == QLatin1Char('$'));
                 if (isPair) {
                     cursor.setPosition(pos - 1);
                     cursor.setPosition(pos + 1, QTextCursor::KeepAnchor);

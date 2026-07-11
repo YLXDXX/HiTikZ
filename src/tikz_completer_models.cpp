@@ -291,6 +291,16 @@ QStringList TikzCompleter::eqCandidatesForKey(const QString &keyName) const
         }
     }
 
+    // 'of=' inside \path[name intersections={of=A and B}] takes named paths
+    // (declared via name path / name path global / name path local). Offer the
+    // user's named paths so both the first ("of=A") and second ("of=A and B")
+    // path can be completed. The " and " split of the prefix is handled in
+    // tryComplete so bare path names match either position.
+    if (lower == QLatin1String("of") && m_docState) {
+        for (const auto &p : m_docState->userPaths())
+            vals << p;
+    }
+
     vals.removeDuplicates();
     vals.sort(Qt::CaseInsensitive);
     return vals;

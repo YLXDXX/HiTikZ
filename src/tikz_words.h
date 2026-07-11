@@ -87,4 +87,24 @@ inline QStringList tikzPathOperations() {
     };
 }
 
+// Common LaTeX packages offered as completions in the snippet metadata's
+// "额外宏包" (extra packages) field. Curated to widely-used packages that pair
+// well with TikZ diagrams; verified to exist in a standard TeX Live install.
+inline QStringList latexPackages() {
+    return {
+        "amsmath", "amssymb", "amsfonts", "amsthm", "mathtools", "bm",
+        "xcolor", "graphicx", "float", "caption", "subcaption",
+        "booktabs", "array", "multirow", "tabularx", "makecell",
+        "geometry", "hyperref", "cleveref", "enumitem", "microtype",
+        "babel", "inputenc", "fontenc", "fontspec", "lmodern",
+        "siunitx", "physics", "mhchem", "esint", "cancel",
+        "tikz", "pgf", "pgfplots", "pgfplotstable",
+        "circuitikz", "tikz-cd", "tikz-3dplot", "tikz-feynman",
+        "tkz-euclide", "tkz-base", "chemfig", "standalone",
+        "tcolorbox", "forest", "smartdiagram", "pgfgantt",
+        "verbatim", "listings", "minted", "xparse",
+        "adjustbox", "wrapfig", "ragged2e", "setspace", "parskip"
+    };
+}
+
 } // namespace TikzWords

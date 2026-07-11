@@ -462,6 +462,58 @@ static int test_node_both_name_styles()
     return failed;
 }
 
+// Feature 5: named paths declared via name path / name path global / name path
+// local must be extracted so the 'of=' argument of name intersections can offer
+// them. Covers brace-wrapped names, bare names, and names with '--' and spaces.
+static int test_name_path_parsing()
+{
+    int failed = 0;
+    QTextDocument doc;
+    doc.setPlainText(
+        "\\draw [name path=D--F] (0,0) -- (2,2);\n"
+        "\\node [draw,circle through=(C),name path=circle H] (H) at (1,1) {};\n"
+        "\\path [name path global=global line] (0,0) -- (1,0);\n"
+        "\\path [name path={circle K}] (0,0) circle (1);\n"
+        "\\path [name path local=localp] (0,0) -- (1,1);\n");
+    TikzDocumentState state;
+    state.reparse(&doc);
+    const auto &paths = state.userPaths();
+    if (!paths.contains("D--F")) { fprintf(stderr, "FAIL: DCS-NP1 - 'D--F' name path missing\n"); failed++; }
+    if (!paths.contains("circle H")) { fprintf(stderr, "FAIL: DCS-NP2 - 'circle H' name path (in \\node) missing\n"); failed++; }
+    if (!paths.contains("global line")) { fprintf(stderr, "FAIL: DCS-NP3 - 'global line' name path global missing\n"); failed++; }
+    if (!paths.contains("circle K")) { fprintf(stderr, "FAIL: DCS-NP4 - 'circle K' brace-wrapped name path missing\n"); failed++; }
+    if (!paths.contains("localp")) { fprintf(stderr, "FAIL: DCS-NP5 - 'localp' name path local missing\n"); failed++; }
+    if (failed == 0) fprintf(stderr, "PASS: name path parsing (Feature 5)\n");
+    return failed;
+}
+
+// Feature 6: coordinate names declared via by={...} inside name intersections
+// must be extracted (with optional [options] prefixes stripped) so they are
+// offered as coordinate completions.
+static int test_by_coordinate_parsing()
+{
+    int failed = 0;
+    QTextDocument doc;
+    doc.setPlainText(
+        "\\path [name intersections={of=D--F and circle K,by={[label=95:$L$]L,H}}];\n"
+        "\\path [name intersections={of=a and b,by={P,Q,R}}];\n");
+    TikzDocumentState state;
+    state.reparse(&doc);
+    const auto &coords = state.userCoordinates();
+    if (!coords.contains("L")) { fprintf(stderr, "FAIL: DCS-BY1 - by= coord 'L' (with [..] prefix) missing\n"); failed++; }
+    if (!coords.contains("H")) { fprintf(stderr, "FAIL: DCS-BY2 - by= coord 'H' missing\n"); failed++; }
+    if (!coords.contains("P")) { fprintf(stderr, "FAIL: DCS-BY3 - by= coord 'P' missing\n"); failed++; }
+    if (!coords.contains("Q")) { fprintf(stderr, "FAIL: DCS-BY4 - by= coord 'Q' missing\n"); failed++; }
+    if (!coords.contains("R")) { fprintf(stderr, "FAIL: DCS-BY5 - by= coord 'R' missing\n"); failed++; }
+    // The label option content ('95:$L$') must NOT leak in as a coordinate.
+    if (coords.contains("95:$L$") || coords.contains("[label=95:$L$]L")) {
+        fprintf(stderr, "FAIL: DCS-BY6 - option prefix leaked into coordinate name\n");
+        failed++;
+    }
+    if (failed == 0) fprintf(stderr, "PASS: by= coordinate parsing (Feature 6)\n");
+    return failed;
+}
+
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
@@ -484,6 +536,8 @@ int main(int argc, char *argv[])
     failed += test_usepackage_activates_libs();
     failed += test_node_name_in_options();
     failed += test_node_both_name_styles();
+    failed += test_name_path_parsing();
+    failed += test_by_coordinate_parsing();
     if (failed > 0) { fprintf(stderr, "\n%d test(s) failed!\n", failed); return 1; }
     fprintf(stderr, "\nAll TikzDocumentState tests passed!\n");
     return 0;

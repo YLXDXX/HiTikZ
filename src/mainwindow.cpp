@@ -9,6 +9,8 @@
 #include "kde_global_shortcut.h"
 #endif
 #include "pdf_preview_widget.h"
+#include "comma_list_completer.h"
+#include "tikz_words.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QToolBar>
@@ -436,11 +438,19 @@ void MainWindow::setupUI()
     packagesEdit = new QLineEdit;
     packagesEdit->setObjectName(QStringLiteral("metaPackagesEdit"));
     packagesEdit->setPlaceholderText(QStringLiteral("如: tikz-3dplot,[european]circuitikz"));
+    {
+        auto *pkgCompleter = new CommaListCompleter(TikzWords::latexPackages(), this);
+        packagesEdit->setCompleter(pkgCompleter);
+    }
     metaLayout->addWidget(packagesEdit);
     metaLayout->addWidget(new QLabel(QStringLiteral("TikZ库 (逗号分隔):")));
     tikzLibrariesEdit = new QLineEdit;
     tikzLibrariesEdit->setObjectName(QStringLiteral("metaTikzLibrariesEdit"));
     tikzLibrariesEdit->setPlaceholderText(QStringLiteral("如: calc,er,angles"));
+    {
+        auto *libCompleter = new CommaListCompleter(TikzWords::tikzLibraries(), this);
+        tikzLibrariesEdit->setCompleter(libCompleter);
+    }
     metaLayout->addWidget(tikzLibrariesEdit);
     metaLayout->addWidget(new QLabel(QStringLiteral("模板:")));
     templateCombo = new QComboBox;

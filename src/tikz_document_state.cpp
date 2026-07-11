@@ -36,7 +36,15 @@ TikzDocumentState::TikzDocumentState()
     m_commentRe = QRegularExpression(QStringLiteral("%"));
     m_usepackageRe = QRegularExpression(
         QStringLiteral("\\\\usepackage\\s*(?:\\[[^\\]]*\\]\\s*)?\\{([^}]*)\\}"));
-
+    // 'name path[ global| local]=<name>' assigns a name to the current path.
+    // The value may be brace-wrapped or a bare token (allowing spaces and '--',
+    // e.g. name path=D--F or name path={circle K}).
+    m_namePathRe = QRegularExpression(
+        QStringLiteral("name\\s+path(?:\\s+global|\\s+local)?\\s*=\\s*"
+                       "(?:\\{([^}]*)\\}|([^,\\]\\}]+))"));
+    // 'by={...}' inside \path[name intersections={...}] names the intersection
+    // coordinates. Captures the full brace group for further comma parsing.
+    m_byRe = QRegularExpression(QStringLiteral("\\bby\\s*=\\s*\\{([^{}]*(?:\\{[^{}]*\\}[^{}]*)*)\\}"));
     m_tikzEnvSet = {
         "tikzpicture","scope","pgfonlayer",
         "axis","semilogxaxis","semilogyaxis","loglogaxis",
@@ -58,6 +66,7 @@ void TikzDocumentState::clear()
     m_userCmds.clear();
     m_colors.clear();
     m_userPics.clear();
+    m_userPaths.clear();
     for (const auto &lib : m_snippetLibs)
         if (!lib.trimmed().isEmpty())
             m_activeLibs.insert(lib.trimmed());
@@ -399,6 +408,51 @@ void TikzDocumentState::parseLine(const QString &text, int blockStartPos,
             m_userPics.insert(sName);
         else
             m_userStyles[sName] = kind;
+    }
+
+    // Scan for named paths: name path[ global|local]=<name>. These feed the
+    // 'of=' completion inside \path[name intersections={of=A and B,...}].
+    QRegularExpressionMatchIterator pit = m_namePathRe.globalMatch(text);
+    while (pit.hasNext()) {
+        QRegularExpressionMatch pm = pit.next();
+        QString pName = pm.captured(1);
+        if (pName.isEmpty()) pName = pm.captured(2);
+        pName = pName.trimmed();
+        if (!pName.isEmpty())
+            m_userPaths.insert(pName);
+    }
+
+    // Scan for by={...} coordinate names inside name intersections. Each entry
+    // may carry an optional [options] prefix, e.g. by={[label=95:$L$]L,H} names
+    // the intersection coordinates L and H.
+    QRegularExpressionMatchIterator bit = m_byRe.globalMatch(text);
+    while (bit.hasNext()) {
+        QRegularExpressionMatch bm = bit.next();
+        const QString inner = bm.captured(1);
+        // Split on commas at brace/bracket depth 0.
+        int depth = 0;
+        QString token;
+        auto flush = [&]() {
+            QString t = token.trimmed();
+            // Strip a leading [..] option group.
+            if (t.startsWith(QLatin1Char('['))) {
+                int close = t.indexOf(QLatin1Char(']'));
+                if (close >= 0) t = t.mid(close + 1).trimmed();
+            }
+            if (!t.isEmpty()) {
+                m_userCoords.insert(t);
+                m_userNodes.insert(t);
+            }
+            token.clear();
+        };
+        for (int i = 0; i < inner.length(); ++i) {
+            const QChar c = inner.at(i);
+            if (c == QLatin1Char('{') || c == QLatin1Char('[')) depth++;
+            else if (c == QLatin1Char('}') || c == QLatin1Char(']')) { if (depth > 0) depth--; }
+            if (c == QLatin1Char(',') && depth == 0) { flush(); continue; }
+            token.append(c);
+        }
+        flush();
     }
 }
 

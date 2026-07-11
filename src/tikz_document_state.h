@@ -64,6 +64,9 @@ public:
     const QSet<QString> &userCommands() const { return m_userCmds; }
     const QHash<QString, QStringList> &definedColors() const { return m_colors; }
     const QSet<QString> &userPics() const { return m_userPics; }
+    // Named paths declared via name path / name path global / name path local
+    // (used to complete the 'of=' argument of \path[name intersections={...}]).
+    const QSet<QString> &userPaths() const { return m_userPaths; }
 
     // All named user elements for completion
     QStringList allUserDefinitions() const;
@@ -93,6 +96,8 @@ private:
     QRegularExpression m_styleInTikzsetRe;
     QRegularExpression m_commentRe;
     QRegularExpression m_usepackageRe;
+    QRegularExpression m_namePathRe;
+    QRegularExpression m_byRe;
 
     QVector<Scope> m_scopeStack;
     QSet<QString> m_activeLibs;
@@ -105,6 +110,7 @@ private:
     QSet<QString> m_userCmds;
     QHash<QString, QStringList> m_colors;
     QSet<QString> m_userPics;
+    QSet<QString> m_userPaths;
 
     // Parsed command contexts
     QVector<CommandContext> m_cmdContexts;

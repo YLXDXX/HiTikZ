@@ -2294,6 +2294,143 @@ static int test_anchor_library_gating()
     return failed;
 }
 
+// Feature 2: the 'label=' key must offer positional value completions (above,
+// above left, left, ...) so \node[label=|] can complete a compass/direction.
+// 'pin=' shares the same positional hints.
+static int test_label_position_completion()
+{
+    int failed = 0;
+    QPlainTextEdit editor;
+    TikzCompleter completer(&editor);
+
+    const QStringList vals = completer.eqCandidatesForKey(QStringLiteral("label"));
+    const char *positions[] = {
+        "above", "below", "left", "right",
+        "above left", "above right", "below left", "below right",
+        "center", nullptr
+    };
+    for (int i = 0; positions[i]; ++i) {
+        if (!vals.contains(QString::fromUtf8(positions[i]))) {
+            fprintf(stderr, "FAIL: LBL-1 - 'label=' should offer position '%s'\n",
+                    positions[i]);
+            failed++;
+        }
+    }
+    // 'pin=' shares the positional hints.
+    const QStringList pinVals = completer.eqCandidatesForKey(QStringLiteral("pin"));
+    if (!pinVals.contains(QStringLiteral("above left"))) {
+        fprintf(stderr, "FAIL: LBL-2 - 'pin=' should offer 'above left'\n");
+        failed++;
+    }
+    if (failed == 0)
+        fprintf(stderr, "PASS: label/pin position value completion (Feature 2)\n");
+    return failed;
+}
+
+// Feature 4: 'name path' (and global/local variants) must be offered in \node
+// option context with the intersections library active, not only on \draw/\path.
+static int test_name_path_in_node()
+{
+    int failed = 0;
+    using TikzKeywords::TikzKeywordDB;
+    using TikzKeywords::Category;
+
+    QSet<QString> libs; libs.insert(QStringLiteral("intersections"));
+
+    auto offeredIn = [&](const char *cmd, const char *key) -> bool {
+        auto kws = TikzKeywordDB::instance().filter(
+            QStringLiteral("tikzpicture"), QString::fromUtf8(cmd), libs,
+            Category::Option);
+        for (auto *kw : kws)
+            if (kw->name == QString::fromUtf8(key)) return true;
+        return false;
+    };
+
+    for (const char *key : { "name path", "name path global", "name path local" }) {
+        if (!offeredIn("node", key)) {
+            fprintf(stderr, "FAIL: NPN-1 - '%s' should be offered in \\node context\n", key);
+            failed++;
+        }
+        if (!offeredIn("draw", key)) {
+            fprintf(stderr, "FAIL: NPN-2 - '%s' should still be offered in \\draw context\n", key);
+            failed++;
+        }
+    }
+
+    // 'name intersections' stays path-only (not a node option).
+    {
+        auto kws = TikzKeywordDB::instance().filter(
+            QStringLiteral("tikzpicture"), QStringLiteral("node"), libs,
+            Category::Option);
+        for (auto *kw : kws) {
+            if (kw->name == QLatin1String("name intersections")) {
+                fprintf(stderr, "FAIL: NPN-3 - 'name intersections' should not be a \\node option\n");
+                failed++;
+            }
+        }
+    }
+
+    if (failed == 0)
+        fprintf(stderr, "PASS: name path offered in \\node context (Feature 4)\n");
+    return failed;
+}
+
+// Feature 5: the 'of=' key of name intersections must offer the user's named
+// paths, and the value context must resolve inside the brace group (including
+// multi-word "A and B" content).
+static int test_of_path_completion()
+{
+    int failed = 0;
+    QPlainTextEdit editor;
+    editor.show();
+    TikzCompleter completer(&editor);
+    QTextDocument doc;
+    doc.setPlainText(
+        "\\usetikzlibrary{intersections}\n"
+        "\\draw [name path=D--F] (0,0) -- (2,2);\n"
+        "\\node [name path=circle K] (H) at (1,1) {};\n"
+        "\\path [name intersections={of=}];\n");
+    TikzDocumentState state;
+    state.reparse(&doc);
+    completer.setDocumentState(&state);
+
+    const QStringList vals = completer.eqCandidatesForKey(QStringLiteral("of"));
+    if (!vals.contains(QStringLiteral("D--F"))) {
+        fprintf(stderr, "FAIL: OFP-1 - 'of=' should offer named path 'D--F'\n");
+        failed++;
+    }
+    if (!vals.contains(QStringLiteral("circle K"))) {
+        fprintf(stderr, "FAIL: OFP-2 - 'of=' should offer named path 'circle K'\n");
+        failed++;
+    }
+
+    // Context: value context inside a brace group after 'of=' must resolve to
+    // TkzCtxEq (so the path names are offered), even for multi-word content
+    // containing " and ".
+    struct { const char *text; TikzCompleter::Context ctx; const char *desc; } cases[] = {
+        { "\\path [name intersections={of=",             TikzCompleter::TkzCtxEq, "of= empty" },
+        { "\\path [name intersections={of=D--F and ",    TikzCompleter::TkzCtxEq, "of= after 'and'" },
+        { "\\path [name intersections={of=D--F and cir", TikzCompleter::TkzCtxEq, "of= typing 2nd path" },
+        { nullptr, TikzCompleter::TkzCtxNone, nullptr }
+    };
+    for (int i = 0; cases[i].text; ++i) {
+        editor.setPlainText(QString::fromUtf8(cases[i].text));
+        editor.moveCursor(QTextCursor::End);
+        QString tb = completer.textBeforeForContext();
+        TikzCompleter::Context got = completer.detectContext(tb);
+        if (got != cases[i].ctx) {
+            fprintf(stderr, "FAIL: OFP-3 (%s) - expected ctx %d, got %d (tb='%s')\n",
+                    cases[i].desc, static_cast<int>(cases[i].ctx),
+                    static_cast<int>(got), tb.toUtf8().constData());
+            failed++;
+        }
+    }
+
+    if (failed == 0)
+        fprintf(stderr, "PASS: of= path-name completion in name intersections (Feature 5)\n");
+    return failed;
+}
+
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
@@ -2338,6 +2475,9 @@ int main(int argc, char *argv[])
     failed += test_intersections_coord_completion();
     failed += test_anchors_source_accurate();
     failed += test_anchor_library_gating();
+    failed += test_label_position_completion();
+    failed += test_name_path_in_node();
+    failed += test_of_path_completion();
 
     if (failed > 0) {
         fprintf(stderr, "\n%d test(s) failed!\n", failed);

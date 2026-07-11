@@ -107,8 +107,14 @@ void registerGeneralOptions(Vec &db)
                {"north","south","east","west","north east","north west",
                 "south east","south west","center","base","base east","base west",
                 "mid","mid east","mid west","text"});
-    addBuiltin(db, "label",            C::Option, {"tikzpicture","scope"}, {"node"});
-    addBuiltin(db, "pin",              C::Option, {"tikzpicture","scope"}, {"node"});
+    addBuiltin(db, "label",            C::Option, {"tikzpicture","scope"}, {"node"},
+               {"above","below","left","right",
+                "above left","above right","below left","below right",
+                "center","north","south","east","west",
+                "north east","north west","south east","south west"});
+    addBuiltin(db, "pin",              C::Option, {"tikzpicture","scope"}, {"node"},
+               {"above","below","left","right",
+                "above left","above right","below left","below right"});
     addBuiltin(db, "pin distance",     C::Option, {"tikzpicture","scope"}, {"node"});
     addBuiltin(db, "pin edge",         C::Option, {"tikzpicture","scope"}, {"node"});
     addBuiltin(db, "pin position",     C::Option, {"tikzpicture","scope"}, {"node"});
@@ -349,8 +355,12 @@ void registerGeneralOptions(Vec &db)
     addBuiltin(db, "pic text",         C::Option, {}, {}, {}, {"angles","quotes"});
 
     // Intersections library
-    addBuiltin(db, "name path",         C::Option, {}, {"draw","path"}, {}, {"intersections"});
-    addBuiltin(db, "name path global",  C::Option, {}, {"draw","path"}, {}, {"intersections"});
+    // 'name path'/'name path global' assign a name to the current path; they are
+    // valid on \draw/\path as well as \node (verified: a \node[...,name path=...]
+    // registers the node's outline as a named path under \usetikzlibrary{through,
+    // intersections}). 'name intersections' only makes sense on \path/\draw.
+    addBuiltin(db, "name path",         C::Option, {}, {"draw","path","node"}, {}, {"intersections"});
+    addBuiltin(db, "name path global",  C::Option, {}, {"draw","path","node"}, {}, {"intersections"});
     addBuiltin(db, "name intersections",C::Option, {}, {"draw","path"}, {}, {"intersections"});
     addBuiltin(db, "of",                C::Option, {}, {}, {}, {"intersections"});
     addBuiltin(db, "by",                C::Option, {}, {}, {}, {"intersections"});
@@ -759,7 +769,7 @@ void registerGeneralOptions(Vec &db)
     addBuiltin(db, "rule set", C::Option, {}, {}, {}, {"lindenmayersystems"});
 
     // intersections (extends existing)
-    addBuiltin(db, "name path local", C::Option, {}, {"draw","path"}, {}, {"intersections"});
+    addBuiltin(db, "name path local", C::Option, {}, {"draw","path","node"}, {}, {"intersections"});
 
     // perspective
     addBuiltin(db, "isometric view", C::Option, {"tikzpicture","scope"}, {}, {}, {"perspective"});

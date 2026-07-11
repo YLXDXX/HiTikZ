@@ -10,7 +10,11 @@
 #include "../src/code_editor.h"
 #include "../src/tikz_document_state.h"
 #include "../src/tikz_completer.h"
+#include "../src/comma_list_completer.h"
 #include <QLineEdit>
+#include <QCompleter>
+#include <QAbstractItemModel>
+#include <QKeyEvent>
 
 static int g_testsPassed = 0;
 static int g_testsFailed = 0;
@@ -450,6 +454,156 @@ static void test_word_wrap_toggle()
                 "setWordWrap(true) again should re-enable wrapping");
 }
 
+// Helper: send a single character key press to the editor's keyPressEvent.
+static void sendKeyText(CodeEditor *editor, const QString &text, int key = 0)
+{
+    QKeyEvent ev(QEvent::KeyPress, key, Qt::NoModifier, text);
+    QApplication::sendEvent(editor, &ev);
+}
+
+// Feature 3: '$' auto-pairs like ( [ {: inserts '$$' with the cursor between,
+// wraps a selection as $selection$, skips over a closing '$', and backspace
+// removes an empty '$$' pair.
+static void test_dollar_autopair()
+{
+    // Insert '$$' with cursor between the two dollars.
+    {
+        CodeEditor editor;
+        editor.setPlainText(QString());
+        editor.moveCursor(QTextCursor::End);
+        sendKeyText(&editor, QStringLiteral("$"));
+        TEST_ASSERT(editor.toPlainText() == QStringLiteral("$$"),
+                    "typing '$' on empty line should insert '$$'");
+        // Cursor should sit between the two dollars (position 1).
+        TEST_ASSERT(editor.textCursor().position() == 1,
+                    "cursor should be between the '$$' pair");
+    }
+
+    // Wrap a selection: select "x" then type '$' -> "$x$".
+    {
+        CodeEditor editor;
+        editor.setPlainText(QStringLiteral("x"));
+        QTextCursor c = editor.textCursor();
+        c.setPosition(0);
+        c.setPosition(1, QTextCursor::KeepAnchor);
+        editor.setTextCursor(c);
+        sendKeyText(&editor, QStringLiteral("$"));
+        TEST_ASSERT(editor.toPlainText() == QStringLiteral("$x$"),
+                    "typing '$' with selection 'x' should wrap to '$x$'");
+    }
+
+    // Skip over a closing '$': in "$|$", typing '$' moves past instead of "$$$".
+    {
+        CodeEditor editor;
+        editor.setPlainText(QStringLiteral("$$"));
+        QTextCursor c = editor.textCursor();
+        c.setPosition(1);
+        editor.setTextCursor(c);
+        sendKeyText(&editor, QStringLiteral("$"));
+        TEST_ASSERT(editor.toPlainText() == QStringLiteral("$$"),
+                    "typing '$' before an existing '$' should skip, not duplicate");
+        TEST_ASSERT(editor.textCursor().position() == 2,
+                    "cursor should move past the closing '$'");
+    }
+
+    // Backspace inside an empty '$$' pair removes both.
+    {
+        CodeEditor editor;
+        editor.setPlainText(QStringLiteral("$$"));
+        QTextCursor c = editor.textCursor();
+        c.setPosition(1);
+        editor.setTextCursor(c);
+        QKeyEvent bs(QEvent::KeyPress, Qt::Key_Backspace, Qt::NoModifier, QString());
+        QApplication::sendEvent(&editor, &bs);
+        TEST_ASSERT(editor.toPlainText().isEmpty(),
+                    "backspace inside empty '$$' should delete both dollars");
+    }
+
+    // Comment line: '$' must NOT auto-pair inside a comment.
+    {
+        CodeEditor editor;
+        editor.setPlainText(QStringLiteral("% "));
+        editor.moveCursor(QTextCursor::End);
+        sendKeyText(&editor, QStringLiteral("$"));
+        TEST_ASSERT(editor.toPlainText() == QStringLiteral("% $"),
+                    "'$' in a comment line should not auto-pair");
+    }
+}
+
+// Feature 1: the packages and TikZ-libraries metadata fields have a
+// CommaListCompleter that completes only the last comma-separated segment.
+static void test_metadata_field_completers(MainWindow *mw)
+{
+    QLineEdit *pkgEdit = mw->findChild<QLineEdit*>(QStringLiteral("metaPackagesEdit"));
+    QLineEdit *libEdit = mw->findChild<QLineEdit*>(QStringLiteral("metaTikzLibrariesEdit"));
+    TEST_ASSERT(pkgEdit && libEdit, "metadata fields should exist");
+    if (!pkgEdit || !libEdit) return;
+
+    auto *pkgComp = dynamic_cast<CommaListCompleter*>(pkgEdit->completer());
+    auto *libComp = dynamic_cast<CommaListCompleter*>(libEdit->completer());
+    TEST_ASSERT(pkgComp != nullptr, "packages field should have a CommaListCompleter");
+    TEST_ASSERT(libComp != nullptr, "TikZ libraries field should have a CommaListCompleter");
+    if (!pkgComp || !libComp) return;
+
+    // splitPath keys off the last comma segment: "calc, thr" -> "thr".
+    {
+        const QStringList seg = libComp->splitPath(QStringLiteral("calc, thr"));
+        TEST_ASSERT(seg.size() == 1 && seg.first() == QStringLiteral("thr"),
+                    "libraries completer should key off the last comma segment");
+    }
+
+    // Library completer offers known libraries for a segment prefix. Check the
+    // underlying source model (currentCompletion() runs pathFromIndex, which
+    // rebuilds the whole field, so we inspect the raw word list instead).
+    auto modelContains = [](QCompleter *comp, const QString &word) -> bool {
+        QAbstractItemModel *src = comp->model();
+        for (int i = 0; i < src->rowCount(); ++i)
+            if (src->index(i, 0).data().toString() == word) return true;
+        return false;
+    };
+    // With an empty field and prefix "thr", the completion model should contain
+    // "through".
+    libEdit->clear();
+    libComp->setCompletionPrefix(QStringLiteral("thr"));
+    bool foundThrough = false;
+    for (int i = 0; i < libComp->completionCount(); ++i) {
+        libComp->setCurrentRow(i);
+        if (libComp->currentCompletion() == QStringLiteral("through")) { foundThrough = true; break; }
+    }
+    TEST_ASSERT(foundThrough, "library completer should offer 'through' for prefix 'thr'");
+    TEST_ASSERT(modelContains(libComp, QStringLiteral("through")),
+                "library completer model should include 'through'");
+
+    // Package completer offers known packages for a segment prefix.
+    pkgEdit->clear();
+    pkgComp->setCompletionPrefix(QStringLiteral("amsm"));
+    bool foundAms = false;
+    for (int i = 0; i < pkgComp->completionCount(); ++i) {
+        pkgComp->setCurrentRow(i);
+        if (pkgComp->currentCompletion() == QStringLiteral("amsmath")) { foundAms = true; break; }
+    }
+    TEST_ASSERT(foundAms, "package completer should offer 'amsmath' for prefix 'amsm'");
+
+    // pathFromIndex rebuilds the full field, preserving earlier entries.
+    libEdit->setText(QStringLiteral("calc, thr"));
+    {
+        // Locate "through" in the completer's source model and rebuild via
+        // pathFromIndex (which reads the live QLineEdit text set above).
+        QAbstractItemModel *src = libComp->model();
+        QModelIndex through;
+        for (int i = 0; i < src->rowCount(); ++i) {
+            QModelIndex idx = src->index(i, 0);
+            if (src->data(idx).toString() == QStringLiteral("through")) { through = idx; break; }
+        }
+        TEST_ASSERT(through.isValid(), "'through' should exist in the library model");
+        if (through.isValid()) {
+            QString rebuilt = libComp->pathFromIndex(through);
+            TEST_ASSERT(rebuilt == QStringLiteral("calc, through"),
+                        "accepting 'through' should yield 'calc, through'");
+        }
+    }
+}
+
 int main(int argc, char *argv[])
 {
     QApplication::setAttribute(Qt::AA_UseSoftwareOpenGL);
@@ -457,6 +611,7 @@ int main(int argc, char *argv[])
     fprintf(stderr, "=== Testing Multi-Tab Functionality ===\n");
 
     test_word_wrap_toggle();
+    test_dollar_autopair();
 
     QTabWidget *tabWidget = nullptr;
     SnippetManager *snippetMgr = nullptr;
@@ -489,6 +644,7 @@ int main(int argc, char *argv[])
         test_tab_metadata_isolation(&mw, snippetMgr, searchPanel, tabWidget);
 
         test_ui_library_field_activates_completion(&mw, snippetMgr, searchPanel, tabWidget);
+        test_metadata_field_completers(&mw);
 
         cleanup_snippets(snippetMgr);
     }

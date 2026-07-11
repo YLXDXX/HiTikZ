@@ -139,6 +139,30 @@ TikzCompleter::Context TikzCompleter::detectContext(const QString &textBefore) c
         }
     }
 
+    // Inside a brace group, the intersections library's 'of=' value takes two
+    // path names joined by " and " (e.g. \path[name intersections={of=D--F and
+    // circle K}]). Because that value contains spaces, the generic word-boundary
+    // logic below would misclassify it; the single-word in-brace cases
+    // (e.g. {fill=re, {>=s) are already handled there via the '=' boundary.
+    // Scope this to the 'of' key only so ordinary node text containing '='
+    // (e.g. \node {x = y}) is never mistaken for a value context.
+    {
+        const int eqIdx = governingEqIndex(textBefore);
+        if (eqIdx >= 0) {
+            // Extract the key immediately preceding this '='.
+            int ks = eqIdx - 1;
+            while (ks >= 0 && (textBefore.at(ks).isLetterOrNumber()
+                               || textBefore.at(ks) == ' '))
+                ks--;
+            const QString key = textBefore.mid(ks + 1, eqIdx - ks - 1).trimmed();
+            if (key.compare(QStringLiteral("of"), Qt::CaseInsensitive) == 0) {
+                const QString afterEq = textBefore.mid(eqIdx + 1);
+                if (!afterEq.contains(QLatin1Char(',')))
+                    return TkzCtxEq;
+            }
+        }
+    }
+
     if (lastChar.isLetterOrNumber() || lastChar == '_') {
         static const QRegularExpression wordBoundary(QStringLiteral("[\\s\\\\\\[\\{=(,\"]"));
         int wordStart = textBefore.lastIndexOf(wordBoundary);
