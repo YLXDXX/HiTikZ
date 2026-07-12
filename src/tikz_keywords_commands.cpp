@@ -111,7 +111,7 @@ void registerCommands(Vec &db)
         "tkzDefPointWith","tkzDefPointOnLine","tkzDefPointOnCircle",
         "tkzDefRandPointOn","tkzDefEquiPoints","tkzDefProjExcenter",
         // define lines
-        "tkzDefLine","tkzDefLineLL","tkzDefParallelogram","tkzDefRectangle",
+        "tkzDefLine","tkzDefLineLL","tkzDefParallelogram",
         "tkzDefMediatorLine","tkzDefBisectorLine","tkzDefBisectorOutLine",
         "tkzDefOrthLine","tkzDefAltitudeLine","tkzDefSymmedianLine",
         "tkzDefTangent","tkzDefEulerLine",

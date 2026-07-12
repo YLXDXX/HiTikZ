@@ -737,6 +737,10 @@ static void test_tag_filter_prune(SnippetManager *snippetMgr, SearchPanel *searc
 
 int main(int argc, char *argv[])
 {
+    // Force the offscreen platform so synthetic key events are delivered to the
+    // (unfocused) editor deterministically, independent of the host session
+    // (Wayland/X11 only route key input to the focused window).
+    qputenv("QT_QPA_PLATFORM", QByteArrayLiteral("offscreen"));
     QApplication::setAttribute(Qt::AA_UseSoftwareOpenGL);
     QApplication app(argc, argv);
     fprintf(stderr, "=== Testing Multi-Tab Functionality ===\n");
