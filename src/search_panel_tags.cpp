@@ -42,14 +42,11 @@ void SearchPanel::setTagSelected(const QString &tag, bool selected)
 
 void SearchPanel::refreshTagFilter()
 {
-    QLayout *existingLayout = tagFilterWidget->layout();
-    QLayoutItem *child;
-    while ((child = existingLayout->takeAt(0)) != nullptr) {
-        if (child->widget())
-            child->widget()->deleteLater();
-        delete child;
-    }
-
+    // Compute the current tag universe first, WITHOUT touching the existing
+    // widgets. Saving a snippet usually leaves the tag set unchanged; rebuilding
+    // the whole strip in that case makes every tag button flash (fully expanded
+    // for one frame, then re-collapsed by the 150ms timer). Only rebuild when
+    // the tag set actually changed.
     QSet<QString> allTags;
     // false = only read meta.json (tags are stored in metadata, no need for .tex)
     QList<Snippet> all = snippetMgr->getAllSnippets(false);
@@ -62,8 +59,8 @@ void SearchPanel::refreshTagFilter()
         }
     }
 
-    m_allTagNames = allTags.values();
-    m_allTagNames.sort(Qt::CaseInsensitive);
+    QStringList newTagNames = allTags.values();
+    newTagNames.sort(Qt::CaseInsensitive);
 
     // Prune any selected tags that no longer exist on any snippet. When a tag is
     // removed from the last snippet that carried it, it must also drop out of the
@@ -78,6 +75,27 @@ void SearchPanel::refreshTagFilter()
             prunedSelection = true;
         }
     }
+
+    // Nothing changed and the strip is already built: leave the widgets (and
+    // their collapsed state) exactly as they are — no flicker. A pruned
+    // selection always implies the tag set shrank, so it never reaches here.
+    if (!prunedSelection && newTagNames == m_allTagNames
+        && m_tagButtonContainer) {
+        return;
+    }
+
+    m_allTagNames = newTagNames;
+
+    QLayout *existingLayout = tagFilterWidget->layout();
+    QLayoutItem *child;
+    while ((child = existingLayout->takeAt(0)) != nullptr) {
+        if (child->widget())
+            child->widget()->deleteLater();
+        delete child;
+    }
+    m_tagButtonContainer = nullptr;
+    m_tagFlowLayout = nullptr;
+    m_moreTagsBtn = nullptr;
 
     if (m_allTagNames.isEmpty()) {
         if (prunedSelection)

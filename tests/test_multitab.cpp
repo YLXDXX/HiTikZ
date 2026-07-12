@@ -720,6 +720,15 @@ static void test_tag_filter_prune(SnippetManager *snippetMgr, SearchPanel *searc
     TEST_ASSERT(searchPanel->thumbnailCount() >= 2,
                 "list must no longer be filtered by the removed tag (both snippets show)");
 
+    // Regression (flicker): calling refreshTagFilter() again with the SAME tag
+    // set must NOT tear down and rebuild the strip — the container identity is
+    // preserved, so tags don't flash expanded-then-collapsed on every save.
+    const void *tokenBefore = searchPanel->tagStripToken();
+    searchPanel->refreshTagFilter();
+    QApplication::processEvents();
+    TEST_ASSERT(searchPanel->tagStripToken() == tokenBefore,
+                "refreshTagFilter with unchanged tag set must not rebuild the strip");
+
     snippetMgr->deleteSnippet(idA);
     snippetMgr->deleteSnippet(idB);
     searchPanel->refreshTagFilter();

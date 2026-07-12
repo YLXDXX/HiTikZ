@@ -36,6 +36,10 @@ public:
     void setTagSelected(const QString &tag, bool selected);
     // Number of visible thumbnails currently shown.
     int thumbnailCount() const;
+    // Opaque identity of the tag-button strip container. Stays the same across
+    // a refreshTagFilter() that finds an unchanged tag set (no rebuild → no
+    // flicker); changes when the strip is actually rebuilt. For tests only.
+    const void *tagStripToken() const { return m_tagButtonContainer; }
 
 signals:
     void snippetSelected(const QString &id);
