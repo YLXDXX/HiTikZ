@@ -3,6 +3,8 @@
 > 面向 Linux (KDE 6 / Wayland) 的 TikZ/PGF 矢量图形管理工具。
 > 创建、编辑、预览、搜索、导出 TikZ 图像并支持批量操作。
 
+![Screenshot](Screenshot.png)
+
 ---
 
 ## 目录
@@ -131,7 +133,7 @@ HiTikZ 围绕「片段（snippet）」这一核心概念组织：每个片段是
 
 ```bash
 sudo pacman -S --needed base-devel cmake git \
-    qt6-base qt6-pdf qt6-tools \
+    qt6-base qt6-webengine qt6-tools \
     extra-cmake-modules kglobalaccel
 ```
 
