@@ -26,6 +26,20 @@
 #include <QSplitter>
 #include <QSignalBlocker>
 
+int SearchPanel::thumbnailCount() const
+{
+    return thumbnailModel ? thumbnailModel->rowCount() : 0;
+}
+
+void SearchPanel::setTagSelected(const QString &tag, bool selected)
+{
+    if (selected)
+        m_selectedTags.insert(tag);
+    else
+        m_selectedTags.remove(tag);
+    refreshSearch();
+}
+
 void SearchPanel::refreshTagFilter()
 {
     QLayout *existingLayout = tagFilterWidget->layout();
@@ -51,7 +65,25 @@ void SearchPanel::refreshTagFilter()
     m_allTagNames = allTags.values();
     m_allTagNames.sort(Qt::CaseInsensitive);
 
-    if (m_allTagNames.isEmpty()) return;
+    // Prune any selected tags that no longer exist on any snippet. When a tag is
+    // removed from the last snippet that carried it, it must also drop out of the
+    // active filter — otherwise the thumbnail list stays filtered against a tag
+    // nothing has (showing nothing) and there is no longer a button to unselect
+    // it. If we pruned anything, re-run the search so the list updates even when
+    // the caller already searched before refreshing the tag strip.
+    bool prunedSelection = false;
+    for (const QString &sel : m_selectedTags.values()) {
+        if (!allTags.contains(sel)) {
+            m_selectedTags.remove(sel);
+            prunedSelection = true;
+        }
+    }
+
+    if (m_allTagNames.isEmpty()) {
+        if (prunedSelection)
+            refreshSearch();
+        return;
+    }
 
     m_tagButtonContainer = new QWidget;
     m_tagFlowLayout = new FlowLayout(m_tagButtonContainer, 0, 4, 2);
@@ -139,6 +171,11 @@ void SearchPanel::refreshTagFilter()
 
     if (m_tagCollapseTimer)
         m_tagCollapseTimer->start();
+
+    // A pruned selection changes the effective filter; refresh the results so
+    // the thumbnail list reflects the now-smaller tag set.
+    if (prunedSelection)
+        refreshSearch();
 }
 
 void SearchPanel::applyTagRowCollapse()

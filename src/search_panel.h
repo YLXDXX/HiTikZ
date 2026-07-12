@@ -24,6 +24,19 @@ public:
     void applyUIFont(const QFont &font);
     QString currentCategory() const;
 
+    // ── Test/introspection accessors for the tag filter ──
+    // The set of tag names that are currently active as a filter.
+    QSet<QString> selectedTags() const { return m_selectedTags; }
+    // All distinct tag names currently offered in the tag strip (rebuilt by
+    // refreshTagFilter from every snippet's metadata).
+    QStringList allTagNames() const { return m_allTagNames; }
+    // Programmatically toggle a tag's selection (mirrors clicking its button),
+    // then refresh the search. Used by tests and callers that need to drive the
+    // filter without a live button.
+    void setTagSelected(const QString &tag, bool selected);
+    // Number of visible thumbnails currently shown.
+    int thumbnailCount() const;
+
 signals:
     void snippetSelected(const QString &id);
     void searchQueryChanged(const QString &query);

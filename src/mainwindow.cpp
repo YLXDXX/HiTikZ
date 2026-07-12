@@ -1192,6 +1192,7 @@ void MainWindow::setupConnections()
         if (!ok) return;
         if (snippetMgr->batchUpdateCategory(ids, newCat)) {
             statusBar()->showMessage(QStringLiteral("已修改 %1 个片段的分类").arg(ids.size()), kStatusBarShortMs);
+            searchPanel->refreshTagFilter();
             searchPanel->refreshSearch();
         }
     });
@@ -1221,6 +1222,10 @@ void MainWindow::setupConnections()
 
         int count = snippetMgr->batchDeleteSnippets(ids);
         statusBar()->showMessage(QStringLiteral("已删除 %1 个片段").arg(count), kStatusBarShortMs);
+        // Deleting snippets can remove the last owner of a tag; prune the tag
+        // strip and drop any now-unused selected tag (refreshTagFilter re-runs
+        // the search when it prunes).
+        searchPanel->refreshTagFilter();
         searchPanel->refreshSearch();
     });
 
@@ -1274,6 +1279,10 @@ void MainWindow::setupConnections()
         startCompile();
 
         saveCurrentSnippet();
+        // Compiling also persists the current metadata (incl. tags); keep the
+        // tag strip in sync so newly added/removed tags are reflected and any
+        // now-unused selected tag is deselected.
+        searchPanel->refreshTagFilter();
         QString code;
         QString templateId;
         QString snippetId = currentSnippetId;
@@ -1322,6 +1331,13 @@ void MainWindow::setupConnections()
 
     connect(saveAct, &QAction::triggered, this, [this]() {
         saveCurrentSnippet();
+        // Adding/removing tags on the current snippet must refresh the tag strip
+        // (new tags appear; tags no longer used by any snippet disappear and are
+        // deselected). refreshTagFilter() re-runs the search itself when it
+        // prunes a selected tag; it leaves the category tree untouched so the
+        // current category filter is preserved. A trailing refreshSearch()
+        // covers the no-prune case.
+        searchPanel->refreshTagFilter();
         refreshSearch();
         QSettings settings("HiTikZ", "TikzManager");
         if (settings.value("behavior/autoCompileOnSave", true).toBool()) {

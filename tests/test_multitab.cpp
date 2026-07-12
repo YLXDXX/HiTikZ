@@ -670,6 +670,62 @@ static void test_metadata_field_completers(MainWindow *mw)
     }
 }
 
+// Tag-filter pruning: when the last snippet carrying a selected tag drops that
+// tag, refreshTagFilter must (a) remove it from the tag strip, (b) deselect it,
+// and (c) re-run the search so the thumbnail list is no longer filtered by a
+// tag nothing has. Reproduces the "stuck selected tag → empty list, no button
+// to unselect" bug.
+static void test_tag_filter_prune(SnippetManager *snippetMgr, SearchPanel *searchPanel)
+{
+    if (!snippetMgr || !searchPanel) return;
+
+    // A snippet that solely owns the tag "OnlyHere", plus another with a shared
+    // tag so the strip is non-empty after pruning.
+    QString idA = snippetMgr->createSnippet("Test TagPrune A", "test/tagprune");
+    QString idB = snippetMgr->createSnippet("Test TagPrune B", "test/tagprune");
+    Snippet a = snippetMgr->loadSnippet(idA);
+    a.tags = QStringList{ "OnlyHere", "Shared" };
+    snippetMgr->saveSnippet(a);
+    Snippet b = snippetMgr->loadSnippet(idB);
+    b.tags = QStringList{ "Shared" };
+    snippetMgr->saveSnippet(b);
+
+    // Rebuild the tag strip now that A/B exist so "OnlyHere" is offered.
+    searchPanel->refreshTagFilter();
+    QApplication::processEvents();
+    TEST_ASSERT(searchPanel->allTagNames().contains("OnlyHere"),
+                "tag strip should offer 'OnlyHere' while a snippet has it");
+
+    // Select the unique tag → only snippet A should show.
+    searchPanel->setTagSelected("OnlyHere", true);
+    QApplication::processEvents();
+    TEST_ASSERT(searchPanel->selectedTags().contains("OnlyHere"),
+                "'OnlyHere' should be selected");
+    TEST_ASSERT(searchPanel->thumbnailCount() == 1,
+                "only snippet A should match the 'OnlyHere' filter");
+
+    // Remove the tag from A (its only owner). This mirrors editing/saving a
+    // snippet's tags in the UI, which calls refreshTagFilter().
+    a = snippetMgr->loadSnippet(idA);
+    a.tags = QStringList{ "Shared" };
+    snippetMgr->saveSnippet(a);
+
+    searchPanel->refreshTagFilter();
+    QApplication::processEvents();
+
+    TEST_ASSERT(!searchPanel->allTagNames().contains("OnlyHere"),
+                "'OnlyHere' must disappear from the strip once unused");
+    TEST_ASSERT(!searchPanel->selectedTags().contains("OnlyHere"),
+                "'OnlyHere' must be auto-deselected once it no longer exists");
+    TEST_ASSERT(searchPanel->thumbnailCount() >= 2,
+                "list must no longer be filtered by the removed tag (both snippets show)");
+
+    snippetMgr->deleteSnippet(idA);
+    snippetMgr->deleteSnippet(idB);
+    searchPanel->refreshTagFilter();
+    QApplication::processEvents();
+}
+
 int main(int argc, char *argv[])
 {
     QApplication::setAttribute(Qt::AA_UseSoftwareOpenGL);
@@ -713,6 +769,8 @@ int main(int argc, char *argv[])
 
         test_ui_library_field_activates_completion(&mw, snippetMgr, searchPanel, tabWidget);
         test_metadata_field_completers(&mw);
+
+        test_tag_filter_prune(snippetMgr, searchPanel);
 
         cleanup_snippets(snippetMgr);
     }
