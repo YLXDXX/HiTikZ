@@ -26,6 +26,7 @@ void registerAnchors(Vec &db);
 void registerHandlers(Vec &db);
 void registerPgfKeyPaths(Vec &db);
 void registerLibraries(Vec &db);
+void registerCoordinateSystems(Vec &db);
 void registerEnvironments(Vec &db);
 void registerCommands(Vec &db);
 void registerMathFunctions(Vec &db);

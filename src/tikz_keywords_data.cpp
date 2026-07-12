@@ -33,6 +33,7 @@ void registerAllBuiltins(Vec &db)
     registerHandlers(db);
     registerPgfKeyPaths(db);
     registerLibraries(db);
+    registerCoordinateSystems(db);
     registerEnvironments(db);
     registerCommands(db);
     registerMathFunctions(db);

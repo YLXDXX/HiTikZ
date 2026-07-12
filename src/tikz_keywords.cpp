@@ -126,6 +126,7 @@ QStringList TikzKeywordDB::allHandlerNames() const { return names(Category::Hand
 QStringList TikzKeywordDB::allMathFuncNames() const { return names(Category::MathFunction); }
 QStringList TikzKeywordDB::allPatternNames() const { return names(Category::Pattern); }
 QStringList TikzKeywordDB::allDecorationNames() const { return names(Category::Decoration); }
+QStringList TikzKeywordDB::allCoordSysNames() const { return names(Category::CoordinateSystem); }
 
 QStringList TikzKeywordDB::allCompletableWords() const
 {

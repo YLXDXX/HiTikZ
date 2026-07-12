@@ -23,7 +23,8 @@ public:
         TkzCtxWord,
         TkzCtxCoord,
         TkzCtxUserCmd,
-        TkzCtxPathWord
+        TkzCtxPathWord,
+        TkzCtxCoordSysKey
     };
 
     explicit TikzCompleter(QPlainTextEdit *editor, QObject *parent = nullptr);
@@ -52,6 +53,10 @@ public:
     // Exposed for testing.
     QStringList eqCandidatesForKey(const QString &keyName) const;
 
+    // Option keys of a coordinate system (offered after "(name cs:"), e.g.
+    // {angle,radius,z} for "xyz cylindrical". Library-gated. Exposed for testing.
+    QStringList coordSysKeysForName(const QString &sysName) const;
+
     // Returns the current completion-candidate list for a context model.
     // Exposed for testing (e.g. verifying coord model includes intersection-N).
     QStringList modelWordsForContext(Context ctx) const;
@@ -59,6 +64,10 @@ public:
     // Rebuilds the user-defined completion models (coords/nodes/commands/...)
     // from the current document state. Exposed for testing.
     void updateUserModels();
+
+    // Rebuilds the coordinate-system key model for the given system name (the
+    // keys offered after "(name cs:"). Exposed for testing.
+    void updateCoordSysKeyModel(const QString &sysName);
 
     // Extracts the option key governing the value being typed at the cursor for
     // '=' value completion. Correctly ignores '=', ',' and '[' that are nested

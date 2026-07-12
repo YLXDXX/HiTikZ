@@ -58,6 +58,7 @@ void TikzCompleter::initCompleters()
     makeCompleter(TkzCtxAt, {});
     makeCompleter(TkzCtxCoord, {});
     makeCompleter(TkzCtxUserCmd, {});
+    makeCompleter(TkzCtxCoordSysKey, {});
 }
 
 void TikzCompleter::setModelForContext(Context ctx, const QStringList &words)
@@ -317,6 +318,31 @@ void TikzCompleter::updateEqModel(const QString &keyName)
     setModelForContext(TkzCtxEq, eqCandidatesForKey(keyName));
 }
 
+QStringList TikzCompleter::coordSysKeysForName(const QString &sysName) const
+{
+    // Return the option keys of a coordinate system (offered after "cs:").
+    // Keys are stored as the system keyword's valueHints. Library gating is
+    // applied so, e.g., "xyz cylindrical" keys only appear when 3d is active.
+    QSet<QString> libs;
+    if (m_docState) libs = m_docState->activeLibs();
+    auto csKws = TikzKeywords::TikzKeywordDB::instance().filter(
+        QString(), QString(), libs,
+        TikzKeywords::Category::CoordinateSystem);
+    for (auto *kw : csKws) {
+        if (kw->name.compare(sysName.trimmed(), Qt::CaseInsensitive) == 0)
+            return kw->valueHints;
+    }
+    return {};
+}
+
+void TikzCompleter::updateCoordSysKeyModel(const QString &sysName)
+{
+    QStringList keys = coordSysKeysForName(sysName);
+    keys.removeDuplicates();
+    keys.sort(Qt::CaseInsensitive);
+    setModelForContext(TkzCtxCoordSysKey, keys);
+}
+
 void TikzCompleter::updateUserModels()
 {
     if (!m_docState) {
@@ -341,6 +367,17 @@ void TikzCompleter::updateUserModels()
     if (m_docState->activeLibs().contains(QStringLiteral("intersections"))) {
         coords << QStringLiteral("intersection-1")
                << QStringLiteral("intersection-2");
+    }
+    // Coordinate systems usable as "(name cs:...)", e.g. "xyz cylindrical",
+    // "xyz spherical". Library-gated (3d/calc/perspective) via the keyword DB;
+    // the trailing " cs:" marker is appended so accepting the completion lands
+    // the cursor ready to type keys.
+    {
+        auto csKws = TikzKeywords::TikzKeywordDB::instance().filter(
+            env, QString(), m_docState->activeLibs(),
+            TikzKeywords::Category::CoordinateSystem);
+        for (auto *kw : csKws)
+            coords << (kw->name + QLatin1String(" cs:"));
     }
     coords.removeDuplicates();
     setModelForContext(TkzCtxCoord, coords);

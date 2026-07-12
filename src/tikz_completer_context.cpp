@@ -93,6 +93,21 @@ TikzCompleter::Context TikzCompleter::detectContext(const QString &textBefore) c
         int lastCloseParen = textBefore.lastIndexOf(')');
         if (lastOpenParen > lastCloseParen && lastOpenParen >= 0) {
             QString afterParen = textBefore.mid(lastOpenParen + 1);
+            // Coordinate-system usage: "(<name> cs:key=value,key=value)".
+            // After the "cs:" marker the comma-separated tokens are option keys
+            // (e.g. angle/radius/z for "xyz cylindrical"). Offer key completion
+            // for the segment currently being typed, but stay silent while the
+            // value part (after '=') is entered.
+            int csIdx = afterParen.indexOf(QLatin1String("cs:"));
+            if (csIdx >= 0) {
+                QString afterCs = afterParen.mid(csIdx + 3);
+                int lastComma = afterCs.lastIndexOf(',');
+                QString seg = (lastComma >= 0) ? afterCs.mid(lastComma + 1)
+                                               : afterCs;
+                if (!seg.contains('='))
+                    return TkzCtxCoordSysKey;
+                return TkzCtxNone;
+            }
             // Exclude coordinate pairs (x,y) and calc expressions ($...$), but
             // allow names with spaces (e.g. "critical 1") so they can be
             // completed after a '('.

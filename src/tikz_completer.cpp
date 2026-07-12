@@ -270,6 +270,21 @@ void TikzCompleter::doComplete(bool manual)
         if (lp >= 0) prefix = textBefore.mid(lp + 1);
         break;
     }
+    case TkzCtxCoordSysKey: {
+        // Inside "(<name> cs:key,key,...)". Build the key model from the system
+        // name preceding "cs:" and complete the last comma-separated segment.
+        int lp = textBefore.lastIndexOf('(');
+        QString afterParen = (lp >= 0) ? textBefore.mid(lp + 1) : textBefore;
+        int csIdx = afterParen.indexOf(QLatin1String("cs:"));
+        QString sysName = (csIdx >= 0) ? afterParen.left(csIdx).trimmed()
+                                       : QString();
+        updateCoordSysKeyModel(sysName);
+        QString afterCs = (csIdx >= 0) ? afterParen.mid(csIdx + 3) : afterParen;
+        int lastComma = afterCs.lastIndexOf(',');
+        prefix = leftTrimmed((lastComma >= 0) ? afterCs.mid(lastComma + 1)
+                                              : afterCs);
+        break;
+    }
     case TkzCtxUserCmd: {
         int lastSlash = textBefore.lastIndexOf('\\');
         if (lastSlash >= 0) prefix = textBefore.mid(lastSlash);
@@ -318,7 +333,7 @@ void TikzCompleter::doComplete(bool manual)
     if (prefix.isEmpty()) {
         const bool alwaysShow = (ctx == TkzCtxCmd || ctx == TkzCtxBeg
                                  || ctx == TkzCtxEnd || ctx == TkzCtxLib
-                                 || ctx == TkzCtxDot);
+                                 || ctx == TkzCtxDot || ctx == TkzCtxCoordSysKey);
         const bool showOnManual = manual && (ctx == TkzCtxBrk
                                              || ctx == TkzCtxCoord);
         if (!alwaysShow && !showOnManual) {

@@ -324,6 +324,13 @@ static int test_detect_context()
         // A ']' nested in braces must not be mistaken for the closer of an
         // earlier bracket group when the cursor is genuinely inside brackets.
         {QStringLiteral("[a={x]y},b"), TikzCompleter::TkzCtxBrk, "key after value containing a stray-looking ]"},
+        // Coordinate-system usage "(name cs:key,...)": after the "cs:" marker
+        // the tokens are option keys, not coordinate names.
+        {QStringLiteral("\\draw (0,0,0) -- (xyz cylindrical cs:"), TikzCompleter::TkzCtxCoordSysKey, "cs: marker -> coord-sys key"},
+        {QStringLiteral("\\draw (xyz cylindrical cs:an"), TikzCompleter::TkzCtxCoordSysKey, "typing key after cs:"},
+        {QStringLiteral("\\draw (xyz spherical cs:radius=1,long"), TikzCompleter::TkzCtxCoordSysKey, "second key after comma"},
+        // The value part after '=' inside cs: must not offer key completion.
+        {QStringLiteral("\\draw (xyz cylindrical cs:z=1"), TikzCompleter::TkzCtxNone, "value after cs: key = is silent"},
     };
 
     for (const auto &tc : tests) {
@@ -2132,6 +2139,152 @@ static int test_intersections_coord_completion()
     return failed;
 }
 
+// Verifies TikZ coordinate-system completion: the "(name cs:)" names appear in
+// the coordinate model (library-gated for 3d/calc/perspective), and the per-
+// system option keys are offered after the "cs:" marker. Values verified
+// against PGF/TikZ 3.1.10 sources (tikz.code.tex, tikzlibrary3d.code.tex,
+// tikzlibrarycalc.code.tex, tikzlibraryperspective.code.tex).
+static int test_coordinate_system_completion()
+{
+    int failed = 0;
+    using TikzKeywords::TikzKeywordDB;
+    using TikzKeywords::Category;
+
+    // ── Core systems always registered ──
+    const QStringList csNames = TikzKeywordDB::instance().allCoordSysNames();
+    const char *core[] = { "canvas", "canvas polar", "xyz", "xyz polar",
+                           "xy polar", "node", "barycentric",
+                           "intersection", "perpendicular", nullptr };
+    for (int i = 0; core[i]; ++i) {
+        if (!csNames.contains(QString::fromUtf8(core[i]))) {
+            fprintf(stderr, "FAIL: CS-1 - core coord system '%s' missing\n", core[i]);
+            failed++;
+        }
+    }
+    // Library-gated systems must be registered too (gating checked below).
+    const char *gated[] = { "xyz cylindrical", "xyz spherical", "tangent",
+                            "three point perspective", "tpp", nullptr };
+    for (int i = 0; gated[i]; ++i) {
+        if (!csNames.contains(QString::fromUtf8(gated[i]))) {
+            fprintf(stderr, "FAIL: CS-2 - gated coord system '%s' missing\n", gated[i]);
+            failed++;
+        }
+    }
+
+    // ── 3d systems: names appear in coord model only when 3d is active ──
+    {
+        QPlainTextEdit editor;
+        TikzCompleter completer(&editor);
+        QTextDocument doc;
+        doc.setPlainText("\\usetikzlibrary{3d}\n\\draw (0,0,0);\n");
+        TikzDocumentState state;
+        state.reparse(&doc);
+        completer.setDocumentState(&state);
+        completer.updateUserModels();
+        const QStringList coords =
+            completer.modelWordsForContext(TikzCompleter::TkzCtxCoord);
+        if (!coords.contains(QStringLiteral("xyz cylindrical cs:"))) {
+            fprintf(stderr, "FAIL: CS-3 - 'xyz cylindrical cs:' not offered with 3d lib\n");
+            failed++;
+        }
+        if (!coords.contains(QStringLiteral("xyz spherical cs:"))) {
+            fprintf(stderr, "FAIL: CS-4 - 'xyz spherical cs:' not offered with 3d lib\n");
+            failed++;
+        }
+        // Core systems always present.
+        if (!coords.contains(QStringLiteral("xyz polar cs:"))) {
+            fprintf(stderr, "FAIL: CS-5 - core 'xyz polar cs:' not offered\n");
+            failed++;
+        }
+    }
+
+    // ── Without 3d library: cylindrical/spherical must NOT appear ──
+    {
+        QPlainTextEdit editor;
+        TikzCompleter completer(&editor);
+        QTextDocument doc;
+        doc.setPlainText("\\draw (0,0);\n");
+        TikzDocumentState state;
+        state.reparse(&doc);
+        completer.setDocumentState(&state);
+        completer.updateUserModels();
+        const QStringList coords =
+            completer.modelWordsForContext(TikzCompleter::TkzCtxCoord);
+        if (coords.contains(QStringLiteral("xyz cylindrical cs:"))) {
+            fprintf(stderr, "FAIL: CS-6 - 'xyz cylindrical cs:' offered without 3d lib\n");
+            failed++;
+        }
+        // But core polar system is always available.
+        if (!coords.contains(QStringLiteral("canvas polar cs:"))) {
+            fprintf(stderr, "FAIL: CS-7 - core 'canvas polar cs:' not offered\n");
+            failed++;
+        }
+    }
+
+    // ── Per-system option keys ──
+    {
+        QPlainTextEdit editor;
+        TikzCompleter completer(&editor);
+        QTextDocument doc;
+        doc.setPlainText("\\usetikzlibrary{3d,calc,perspective}\n");
+        TikzDocumentState state;
+        state.reparse(&doc);
+        completer.setDocumentState(&state);
+
+        auto hasKeys = [&](const QString &sys, const QStringList &need,
+                           const char *tag) {
+            const QStringList keys = completer.coordSysKeysForName(sys);
+            for (const QString &k : need) {
+                if (!keys.contains(k)) {
+                    fprintf(stderr, "FAIL: %s - '%s' should offer key '%s'\n",
+                            tag, qPrintable(sys), qPrintable(k));
+                    failed++;
+                }
+            }
+        };
+        hasKeys(QStringLiteral("xyz cylindrical"),
+                {"angle","radius","z"}, "CS-8");
+        hasKeys(QStringLiteral("xyz spherical"),
+                {"angle","radius","latitude","longitude"}, "CS-9");
+        hasKeys(QStringLiteral("canvas"), {"x","y"}, "CS-10");
+        hasKeys(QStringLiteral("canvas polar"),
+                {"angle","radius","x radius","y radius"}, "CS-11");
+        hasKeys(QStringLiteral("tangent"), {"node","point"}, "CS-12");
+        hasKeys(QStringLiteral("three point perspective"),
+                {"x","y","z"}, "CS-13");
+
+        // 'z' is NOT a key of "xyz spherical" (uses latitude/longitude).
+        if (completer.coordSysKeysForName(QStringLiteral("xyz spherical"))
+                .contains(QStringLiteral("z"))) {
+            fprintf(stderr, "FAIL: CS-14 - 'xyz spherical' must not offer 'z'\n");
+            failed++;
+        }
+    }
+
+    // ── Key model built from the system name preceding 'cs:' ──
+    {
+        QPlainTextEdit editor;
+        TikzCompleter completer(&editor);
+        QTextDocument doc;
+        doc.setPlainText("\\usetikzlibrary{3d}\n");
+        TikzDocumentState state;
+        state.reparse(&doc);
+        completer.setDocumentState(&state);
+        completer.updateCoordSysKeyModel(QStringLiteral("xyz cylindrical"));
+        const QStringList keys =
+            completer.modelWordsForContext(TikzCompleter::TkzCtxCoordSysKey);
+        if (!keys.contains(QStringLiteral("angle"))
+            || !keys.contains(QStringLiteral("z"))) {
+            fprintf(stderr, "FAIL: CS-15 - key model missing cylindrical keys\n");
+            failed++;
+        }
+    }
+
+    if (failed == 0)
+        fprintf(stderr, "PASS: coordinate-system name + key completion (3d/calc/perspective)\n");
+    return failed;
+}
+
 // Verifies anchors are source-accurate against TeXLive PGF/circuitikz:
 // universal PGF anchors always present, circuitikz anchors gated, and
 // bogus/hallucinated entries removed (angle numbers, "substrate",
@@ -2852,6 +3005,7 @@ int main(int argc, char *argv[])
     failed += test_spaced_completion_accept_no_stray_char();
     failed += test_to_path_completion();
     failed += test_graphs_and_matrix_options();
+    failed += test_coordinate_system_completion();
 
     if (failed > 0) {
         fprintf(stderr, "\n%d test(s) failed!\n", failed);

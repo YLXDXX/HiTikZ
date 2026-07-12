@@ -315,6 +315,54 @@ void registerLibraries(Vec &db)
         addBuiltin(db, libs[i], C::Library);
 }
 
+// TikZ coordinate systems, usable as "(name cs:key=value,...)". Verified
+// against the PGF/TikZ 3.1.10 sources:
+//   • core systems (\tikzdeclarecoordinatesystem in tikz.code.tex): canvas,
+//     canvas polar, xyz, xyz polar (alias xy polar), node, barycentric,
+//     intersection, perpendicular
+//   • 3d library (tikzlibrary3d.code.tex): xyz cylindrical, xyz spherical
+//   • calc library (tikzlibrarycalc.code.tex): tangent
+//   • perspective library (tikzlibraryperspective.code.tex): three point
+//     perspective (alias tpp)
+// The per-system option keys (stored under /tikz/cs/...) are attached as
+// valueHints so they can be offered once the user is inside "cs:".
+void registerCoordinateSystems(Vec &db)
+{
+    // Core systems (always available, no library gating).
+    addBuiltin(db, "canvas", C::CoordinateSystem, {}, {}, {"x","y"});
+    addBuiltin(db, "canvas polar", C::CoordinateSystem, {}, {},
+               {"angle","radius","x radius","y radius"});
+    addBuiltin(db, "xyz", C::CoordinateSystem, {}, {}, {"x","y","z"});
+    addBuiltin(db, "xyz polar", C::CoordinateSystem, {}, {},
+               {"angle","radius","x radius","y radius"});
+    addBuiltin(db, "xy polar", C::CoordinateSystem, {}, {},
+               {"angle","radius","x radius","y radius"});
+    addBuiltin(db, "node", C::CoordinateSystem, {}, {},
+               {"name","anchor","angle"});
+    addBuiltin(db, "barycentric", C::CoordinateSystem);
+    addBuiltin(db, "intersection", C::CoordinateSystem, {}, {},
+               {"first line","second line","first node","second node",
+                "solution","horizontal line through","vertical line through"});
+    addBuiltin(db, "perpendicular", C::CoordinateSystem, {}, {},
+               {"horizontal line through","vertical line through"});
+
+    // 3d library: cylindrical/spherical coordinate systems.
+    addBuiltin(db, "xyz cylindrical", C::CoordinateSystem, {}, {},
+               {"angle","radius","z"}, {"3d"});
+    addBuiltin(db, "xyz spherical", C::CoordinateSystem, {}, {},
+               {"angle","radius","latitude","longitude"}, {"3d"});
+
+    // calc library: tangent to a shape.
+    addBuiltin(db, "tangent", C::CoordinateSystem, {}, {},
+               {"node","point"}, {"calc"});
+
+    // perspective library: three point perspective.
+    addBuiltin(db, "three point perspective", C::CoordinateSystem, {}, {},
+               {"x","y","z"}, {"perspective"});
+    addBuiltin(db, "tpp", C::CoordinateSystem, {}, {},
+               {"x","y","z"}, {"perspective"});
+}
+
 void registerEnvironments(Vec &db)
 {
     // ── Environments ──

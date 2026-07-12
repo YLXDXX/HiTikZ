@@ -25,6 +25,7 @@ enum class Category {
     Handler,
     PGFKeyPath,
     PathOperation,
+    CoordinateSystem,
     UserDefined
 };
 
@@ -66,6 +67,7 @@ public:
     QStringList allCompletableWords() const;
     QStringList allPatternNames() const;
     QStringList allDecorationNames() const;
+    QStringList allCoordSysNames() const;
 
     QVector<QPair<QString, QStringList>> allValueHints() const;
 
