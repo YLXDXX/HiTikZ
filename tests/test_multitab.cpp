@@ -19,6 +19,8 @@
 #include <QAction>
 #include <QTextDocument>
 #include <QElapsedTimer>
+#include <QIcon>
+#include <QAbstractItemView>
 
 static int g_testsPassed = 0;
 static int g_testsFailed = 0;
@@ -843,6 +845,31 @@ static void test_metadata_field_completers(MainWindow *mw)
             TEST_ASSERT(rebuilt == QStringLiteral("calc, through"),
                         "accepting 'through' should yield 'calc, through'");
         }
+    }
+    libEdit->clear();
+
+    // Visual affordance (regression: the stock popup was hard to tell apart
+    // from the fields underneath): every item carries a colored dot marker and
+    // the popup is styled with the field's accent color.
+    {
+        QAbstractItemModel *lsrc = libComp->model();
+        bool libHasIcon = lsrc->rowCount() > 0
+            && !lsrc->index(0, 0).data(Qt::DecorationRole).value<QIcon>().isNull();
+        TEST_ASSERT(libHasIcon, "library completion items carry a colored marker");
+
+        QAbstractItemModel *psrc = pkgComp->model();
+        bool pkgHasIcon = psrc->rowCount() > 0
+            && !psrc->index(0, 0).data(Qt::DecorationRole).value<QIcon>().isNull();
+        TEST_ASSERT(pkgHasIcon, "package completion items carry a colored marker");
+
+        TEST_ASSERT(libComp->popup() && !libComp->popup()->styleSheet().isEmpty(),
+                    "library completion popup is visually styled");
+        TEST_ASSERT(libComp->popup()->styleSheet().contains(QStringLiteral("#2e86c1")),
+                    "library popup uses the blue accent");
+        TEST_ASSERT(pkgComp->popup() && pkgComp->popup()->styleSheet().contains(QStringLiteral("#e67e22")),
+                    "package popup uses the amber accent");
+        TEST_ASSERT(libComp->popup()->styleSheet() != pkgComp->popup()->styleSheet(),
+                    "the two popups are visually distinguishable from each other");
     }
 }
 

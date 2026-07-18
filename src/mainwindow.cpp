@@ -484,7 +484,10 @@ void MainWindow::setupUI()
     packagesEdit->setObjectName(QStringLiteral("metaPackagesEdit"));
     packagesEdit->setPlaceholderText(QStringLiteral("如: tikz-3dplot,[european]circuitikz"));
     {
-        auto *pkgCompleter = new CommaListCompleter(TikzWords::latexPackages(), this);
+        // Amber for LaTeX packages, blue for TikZ libraries: the accent colors
+        // make the two popups (and their items) recognizable at a glance.
+        auto *pkgCompleter = new CommaListCompleter(TikzWords::latexPackages(), this,
+                                                    QColor(0xe6, 0x7e, 0x22));
         packagesEdit->setCompleter(pkgCompleter);
     }
     metaLayout->addWidget(packagesEdit);
@@ -493,7 +496,8 @@ void MainWindow::setupUI()
     tikzLibrariesEdit->setObjectName(QStringLiteral("metaTikzLibrariesEdit"));
     tikzLibrariesEdit->setPlaceholderText(QStringLiteral("如: calc,er,angles"));
     {
-        auto *libCompleter = new CommaListCompleter(TikzWords::tikzLibraries(), this);
+        auto *libCompleter = new CommaListCompleter(TikzWords::tikzLibraries(), this,
+                                                    QColor(0x2e, 0x86, 0xc1));
         tikzLibrariesEdit->setCompleter(libCompleter);
     }
     metaLayout->addWidget(tikzLibrariesEdit);
