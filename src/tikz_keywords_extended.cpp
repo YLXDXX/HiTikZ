@@ -237,6 +237,43 @@ void registerExtended(Vec &db)
     ctkOpt("mirror", {"draw","path","to"});
     ctkOpt("invert", {"draw","path","to"});
 
+    // Per-component modifier keys mirrored to /tikz/ by the sources
+    // (\pgfkeys{/tikz/<key>/.add code=...} in pgfcirctripoles.tex,
+    // pgfcircquadpoles.tex, pgfcircmonopoles.tex, pgfcirc.defines.tex, ...)
+    // for direct use inside node[...] / to[...] — e.g.
+    // node[op amp, noinv input up] or nmos[arrowmos]. Core TikZ keys that
+    // circuitikz merely augments (color/fill/dashed) are not repeated here.
+    for (const char *k : {// op amps (pgfcirctripoles.tex:6025-6028 ff)
+                          "noinv input up","noinv input down",
+                          "noinv output up","noinv output down",
+                          // transistors
+                          "arrowmos","noarrowmos","bodydiode","nobodydiode",
+                          "bulk","nobulk","doublegate","nodoublegate",
+                          "ferroel gate","no ferroel gate","nogate",
+                          "schottky base","no schottky base","nobase",
+                          "emptycircle","nocircle","fullcircle",
+                          "bjt multi height","bjt pins width",
+                          "collectors","emitters",
+                          "center transistors text","legacy transistors text",
+                          // diodes / tubes / nixie
+                          "photo","filament","anodedot","nixieanode",
+                          "fullcathode","nocathode",
+                          // chips / mux-demux
+                          "num pins","number inputs","hide numbers",
+                          "show numbers","rotated numbers","straight numbers",
+                          "external pins width","external pad fraction",
+                          "no topmark","topmark",
+                          // instruments / misc
+                          "rotated instruments","straight instruments",
+                          "nogrid","solderdot","nosolderdot",
+                          "onelinechoke","twolineschoke","mstlinelen",
+                          // amp/quadpole boxing (pgfcircquadpoles.tex:613-625)
+                          "box","boxed","box only","boxed only",
+                          // component text shortcuts (defines.tex:906-908,
+                          // quadpoles.tex:527-535)
+                          "t","t1","t2","text in","text out"})
+        ctkOpt(k, {"node","draw","path","to"});
+
     // /tikz/-level styles (\tikzset in the sources) — these also work directly
     // in the environment options, e.g. \begin{circuitikz}[american, voltage
     // shift=1] (pgfcirc.defines.tex:1140/1141/1200/900, pgfcirccurrent.tex,

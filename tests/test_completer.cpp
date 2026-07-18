@@ -821,6 +821,27 @@ static int test_circuitikz_annotation_keys()
         }
     }
 
+    // Per-component node/path modifier keys mirrored to /tikz/ by the sources
+    // (user report: node[op amp, noinv input up] got no completion).
+    const char *modifiers[] = {
+        "noinv input up","noinv input down","noinv output up","noinv output down",
+        "arrowmos","noarrowmos","bodydiode","nobodydiode","bulk","nobulk",
+        "schottky base","no schottky base","emptycircle","fullcircle",
+        "photo","filament","anodedot","fullcathode",
+        "num pins","number inputs","hide numbers","show numbers",
+        "external pins width","no topmark","solderdot","nogrid",
+        "box","boxed","box only","boxed only",
+        "t","t1","t2","text in","text out",
+        nullptr
+    };
+    for (int i = 0; modifiers[i]; ++i) {
+        if (!opts.contains(QString::fromUtf8(modifiers[i]))) {
+            fprintf(stderr, "FAIL: CTKA-8 - component modifier '%s' missing\n",
+                    modifiers[i]);
+            failed++;
+        }
+    }
+
     if (failed == 0)
         fprintf(stderr, "PASS: circuitikz annotation/config key completion\n");
     return failed;
