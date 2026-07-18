@@ -818,6 +818,7 @@ calc,er,angles,patterns,decorations.pathmorphing,shadows.blur,pgfplots.fillbetwe
 - **保存后自动编译** — 开启后点击保存按钮（或按保存快捷键）时自动触发编译并刷新 PDF 预览，无需手动点击"编译预览"。默认开启。
 - **编译线程数** — 设置批量预览时并行编译的线程数（1–32，默认 6）。每个线程独立创建 LaTeX 编译器实例，互不干扰。
 - **过长代码自动换行** — 开启后过长的代码行在编辑器内自动软换行显示，无需横向滚动；折行产生的续行在左侧行号栏以 `↳` 标记，便于区分新行与续行。默认开启。
+- **开机自启动（启动后隐藏到系统托盘）** — 开启后在 `~/.config/autostart/` 写入 `hitikz.desktop`（`Exec=... --hidden`），登录后程序静默驻留系统托盘，不弹出主窗口；关闭则删除该自启动条目。旧版（缺少 `--hidden`）的自启动条目会在程序启动时自动原地升级。
 - **编译状态指示** — 状态栏左侧显示编译结果（绿色"编译成功" / 红色"编译失败，详见日志"），3 秒后自动消失
 
 **模板管理**：
@@ -866,7 +867,7 @@ CMake 选项：
 
 ```
 src/
-├── main.cpp                         # 入口（QApplication 初始化，版本号由 APP_VERSION 宏注入）
+├── main.cpp                         # 入口（QApplication 初始化、`--hidden`/`--minimized` 命令行参数、托盘常驻语义 quitOnLastWindowClosed(false)、旧自启动条目迁移；版本号由 APP_VERSION 宏注入）
 │
 │   # ── 主窗口（共用 mainwindow.h，按职责拆分）──
 ├── mainwindow.h                     # MainWindow 类声明
@@ -876,7 +877,7 @@ src/
 ├── mainwindow_compile.cpp           # 编译流程、日志格式化、预览持久化、批量生成
 ├── mainwindow_params.cpp            # 参数化系统
 ├── mainwindow_shortcuts.cpp         # 快捷键与全局热键
-├── mainwindow_drafts.cpp            # 自动保存与草稿恢复（含标签页隔离的 UI 状态持久化）
+├── mainwindow_drafts.cpp            # 自动保存与草稿恢复（含标签页隔离的 UI 状态持久化；恢复对话框见 draft_recovery_dialog）
 │
 │   # ── 左栏组件（共用 search_panel.h）──
 ├── search_panel.h / search_panel.cpp   # 核心：搜索框、分类树（前缀边界感知，`数学` 不误包含 `数学分析`）、缩略图
@@ -907,17 +908,19 @@ src/
 ├── tikz_keywords.cpp                # DB 方法（filter / find / names / valueHints ...）
 ├── tikz_keywords_data.h / .cpp      # 注册入口 registerAllBuiltins + 共用辅助函数
 ├── tikz_keywords_basic.cpp          # 颜色/线宽/线型/箭头/形状/图案/装饰/锚点/处理器/PGF路径/库/坐标系/环境
-├── tikz_keywords_commands.cpp       # 命令 + CircuiTikZ 路径元件（358 个）+ physics/siunitx 命令 + tkz-euclide + 数学函数（源自 PGF 数学引擎）
+├── tikz_keywords_commands.cpp       # 命令 + CircuiTikZ 路径元件（358 个）与用户命令（\ctikzset/\ctikzflipx 等 12 个）+ physics/siunitx 命令 + tkz-euclide + 数学函数（源自 PGF 数学引擎）
 ├── tikz_keywords_options.cpp        # 通用选项
 ├── tikz_keywords_pgfplots.cpp       # 3dplot / pgfplots / 杂项形状选项
-├── tikz_keywords_extended.cpp       # CircuiTikZ 形状/选项、tikz-cd、chemfig、tikz-feynman、graphs、pgfplots 扩展等
-│                                    #（合计约 2200+ 条目：CircuiTikZ 元件358+形状128 + tkz-euclide 261 + chemfig + tikz-feynman + tikz-cd + 形状~120 + 装饰 ~30 + 装饰子选项 35+ + 库门控键 80+ + PGF键路径30+）
-├── tikz_document_state.h / .cpp     # 文档状态追踪（范围栈、库解析、`\usepackage` → 活动库映射（circuitikz/tkz-euclide/tikz-cd/chemfig/tikz-feynman/physics/siunitx/pgfplots/tikz-3dplot）、用户样式/坐标/节点/pic/foreach(含可选参数)/颜色/命令/命名路径(name path)/交点名(by=) 解析）
+├── tikz_keywords_extended.cpp       # CircuiTikZ 形状/选项（双极子标注 i/v/f/l/a 全变体、元件修饰键、25 类 fill|scale|thickness 样式矩阵、用户级样式键，均对照 1.7.1 源码）、tikz-cd、chemfig、tikz-feynman、graphs、pgfplots 扩展等
+│                                    #（合计约 2400+ 条目：CircuiTikZ 元件358+形状128 + tkz-euclide 261 + chemfig + tikz-feynman + tikz-cd + 形状~120 + 装饰 ~30 + 装饰子选项 35+ + 库门控键 80+ + PGF键路径30+）
+├── tikz_document_state.h / .cpp     # 文档状态追踪（范围栈、库解析、`\usepackage` → 活动库映射（circuitikz/tkz-euclide/tikz-cd/chemfig/tikz-feynman/physics/siunitx/pgfplots/tikz-3dplot，代码/元数据/LaTeX 模板三路共用同一映射表）、用户样式/坐标/节点/pic/foreach(含可选参数)/颜色/命令/命名路径(name path)/交点名(by=) 解析）
 ├── tikz_words.h                     # TikZ 词库兼容层（委托到 TikzKeywordDB，含 tikzPathOperations 精选路径操作集合、latexPackages 常用宏包名）
-├── comma_list_completer.h           # 逗号分隔字段（额外宏包 / TikZ库）的分段自动补全器（仅补全最后一段，保留前序条目）
+├── comma_list_completer.h           # 逗号分隔字段（额外宏包 / TikZ库）的分段自动补全器（仅补全最后一段，保留前序条目；弹窗按字段强调色着色 + 彩色圆点条目标记 + 等宽字体，明暗主题自适应）
 ├── flow_layout.h / flow_layout.cpp  # 流式布局组件（支持自动换行，用于标签过滤器）
 ├── pdf_preview_widget.h / .cpp      # PDF 预览组件（缩放/平移/适应模式，从 MainWindow 抽出）
-├── settings_dialog.h / .cpp         # 设置面板（路径/行为/快捷键/模板管理/工厂重置）
+├── settings_dialog.h / .cpp         # 设置面板（路径/行为/快捷键/开机自启动/模板管理/工厂重置）
+├── autostart_manager.h / .cpp       # XDG 自启动条目管理（写入/移除 ~/.config/autostart/hitikz.desktop，Exec 带 --hidden；旧条目自动迁移）
+├── draft_recovery_dialog.h / .cpp   # 草稿恢复对话框（勾选恢复 / 全部丢弃（带确认）/ 稍后处理；独立结果码，可单元测试）
 ├── snippet_properties_dialog.h / .cpp # 片段属性编辑对话框
 ├── kde_global_shortcut.h / .cpp     # KDE KGlobalAccel 全局快捷键（或 QHotkey 回退）
 resources/
@@ -935,13 +938,15 @@ tests/
 ├── test_search.cpp                  # 模糊搜索算法 + 分类 + 标签过滤测试
 ├── test_packages_libraries.cpp      # 宏包/TikZ库解析与模板注入测试
 ├── test_highlighter_regex.cpp       # 语法高亮正则表达式正确性测试（数学模式、注释、命令等）
-├── test_multitab.cpp                # 多标签页功能测试（创建/切换/关闭/去重）+ 编辑器过长行换行切换
+├── test_multitab.cpp                # 多标签页功能测试（创建/切换/关闭/去重）+ 编辑器过长行换行切换 + 撤销/重做按钮状态 + 模板宏包激活补全 + 元数据补全弹窗样式
 ├── test_draft_recovery.cpp          # 草稿格式完整性 + 目录扫描测试
+├── test_draft_recovery_dialog.cpp   # 草稿恢复对话框（加载/过滤/勾选、全部丢弃按钮接线与独立结果码回归）
+├── test_autostart.cpp               # 自启动条目写入/移除/迁移（--hidden 升级、Exec 引号、无 Exec 行安全跳过）
 ├── test_tex_import.cpp              # .tex 文件导入代码提取测试
 ├── test_params.cpp                  # 参数声明解析与替换测试
 ├── test_fixes.cpp                   # 关键修复验证（行号正则、注释优先级、QProcess、数据流）
-├── test_completer.cpp               # 补全词库完整性 + detectContext 13 种上下文 69 用例（含 \end{}、花括号内 = 值补全、坐标系 cs: 键）+ 箭头大小写双变体 + 定位键坐标补全 + 装饰完整列表 + 库门控 + label/pin 方位 + font/node font 字体值（含样式体内）+ to path 与坐标宏 + graphs/matrix 选项 + of= 命名路径 + 坐标系名/键补全（3d/calc/perspective 门控）+ 含空格补全上屏无多余字符 + CircuiTikZ/tikz-cd/tkz-euclide/chemfig/tikz-feynman 源码一致校验
-├── test_document_state.cpp          # 文档状态追踪（20 个用例：范围/库/样式/坐标/pic/foreach(含可选参数)/颜色/\usepackage 激活 physics·siunitx·pgfplots/节点 name= 选项语法提取/命名路径 name path/by= 交点名提取）
+├── test_completer.cpp               # 补全词库完整性 + detectContext 13 种上下文 69 用例（含 \end{}、花括号内 = 值补全、坐标系 cs: 键）+ 箭头大小写双变体 + 定位键坐标补全 + 装饰完整列表 + 库门控 + label/pin 方位 + font/node font 字体值（含样式体内）+ to path 与坐标宏 + graphs/matrix 选项 + of= 命名路径 + 坐标系名/键补全（3d/calc/perspective 门控）+ 含空格补全上屏无多余字符 + 已完成值内嵌括号对后 cs: 键补全回归 + CircuiTikZ 标注/修饰/类样式/用户命令审计 + CircuiTikZ/tikz-cd/tkz-euclide/chemfig/tikz-feynman 源码一致校验
+├── test_document_state.cpp          # 文档状态追踪（23 个用例：范围/库/样式/坐标/pic/foreach(含可选参数)/颜色/\usepackage 激活 physics·siunitx·pgfplots/节点 name= 选项语法提取/命名路径 name path/by= 交点名提取/LaTeX 模板内容激活补全库/元数据宏包映射统一）
 └── test_enhanced_highlighter.cpp    # 增强语法高亮（14 个用例：PGF路径/处理器/用户定义名/key=value花括号深度/跨行选项/综合）
 
 # ── 打包与安装 ──
@@ -1002,7 +1007,7 @@ MainWindow
 
 ## 测试
 
-项目包含十三套自动化测试（通过 CTest 运行）：
+项目包含十五套自动化测试（通过 CTest 运行）：
 
 | 测试 | 内容 |
 |------|------|
@@ -1011,13 +1016,15 @@ MainWindow
 | `test_search` | 精确匹配、子序列匹配、连续加分、中文搜索、标签过滤、分类统计 |
 | `test_packages_libraries` | 宏包字符串解析（含嵌套括号选项），TikZ 库解析，模板注入正确性，往返序列化 |
 | `test_highlighter_regex` | 数学模式 `$...$`、`\(...\)`、`\[...\]` 正则表达式匹配验正 |
-| `test_multitab` | 多标签页功能：创建/切换/关闭标签页、重复打开去重、关闭前未保存检查、编辑器过长行自动换行切换、元数据脏标记检测、**切换标签页元数据隔离与标题正确性**（切换更新右栏元数据、后台标签标题不被污染、未保存编辑跨切换保留）、UI 库栏改动即时同步到编辑器补全（`circle through` 等）、`$` 行内公式自动配对（插入/包裹选中/跳过闭合/空对退格）、`{|}` 独占行回车三行拆分、`Tab`/`Shift+Tab` 多行块缩进与反缩进、标签过滤器移除末位标签后自动取消选中并重新过滤、标签集合未变时不重建标签栏（保存不闪烁）、额外宏包 / TikZ库字段的逗号感知分段补全器 |
+| `test_multitab` | 多标签页功能：创建/切换/关闭标签页、重复打开去重、关闭前未保存检查、编辑器过长行自动换行切换、元数据脏标记检测、**切换标签页元数据隔离与标题正确性**（切换更新右栏元数据、后台标签标题不被污染、未保存编辑跨切换保留）、UI 库栏改动即时同步到编辑器补全（`circle through` 等）、`$` 行内公式自动配对（插入/包裹选中/跳过闭合/空对退格）、`{|}` 独占行回车三行拆分、`Tab`/`Shift+Tab` 多行块缩进与反缩进、标签过滤器移除末位标签后自动取消选中并重新过滤、标签集合未变时不重建标签栏（保存不闪烁）、额外宏包 / TikZ库字段的逗号感知分段补全器（含彩色圆点标记与双弹窗强调色断言）、**撤销/重做按钮状态**（零标签页置灰、编辑后启用、撤销/重做到头置灰、跨标签页状态隔离与恢复、真实代码加载+定时器落定后仍置灰）、**模板宏包激活补全**（default_circuit 片段端到端激活 circuitikz 库门控形状，含反向门控校验） |
 | `test_draft_recovery` | 草稿文件格式完整性（全字段 JSON 读写往返、空代码过滤、目录扫描） |
+| `test_draft_recovery_dialog` | 草稿恢复对话框：目录加载（损坏/空代码过滤、无名回退）、默认全选/全选/取消全选按钮、"全部丢弃"按钮接线（DestructiveRole 显式 clicked 连接）与独立结果码（不与 Accepted 冲突）、恢复所选/稍后处理结果码 |
+| `test_autostart` | 开机自启动条目：desktop 文件内容（--hidden、含空格路径引号、KDE 排序提示）、启用/停用/幂等、旧条目迁移（原地补 --hidden、二次迁移零改动、无 Exec 行不改写） |
 | `test_tex_import` | .tex 文件导入代码提取（三段式解析）及宏包/TikZ 库声明解析 |
 | `test_params` | 参数声明正则解析与 `@@var@@` 替换正确性（单参数、多参数、负数、零值） |
 | `test_fixes` | 关键修复验证：行号正则锚定、注释优先级、wrapCode 无 document 前置注入、QProcess 启动检测、数据流状态检查、自动编译设置、短命令行解析、原子文件重命名、草稿清理、路径遍历字符检测、导入失败目录回滚（11 项测试） |
-| `test_completer` | 补全词库完整性（去重、条目数量）、detectContext 13 种上下文检测（69 用例含 `\end{}` 上下文、花括号内 `=` 值补全、坐标系 `cs:` 键）、箭头大小写双变体（`stealth`/`Stealth`）、定位键坐标补全、PGF 键处理器 / 值提示 / `=` 颜色值补全、key 提取的花括号 / 中括号感知、跨行上下文回溯、装饰完整 27 名 eq 补全、锚点源码准确性、库门控（circuitikz 锚点开/关）、label/pin 方位值、font/node font 字体命令值（含 `.style={font=\|}` 样式体内）、`to path` 通用选项与 `\tikztostart`/`\tikztotarget`/`\tikztonodes` 坐标宏、graphs 库选项与 `\matrix` 的 `column sep`/`row sep` 取值提示（多库同名键取值并集）、`of=` 命名路径补全、坐标系名与 `cs:` 键补全（`xyz cylindrical`/`xyz spherical` 等，3d/calc/perspective 库门控，源码逐条核对）、含空格补全值上屏不多字符等；CircuiTikZ / 标准 TikZ / 数学函数 / 装饰 / physics·siunitx / pgfplots / tikz-cd·tkz-euclide·chemfig·tikz-feynman 各词库组的源码一致性校验，确保所有条目为对应宏包的真实命令/选项/形状，并仅由正确的库或环境门控 |
-| `test_document_state` | 文档状态追踪：范围栈检测、库解析、用户样式（含空格名）/坐标/节点/pic名（含 `name=` 选项语法）/路径操作坐标 `coordinate (name)`/foreach变量（含空格分隔多变量、>2个变量、可选方括号参数）/颜色/命令解析、命名路径（`name path`/`global`/`local`）与 `by=` 交点名提取、环境名查询、片段库注入、`\usepackage{physics,siunitx,pgfplots,chemfig,tikz-feynman}` 激活对应补全库（21 个测试用例） |
+| `test_completer` | 补全词库完整性（去重、条目数量）、detectContext 13 种上下文检测（69 用例含 `\end{}` 上下文、花括号内 `=` 值补全、坐标系 `cs:` 键）、箭头大小写双变体（`stealth`/`Stealth`）、定位键坐标补全、PGF 键处理器 / 值提示 / `=` 颜色值补全、key 提取的花括号 / 中括号感知、跨行上下文回溯、装饰完整 27 名 eq 补全、锚点源码准确性、库门控（circuitikz 锚点开/关）、label/pin 方位值、font/node font 字体命令值（含 `.style={font=\|}` 样式体内）、`to path` 通用选项与 `\tikztostart`/`\tikztotarget`/`\tikztonodes` 坐标宏、graphs 库选项与 `\matrix` 的 `column sep`/`row sep` 取值提示（多库同名键取值并集）、`of=` 命名路径补全、坐标系名与 `cs:` 键补全（`xyz cylindrical`/`xyz spherical` 等，3d/calc/perspective 库门控，源码逐条核对）、含空格补全值上屏不多字符等；CircuiTikZ / 标准 TikZ / 数学函数 / 装饰 / physics·siunitx / pgfplots / tikz-cd·tkz-euclide·chemfig·tikz-feynman 各词库组的源码一致性校验，确保所有条目为对应宏包的真实命令/选项/形状，并仅由正确的库或环境门控；已完成值内嵌括号对后的 cs: 键补全回归（governingOpenParenIndex/lastTopLevelCommaIndex 深度感知）；CircuiTikZ 1.7.1 全面审计（双极子标注 i 13 变体/v 9/f 13 + 杜撰变体反向断言、l2/a2 对齐键、元件修饰键 noinv input up/arrowmos 等、25 类样式矩阵与保留类排除、\ctikzset 等用户命令及库门控、voltage dir 取值） |
+| `test_document_state` | 文档状态追踪：范围栈检测、库解析、用户样式（含空格名）/坐标/节点/pic名（含 `name=` 选项语法）/路径操作坐标 `coordinate (name)`/foreach变量（含空格分隔多变量、>2个变量、可选方括号参数）/颜色/命令解析、命名路径（`name path`/`global`/`local`）与 `by=` 交点名提取、环境名查询、片段库注入、`\usepackage{physics,siunitx,pgfplots,chemfig,tikz-feynman}` 激活对应补全库、LaTeX 模板内容激活（注释感知解析模板 \usepackage/\usetikzlibrary、与元数据并集、切换模板即时失效）、元数据宏包映射统一（tkz-euclide、选项后缀、大小写）（23 个测试用例） |
 | `test_enhanced_highlighter` | 增强语法高亮：PGF路径/键处理器/库规则不崩溃，用户样式/节点名/foreach变量高亮检测，key=value分色（含花括号深度隔离），跨行选项括号高亮，多行注释，综合测试，foreach空格分隔变量，**注释保护**验证（14 个测试用例） |
 
 运行测试：
