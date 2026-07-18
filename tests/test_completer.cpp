@@ -698,6 +698,134 @@ static int test_intersection_cs_after_value()
     return failed;
 }
 
+// CircuiTikZ bipole annotation & config keys, audited against CircuiTikZ
+// 1.7.1 sources (pgfcirccurrent/voltage/flow/label, pgfcirc.defines.tex).
+// Regressions covered (user report):
+//   • "voltage/shift" was offered although the user-facing key is
+//     "voltage shift" (\tikzset + \ctikzset, pgfcirc.defines.tex:1199-1200);
+//   • only i/i_/i^ existed although current has 13 variants (i>_, i<^, ...);
+//   • bogus keys "voltage/distance" / "current/shift" (nonexistent in 1.7.1).
+static int test_circuitikz_annotation_keys()
+{
+    int failed = 0;
+    using TikzKeywords::TikzKeywordDB;
+    using TikzKeywords::Category;
+
+    QSet<QString> ck; ck.insert(QStringLiteral("circuitikz"));
+    auto optionNames = [&](const QString &env, const QString &cmd,
+                           const QSet<QString> &libs) {
+        QSet<QString> names;
+        const auto kws = TikzKeywordDB::instance().filter(env, cmd, libs,
+                                                          Category::Option);
+        for (const auto *kw : kws) names.insert(kw->name);
+        return names;
+    };
+
+    const QSet<QString> opts =
+        optionNames(QStringLiteral("circuitikz"), QStringLiteral("draw"), ck);
+
+    // Full annotation variant sets from the sources.
+    const char *annotations[] = {
+        "i","i^","i_","i<","i>","i^>","i^<","i_>","i_<","i>^","i>_","i<^","i<_",
+        "v","v^","v_","v<","v>","v^>","v^<","v_>","v_<",
+        "f","f^","f_","f<","f>","f^>","f^<","f_>","f_<","f>^","f>_","f<^","f<_",
+        "l","l^","l_","l2","l2^","l2_","l2 above","l2 below",
+        "l2 valign","l2 halign","a2 valign","a2 halign",
+        "a","a^","a_","a2","a2^","a2_","a2 above","a2 below",
+        "annotation","annotation above","annotation below",
+        "label above","label below",
+        "i symbols","no i symbols","v symbols","no v symbols",
+        "f symbols","no f symbols","mirror","invert",
+        nullptr
+    };
+    for (int i = 0; annotations[i]; ++i) {
+        if (!opts.contains(QString::fromUtf8(annotations[i]))) {
+            fprintf(stderr, "FAIL: CTKA-1 - annotation key '%s' missing\n",
+                    annotations[i]);
+            failed++;
+        }
+    }
+
+    // User-facing config/style keys (\tikzset level + \ctikzset paths).
+    const char *config[] = {
+        "voltage shift","voltage dir","american","european",
+        "american voltages","european currents","straight voltages",
+        "raised voltages","cute inductors","ieee ports",
+        "bipole voltage style","bipole current append style",
+        "component text","bipole nodes","reversed",
+        "voltage/distance from node","voltage/distance from line",
+        "flow/distance","flow/offset","label/align",
+        "bipoles/length","current/distance","logic ports",
+        nullptr
+    };
+    for (int i = 0; config[i]; ++i) {
+        if (!opts.contains(QString::fromUtf8(config[i]))) {
+            fprintf(stderr, "FAIL: CTKA-2 - config key '%s' missing\n", config[i]);
+            failed++;
+        }
+    }
+
+    // Bogus keys must be gone.
+    for (const char *bogus : { "voltage/shift", "voltage/distance", "current/shift" }) {
+        if (opts.contains(QString::fromUtf8(bogus))) {
+            fprintf(stderr, "FAIL: CTKA-3 - bogus key '%s' still offered\n", bogus);
+            failed++;
+        }
+    }
+
+    // Nonexistent voltage variants must not be invented (only current/flow
+    // have the arrow-first forms).
+    for (const char *bogus : { "v>^", "v>_", "v<^", "v<_" }) {
+        if (opts.contains(QString::fromUtf8(bogus))) {
+            fprintf(stderr, "FAIL: CTKA-4 - invented voltage variant '%s'\n", bogus);
+            failed++;
+        }
+    }
+
+    // voltage dir choice values (pgfcirc.defines.tex:895-899).
+    {
+        const auto *kw = TikzKeywordDB::instance().find(
+            QStringLiteral("voltage dir"), Category::Option);
+        if (!kw) {
+            fprintf(stderr, "FAIL: CTKA-5 - 'voltage dir' not found\n");
+            failed++;
+        } else {
+            for (const char *v : { "old", "noold", "RP", "EF" }) {
+                if (!kw->valueHints.contains(QString::fromUtf8(v))) {
+                    fprintf(stderr, "FAIL: CTKA-5 - voltage dir value '%s' missing\n", v);
+                    failed++;
+                }
+            }
+        }
+    }
+
+    // Also available in a plain tikzpicture when the package is loaded…
+    {
+        const QSet<QString> plain =
+            optionNames(QStringLiteral("tikzpicture"), QStringLiteral("draw"), ck);
+        if (!plain.contains(QStringLiteral("i>_"))
+            || !plain.contains(QStringLiteral("voltage shift"))) {
+            fprintf(stderr, "FAIL: CTKA-6 - keys missing in plain tikzpicture with lib\n");
+            failed++;
+        }
+    }
+    // …but never without the circuitikz lib.
+    {
+        const QSet<QString> none = optionNames(
+            QStringLiteral("tikzpicture"), QStringLiteral("draw"), QSet<QString>());
+        for (const char *k : { "i>_", "voltage shift", "f<^", "bipoles/length" }) {
+            if (none.contains(QString::fromUtf8(k))) {
+                fprintf(stderr, "FAIL: CTKA-7 - '%s' leaked without circuitikz\n", k);
+                failed++;
+            }
+        }
+    }
+
+    if (failed == 0)
+        fprintf(stderr, "PASS: circuitikz annotation/config key completion\n");
+    return failed;
+}
+
 static int test_model_clearing_on_empty_list()
 {
     int failed = 0;
@@ -3066,6 +3194,7 @@ int main(int argc, char *argv[])
     failed += test_path_keywords_completable();
     failed += test_path_word_completion_triggers();
     failed += test_intersection_cs_after_value();
+    failed += test_circuitikz_annotation_keys();
     failed += test_model_clearing_on_empty_list();
     failed += test_key_handlers();
     failed += test_eq_color_completion();

@@ -169,45 +169,106 @@ void registerExtended(Vec &db)
     // (const plot mark left/right/mid are core TikZ plot handlers registered in
     //  tikz_keywords_options.cpp; they also work inside pgfplots axes.)
 
-    // ── CircuitikZ options (using requiredLibs filtering) ──
+    // ── CircuiTikZ options ──
+    // Audited against CircuiTikZ 1.7.1 sources (TeX Live 2025):
+    //   pgfcirc.defines.tex, pgfcirccurrent.tex, pgfcircvoltage.tex,
+    //   pgfcircflow.tex, pgfcirclabel.tex, pgfcircpath.tex, pgfcirctripoles.tex.
+    // Entries are env-free but gated on the circuitikz lib, so they complete
+    // both inside \begin{circuitikz} and in a tikzpicture using the package.
+    auto ctkOpt = [&db](const char *name,
+                        std::initializer_list<const char *> cmds = {},
+                        std::initializer_list<const char *> vals = {}) {
+        addBuiltin(db, name, C::Option, {}, cmds, vals, {"circuitikz"});
+    };
 
-    // ── CircuitikZ options ──
-    addBuiltin(db, "bipoles/length",     C::Option, {"circuitikz"});
-    addBuiltin(db, "tripoles/mos style", C::Option, {"circuitikz"});
-    addBuiltin(db, "nodes width",        C::Option, {"circuitikz"});
-    addBuiltin(db, "current/distance",   C::Option, {"circuitikz"});
-    addBuiltin(db, "voltage/distance",   C::Option, {"circuitikz"});
-    addBuiltin(db, "voltage/shift",      C::Option, {"circuitikz"});
-    addBuiltin(db, "voltage dir",        C::Option, {"circuitikz"}, {},
-               {"old","RP","EF"});
-    addBuiltin(db, "current/shift",      C::Option, {"circuitikz"});
-    addBuiltin(db, "label/align",        C::Option, {"circuitikz"});
-    addBuiltin(db, "thickness",          C::Option, {"circuitikz"});
-    addBuiltin(db, "bipoles/thickness",  C::Option, {"circuitikz"});
-    addBuiltin(db, "resistors/scale",    C::Option, {"circuitikz"});
-    addBuiltin(db, "capacitors/scale",   C::Option, {"circuitikz"});
-    addBuiltin(db, "sources/scale",      C::Option, {"circuitikz"});
-    addBuiltin(db, "transistors/scale",  C::Option, {"circuitikz"});
-    addBuiltin(db, "diodes/scale",       C::Option, {"circuitikz"});
-    addBuiltin(db, "logic ports",        C::Option, {"circuitikz"}, {},
-               {"american","european","ieee"});
-    addBuiltin(db, "logic ports/scale",  C::Option, {"circuitikz"});
-    addBuiltin(db, "l",   C::Option, {"circuitikz"}, {"draw","path"});
-    addBuiltin(db, "l_",  C::Option, {"circuitikz"}, {"draw","path"});
-    addBuiltin(db, "l^",  C::Option, {"circuitikz"}, {"draw","path"});
-    addBuiltin(db, "a",   C::Option, {"circuitikz"}, {"draw","path"});
-    addBuiltin(db, "a_",  C::Option, {"circuitikz"}, {"draw","path"});
-    addBuiltin(db, "a^",  C::Option, {"circuitikz"}, {"draw","path"});
-    addBuiltin(db, "v",   C::Option, {"circuitikz"}, {"draw","path"});
-    addBuiltin(db, "v_",  C::Option, {"circuitikz"}, {"draw","path"});
-    addBuiltin(db, "v^",  C::Option, {"circuitikz"}, {"draw","path"});
-    addBuiltin(db, "i",   C::Option, {"circuitikz"}, {"draw","path"});
-    addBuiltin(db, "i_",  C::Option, {"circuitikz"}, {"draw","path"});
-    addBuiltin(db, "i^",  C::Option, {"circuitikz"}, {"draw","path"});
-    // Path modifiers for orienting/labelling components (\ctikzset mirror/.style,
-    // invert/.style; verified against CircuiTikZ 1.7.1 sources).
-    addBuiltin(db, "mirror", C::Option, {"circuitikz"}, {"draw","path","to"});
-    addBuiltin(db, "invert", C::Option, {"circuitikz"}, {"draw","path","to"});
+    // \ctikzset configuration keys (also valid inside to[...] after a
+    // component: the component style switches the key family to
+    // /tikz/circuitikz, and \ctikzset{...} works anywhere).
+    ctkOpt("bipoles/length");
+    ctkOpt("bipoles/thickness");
+    ctkOpt("thickness");
+    ctkOpt("nodes width");
+    ctkOpt("tripoles/mos style");
+    ctkOpt("current/distance");
+    // 1.x replaced the old voltage/distance by the from-node/from-line pair
+    // (pgfcirc.defines.tex:1224/1229); "voltage/distance" and "current/shift"
+    // do not exist and were previously offered by mistake.
+    ctkOpt("voltage/distance from node");
+    ctkOpt("voltage/distance from line");
+    ctkOpt("flow/distance");
+    ctkOpt("flow/offset");
+    ctkOpt("label distance");
+    ctkOpt("annotation distance");
+    // Two-line label/annotation alignment (pgfcirclabel.tex:327/328/365/366).
+    ctkOpt("l2 valign", {"draw","path","to"}, {"t","c","b"});
+    ctkOpt("l2 halign", {"draw","path","to"}, {"l","c","r"});
+    ctkOpt("a2 valign", {"draw","path","to"}, {"t","c","b"});
+    ctkOpt("a2 halign", {"draw","path","to"}, {"l","c","r"});
+    ctkOpt("label/align", {}, {"straight","rotate","smart"});
+    ctkOpt("voltage dir", {}, {"old","noold","RP","EF"});
+    ctkOpt("voltage", {}, {"american","european","straight","raised","curved"});
+    ctkOpt("current", {}, {"american","european"});
+    ctkOpt("american open voltage", {}, {"center","legacy"});
+    ctkOpt("logic ports", {}, {"american","european","ieee"});
+    ctkOpt("logic ports/scale");
+    ctkOpt("resistors/scale");
+    ctkOpt("capacitors/scale");
+    ctkOpt("sources/scale");
+    ctkOpt("transistors/scale");
+    ctkOpt("diodes/scale");
+
+    // Bipole annotation keys on to[...] components. Full variant sets from the
+    // sources — current (pgfcirccurrent.tex): 13 variants; voltage
+    // (pgfcircvoltage.tex): 9 variants (no v>^/v>_/v<^/v<_ exist); flow
+    // (pgfcircflow.tex): 13 variants; label/annotation (pgfcirclabel.tex).
+    for (const char *k : {"l","l^","l_","l2","l2^","l2_","l2 above","l2 below",
+                          "label above","label below",
+                          "a","a^","a_","a2","a2^","a2_","a2 above","a2 below",
+                          "annotation","annotation above","annotation below",
+                          "v","v^","v_","v<","v>","v^>","v^<","v_>","v_<",
+                          "i","i^","i_","i<","i>","i^>","i^<","i_>","i_<",
+                          "i>^","i>_","i<^","i<_",
+                          "f","f^","f_","f<","f>","f^>","f^<","f_>","f_<",
+                          "f>^","f>_","f<^","f<_",
+                          "i symbols","no i symbols","v symbols","no v symbols",
+                          "f symbols","no f symbols"})
+        ctkOpt(k, {"draw","path","to"});
+    // Path modifiers for orienting components (pgfcircpath.tex:34/41).
+    ctkOpt("mirror", {"draw","path","to"});
+    ctkOpt("invert", {"draw","path","to"});
+
+    // /tikz/-level styles (\tikzset in the sources) — these also work directly
+    // in the environment options, e.g. \begin{circuitikz}[american, voltage
+    // shift=1] (pgfcirc.defines.tex:1140/1141/1200/900, pgfcirccurrent.tex,
+    // pgfcircvoltage.tex, pgfcircflow.tex, pgfcirclabel.tex, ...).
+    for (const char *k : {"american","european",
+                          "american currents","american voltages",
+                          "american resistors","american inductors",
+                          "american ports","european currents",
+                          "european voltages","european resistors",
+                          "european inductors","european ports",
+                          "american gas filled surge arrester set",
+                          "european gas filled surge arrester set",
+                          "straight voltages","raised voltages",
+                          "cute","cute inductors","ieee ports",
+                          "voltage shift",
+                          "bipole current style","bipole current append style",
+                          "bipole voltage style","bipole voltage append style",
+                          "bipole flow style","bipole flow append style",
+                          "bipole label style","bipole label append style",
+                          "bipole annotation style","bipole annotation append style",
+                          "bipole nodes",
+                          "full diodes","empty diodes","stroke diodes",
+                          "full poles opacity","open poles opacity",
+                          "all leads","no leads","input leads","output leads",
+                          "no input leads","no output leads","reversed",
+                          "amp plus","amp minus","amp symbol font",
+                          "tr circle","tr gap fill",
+                          "muxdemux def","muxdemux label","flipflop def",
+                          "example circuit style","legacy circuit style",
+                          "romano circuit style"})
+        ctkOpt(k);
+    ctkOpt("component text", {}, {"center","left"});
 
     // ── tikz-cd options ── (verified in tikzlibrarycd.code.tex)
     addBuiltin(db, "from",          C::Option, {"tikzcd"});
