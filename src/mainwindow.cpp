@@ -346,11 +346,18 @@ void MainWindow::setupUI()
 
     toolBar->addSeparator();
 
-    undoAct = toolBar->addAction(QStringLiteral("↩"));
+    // Theme icons, not emoji glyphs: codepoints like ↩/↪/⛔ are rendered by
+    // color-emoji fonts (e.g. Twemoji) on many systems, and color glyphs are
+    // NOT tinted by the disabled palette — a disabled button would not look
+    // greyed out. Theme icons render a proper disabled variant; the text is
+    // the fallback where the icon theme lacks them.
+    undoAct = toolBar->addAction(QIcon::fromTheme(QStringLiteral("edit-undo")),
+                                 QStringLiteral("撤销"));
     undoAct->setShortcut(QKeySequence::Undo);
     undoAct->setToolTip(QStringLiteral("撤销"));
     undoAct->setEnabled(false);
-    redoAct = toolBar->addAction(QStringLiteral("↪"));
+    redoAct = toolBar->addAction(QIcon::fromTheme(QStringLiteral("edit-redo")),
+                                 QStringLiteral("重做"));
     redoAct->setShortcut(QKeySequence::Redo);
     redoAct->setToolTip(QStringLiteral("重做"));
     redoAct->setEnabled(false);
@@ -361,7 +368,8 @@ void MainWindow::setupUI()
     applyParamsAct = toolBar->addAction(QStringLiteral("应用参数"));
     saveAct = toolBar->addAction(QStringLiteral("保存"));
 
-    forceStopAct = toolBar->addAction(QStringLiteral("⛔ 强制结束"));
+    forceStopAct = toolBar->addAction(QIcon::fromTheme(QStringLiteral("process-stop")),
+                                      QStringLiteral("强制结束"));
     forceStopAct->setEnabled(false);
 
     toolBar->addSeparator();

@@ -17,6 +17,7 @@
 #include <QKeyEvent>
 #include <QAction>
 #include <QTextDocument>
+#include <QElapsedTimer>
 
 static int g_testsPassed = 0;
 static int g_testsFailed = 0;
@@ -443,33 +444,74 @@ static QAction *findActionByText(MainWindow *mw, const QString &text)
     return nullptr;
 }
 
+static void pump_events(int ms)
+{
+    QElapsedTimer t;
+    t.start();
+    while (t.elapsed() < ms)
+        QApplication::processEvents(QEventLoop::AllEvents, 20);
+}
+
 // Regression: the undo/redo toolbar actions used to be permanently clickable,
 // even with a pristine document or no tab at all. They must track the current
 // editor's actual history availability.
+//
+// Two independent failure modes were reported by users:
+//   a) freshly opened snippet (real TikZ code, timers elapsed) still shows
+//      enabled undo — highlighter/reparse timers tick after the initial
+//      setPlainText (blocker lifted) and the user expected the buttons to
+//      stay disabled until they manually edit;
+//   b) undo/redo do not grey out at the extremities (exhausted undo/redo
+//      stack).
 static void test_undo_redo_action_state(MainWindow *mw, SnippetManager *snippetMgr,
                                         SearchPanel *searchPanel, QTabWidget *tabWidget)
 {
-    QAction *undoAct = findActionByText(mw, QStringLiteral("↩"));
-    QAction *redoAct = findActionByText(mw, QStringLiteral("↪"));
+    QAction *undoAct = findActionByText(mw, QStringLiteral("撤销"));
+    QAction *redoAct = findActionByText(mw, QStringLiteral("重做"));
     TEST_ASSERT(undoAct && redoAct, "undo/redo toolbar actions exist");
     if (!undoAct || !redoAct) return;
 
+    // --- Real snippet with content (the user scenario) ------------------------
     QString id = snippetMgr->createSnippet("Test UndoRedo", "test/undoredo");
+    // Content enough to trigger highlight/reparse timers
+    {
+        Snippet s = snippetMgr->loadSnippet(id);
+        s.code = QStringLiteral("\\begin{tikzpicture}\n"
+                                "  \\draw (0,0) circle (1);\n"
+                                "  \\fill[red] (1,1) rectangle (2,2);\n"
+                                "\\end{tikzpicture}");
+        snippetMgr->saveSnippet(s);
+    }
     emit searchPanel->snippetSelected(id);
     QApplication::processEvents();
 
-    TEST_ASSERT(!undoAct->isEnabled(), "undo disabled on freshly opened tab");
-    TEST_ASSERT(!redoAct->isEnabled(), "redo disabled on freshly opened tab");
+    // Let any highlight / reparse / parse-params timers fire.
+    // The setPlainText call inside createNewTab uses a QSignalBlocker on the
+    // editor, so the initial content load does not create undo entries. But
+    // later timers (highlightCurrentLine via cursor move, reparseDocumentState
+    // via m_reparseTimer) must not create undo entries either.
+    pump_events(500);
+
+    const bool undoAfterLoad = undoAct->isEnabled();
+    if (undoAfterLoad) {
+        fprintf(stderr, "FAIL: undo enabled after snippet load (should be disabled)\n");
+        g_testsFailed++;
+    } else {
+        g_testsPassed++;
+    }
+    TEST_ASSERT(!redoAct->isEnabled(), "redo disabled after snippet load");
 
     CodeEditor *ed = qobject_cast<CodeEditor *>(tabWidget->currentWidget());
     TEST_ASSERT(ed != nullptr, "current editor exists");
     if (!ed) return;
 
-    ed->insertPlainText(QStringLiteral("\\draw (0,0) -- (1,1);"));
+    // --- User makes an edit → undo enables, redo stays disabled ---------------
+    ed->insertPlainText(QStringLiteral("  \\draw (0,0) -- (1,1);\n"));
     QApplication::processEvents();
-    TEST_ASSERT(undoAct->isEnabled(), "undo enabled after an edit");
+    TEST_ASSERT(undoAct->isEnabled(), "undo enabled after a real edit");
     TEST_ASSERT(!redoAct->isEnabled(), "redo still disabled after a fresh edit");
 
+    // --- Undo exhaustively → undo disabled, redo enabled -----------------------
     int guard = 0;
     while (ed->document()->isUndoAvailable() && ++guard < 100)
         ed->undo();
@@ -477,6 +519,7 @@ static void test_undo_redo_action_state(MainWindow *mw, SnippetManager *snippetM
     TEST_ASSERT(!undoAct->isEnabled(), "undo disabled once history is exhausted");
     TEST_ASSERT(redoAct->isEnabled(), "redo enabled after undoing");
 
+    // --- Redo exhaustively → redo disabled ------------------------------------
     guard = 0;
     while (ed->document()->isRedoAvailable() && ++guard < 100)
         ed->redo();
@@ -484,14 +527,15 @@ static void test_undo_redo_action_state(MainWindow *mw, SnippetManager *snippetM
     TEST_ASSERT(undoAct->isEnabled(), "undo re-enabled after redoing");
     TEST_ASSERT(!redoAct->isEnabled(), "redo disabled once redo history is exhausted");
 
-    // A pristine second tab must not inherit the first tab's action state.
+    // --- Pristine second tab must not inherit the first tab's state ------------
     QString id2 = snippetMgr->createSnippet("Test UndoRedo Pristine", "test/undoredo");
     emit searchPanel->snippetSelected(id2);
     QApplication::processEvents();
+    pump_events(500);
     TEST_ASSERT(!undoAct->isEnabled(), "undo disabled on pristine second tab");
     TEST_ASSERT(!redoAct->isEnabled(), "redo disabled on pristine second tab");
 
-    // Switching back restores the edited tab's per-document state.
+    // --- Switching back restores the edited tab's per-document state ------------
     int firstIdx = -1;
     for (int i = 0; i < tabWidget->count(); ++i) {
         if (tabWidget->tabBar()->tabData(i).toString() == id) {
@@ -503,8 +547,8 @@ static void test_undo_redo_action_state(MainWindow *mw, SnippetManager *snippetM
     if (firstIdx >= 0) {
         tabWidget->setCurrentIndex(firstIdx);
         QApplication::processEvents();
-        TEST_ASSERT(undoAct->isEnabled(), "undo state restored when switching back");
-        TEST_ASSERT(!redoAct->isEnabled(), "redo state restored when switching back");
+        TEST_ASSERT(undoAct->isEnabled(), "undo state restored after switching back");
+        TEST_ASSERT(!redoAct->isEnabled(), "redo state restored after switching back");
     }
 }
 
@@ -815,7 +859,12 @@ int main(int argc, char *argv[])
     // Force the offscreen platform so synthetic key events are delivered to the
     // (unfocused) editor deterministically, independent of the host session
     // (Wayland/X11 only route key input to the focused window).
-    qputenv("QT_QPA_PLATFORM", QByteArrayLiteral("offscreen"));
+    // HITIKZ_TEST_PLATFORM overrides this to debug platform-specific behavior
+    // (e.g. HITIKZ_TEST_PLATFORM=wayland runs on the live session).
+    if (qEnvironmentVariableIsSet("HITIKZ_TEST_PLATFORM"))
+        qputenv("QT_QPA_PLATFORM", qgetenv("HITIKZ_TEST_PLATFORM"));
+    else
+        qputenv("QT_QPA_PLATFORM", QByteArrayLiteral("offscreen"));
     QApplication::setAttribute(Qt::AA_UseSoftwareOpenGL);
     QApplication app(argc, argv);
     fprintf(stderr, "=== Testing Multi-Tab Functionality ===\n");
@@ -840,6 +889,13 @@ int main(int argc, char *argv[])
         fprintf(stderr, "  searchPanel: %p\n", (void*)searchPanel);
 
         test_initial_state(tabWidget);
+
+        {
+            QAction *u = findActionByText(&mw, QStringLiteral("撤销"));
+            QAction *r = findActionByText(&mw, QStringLiteral("重做"));
+            TEST_ASSERT(u && !u->isEnabled(), "undo disabled with zero tabs");
+            TEST_ASSERT(r && !r->isEnabled(), "redo disabled with zero tabs");
+        }
 
         mw.show();
         QApplication::processEvents();
