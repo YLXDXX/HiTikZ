@@ -90,6 +90,9 @@ private:
     // the active editor's document state so completion/highlighting reflect
     // libraries added via the UI, not just \usetikzlibrary{...} in the code.
     void syncDocStateLibraries();
+    // Raw content of a LaTeX template (empty if the id is empty/invalid); its
+    // \usepackage/\usetikzlibrary lines feed completion too.
+    static QString templateContentFor(const QString &templateId);
     void setFitPageChecked(bool checked);
     void setFitWidthChecked(bool checked);
     void setFitHeightChecked(bool checked);

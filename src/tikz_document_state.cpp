@@ -64,6 +64,34 @@ TikzDocumentState::TikzDocumentState()
 
 TikzDocumentState::~TikzDocumentState() = default;
 
+void TikzDocumentState::addPackageImplications(const QString &pkg, QSet<QString> &libs)
+{
+    QString p = pkg.trimmed().toLower();
+    // Tolerate an inline option group, e.g. "circuitikz[europeanvoltages]".
+    int bracket = p.indexOf(QLatin1Char('['));
+    if (bracket >= 0)
+        p = p.left(bracket).trimmed();
+    if (p.isEmpty())
+        return;
+
+    struct Mapping { const char *pkg; const char *lib; };
+    static const Mapping mappings[] = {
+        {"circuitikz",   "circuitikz"},
+        {"tikz-3dplot",  "3d"},
+        {"tikz-cd",      "cd"},
+        {"tkz-euclide",  "tkz-euclide"},
+        {"physics",      "physics"},
+        {"siunitx",      "siunitx"},
+        {"pgfplots",     "pgfplots"},
+        {"chemfig",      "chemfig"},
+        {"tikz-feynman", "tikz-feynman"},
+    };
+    for (const auto &m : mappings) {
+        if (p == QLatin1String(m.pkg))
+            libs.insert(QLatin1String(m.lib));
+    }
+}
+
 void TikzDocumentState::clear()
 {
     m_scopeStack.clear();
@@ -79,24 +107,9 @@ void TikzDocumentState::clear()
     for (const auto &lib : m_snippetLibs)
         if (!lib.trimmed().isEmpty())
             m_activeLibs.insert(lib.trimmed());
-    for (const auto &pkg : m_snippetPkgs) {
-        if (pkg.contains("circuitikz", Qt::CaseInsensitive))
-            m_activeLibs.insert("circuitikz");
-        if (pkg.contains("tikz-3dplot", Qt::CaseInsensitive))
-            m_activeLibs.insert("3d");
-        if (pkg.contains("tikz-cd", Qt::CaseInsensitive))
-            m_activeLibs.insert("cd");
-        if (pkg.contains("physics", Qt::CaseInsensitive))
-            m_activeLibs.insert("physics");
-        if (pkg.contains("siunitx", Qt::CaseInsensitive))
-            m_activeLibs.insert("siunitx");
-        if (pkg.contains("pgfplots", Qt::CaseInsensitive))
-            m_activeLibs.insert("pgfplots");
-        if (pkg.contains("chemfig", Qt::CaseInsensitive))
-            m_activeLibs.insert("chemfig");
-        if (pkg.contains("tikz-feynman", Qt::CaseInsensitive))
-            m_activeLibs.insert("tikz-feynman");
-    }
+    for (const auto &pkg : m_snippetPkgs)
+        addPackageImplications(pkg, m_activeLibs);
+    m_activeLibs.unite(m_templateLibs);
 }
 
 void TikzDocumentState::setSnippetLibraries(const QStringList &libs)
@@ -107,6 +120,46 @@ void TikzDocumentState::setSnippetLibraries(const QStringList &libs)
 void TikzDocumentState::setSnippetPackages(const QStringList &pkgs)
 {
     m_snippetPkgs = pkgs;
+}
+
+void TikzDocumentState::setTemplateContent(const QString &content)
+{
+    m_templateLibs.clear();
+
+    static const QRegularExpression usepackageRe(
+        QStringLiteral("\\\\usepackage\\s*(?:\\[[^\\]]*\\]\\s*)?\\{([^}]*)\\}"));
+    static const QRegularExpression uselibRe(
+        QStringLiteral("\\\\usetikzlibrary\\s*\\{([^}]*)\\}"));
+
+    const QStringList lines = content.split(QLatin1Char('\n'));
+    for (const QString &rawLine : lines) {
+        // Strip comments: everything from an unescaped '%' onwards.
+        QString line = rawLine;
+        for (int i = 0; i < line.length(); ++i) {
+            if (line.at(i) == QLatin1Char('%')
+                && (i == 0 || line.at(i - 1) != QLatin1Char('\\'))) {
+                line.truncate(i);
+                break;
+            }
+        }
+        if (line.trimmed().isEmpty())
+            continue;
+
+        QRegularExpressionMatchIterator pit = usepackageRe.globalMatch(line);
+        while (pit.hasNext()) {
+            const QString pkgs = pit.next().captured(1);
+            for (const QString &pkg : pkgs.split(QLatin1Char(','), Qt::SkipEmptyParts))
+                addPackageImplications(pkg, m_templateLibs);
+        }
+
+        QRegularExpressionMatchIterator lit = uselibRe.globalMatch(line);
+        while (lit.hasNext()) {
+            const QString libs = lit.next().captured(1);
+            for (const QString &lib : libs.split(QLatin1Char(','), Qt::SkipEmptyParts))
+                if (!lib.trimmed().isEmpty())
+                    m_templateLibs.insert(lib.trimmed());
+        }
+    }
 }
 
 void TikzDocumentState::reparse(const QTextDocument *doc)
@@ -181,29 +234,8 @@ void TikzDocumentState::parseLine(const QString &text, int blockStartPos,
             QRegularExpressionMatch up = m_usepackageRe.match(text, pos);
             if (up.hasMatch() && up.capturedStart() == pos) {
                 QString pkgs = up.captured(1);
-                for (const QString &pkg : pkgs.split(QLatin1Char(','), Qt::SkipEmptyParts)) {
-                    QString trimmed = pkg.trimmed().toLower();
-                    if (!trimmed.isEmpty()) {
-                        if (trimmed == QLatin1String("circuitikz"))
-                            m_activeLibs.insert("circuitikz");
-                        if (trimmed == QLatin1String("tikz-3dplot"))
-                            m_activeLibs.insert("3d");
-                        if (trimmed == QLatin1String("tikz-cd"))
-                            m_activeLibs.insert("cd");
-                        if (trimmed == QLatin1String("tkz-euclide"))
-                            m_activeLibs.insert("tkz-euclide");
-                        if (trimmed == QLatin1String("physics"))
-                            m_activeLibs.insert("physics");
-                        if (trimmed == QLatin1String("siunitx"))
-                            m_activeLibs.insert("siunitx");
-                        if (trimmed == QLatin1String("pgfplots"))
-                            m_activeLibs.insert("pgfplots");
-                        if (trimmed == QLatin1String("chemfig"))
-                            m_activeLibs.insert("chemfig");
-                        if (trimmed == QLatin1String("tikz-feynman"))
-                            m_activeLibs.insert("tikz-feynman");
-                    }
-                }
+                for (const QString &pkg : pkgs.split(QLatin1Char(','), Qt::SkipEmptyParts))
+                    addPackageImplications(pkg, m_activeLibs);
                 pos = up.capturedEnd();
                 continue;
             }

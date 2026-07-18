@@ -51,10 +51,14 @@ public:
     const CommandContext *currentCommand(int position) const;
     QString currentCmdName(int position) const;
 
-    // Active libraries (from \usetikzlibrary + snippet metadata)
+    // Active libraries (from \usetikzlibrary + snippet metadata + template)
     const QSet<QString> &activeLibs() const { return m_activeLibs; }
     void setSnippetLibraries(const QStringList &libs);
     void setSnippetPackages(const QStringList &pkgs);
+    // Feed the LaTeX template the snippet compiles against (the template's
+    // \usepackage / \usetikzlibrary lines activate completions too, e.g.
+    // default_circuit loads circuitikz). Pass the template *content*.
+    void setTemplateContent(const QString &content);
 
     // User definitions
     const QHash<QString, QString> &userStyles() const { return m_userStyles; }
@@ -80,6 +84,10 @@ private:
 
     void handleBeginScope(const QString &envName, int pos, int braceDepth);
     void handleEndScope(const QString &envName, int pos);
+
+    // Packages that imply completion libraries (circuitikz → circuitikz,
+    // tikz-cd → cd, ...). Shared by code parsing, metadata and templates.
+    static void addPackageImplications(const QString &pkg, QSet<QString> &libs);
 
     QRegularExpression m_beginRe;
     QRegularExpression m_endRe;
@@ -123,4 +131,5 @@ private:
 
     QStringList m_snippetLibs;
     QStringList m_snippetPkgs;
+    QSet<QString> m_templateLibs;
 };

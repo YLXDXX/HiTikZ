@@ -10,6 +10,7 @@
 #include "../src/code_editor.h"
 #include "../src/tikz_document_state.h"
 #include "../src/tikz_completer.h"
+#include "../src/tikz_keywords.h"
 #include "../src/comma_list_completer.h"
 #include <QLineEdit>
 #include <QCompleter>
@@ -450,6 +451,62 @@ static void pump_events(int ms)
     t.start();
     while (t.elapsed() < ms)
         QApplication::processEvents(QEventLoop::AllEvents, 20);
+}
+
+// Regression: packages/libraries provided by the snippet's LaTeX template
+// (e.g. default_circuit loads circuitikz) were never fed into the document
+// state, so circuitikz-gated completions stayed unavailable while editing a
+// circuit snippet unless the metadata field repeated the package.
+static void test_template_packages_activate_completion(SnippetManager *snippetMgr,
+                                                       SearchPanel *searchPanel,
+                                                       QTabWidget *tabWidget)
+{
+    QString id = snippetMgr->createSnippet("Test CircuitTemplate", "test/circuit");
+    Snippet s = snippetMgr->loadSnippet(id);
+    s.templateId = QStringLiteral("default_circuit");
+    s.code = QStringLiteral("\\begin{circuitikz}\n"
+                            "  \\draw (0,0) to[R] (2,0);\n"
+                            "\\end{circuitikz}");
+    snippetMgr->saveSnippet(s);
+
+    emit searchPanel->snippetSelected(id);
+    QApplication::processEvents();
+
+    CodeEditor *ed = qobject_cast<CodeEditor *>(tabWidget->currentWidget());
+    TEST_ASSERT(ed && ed->documentState(), "circuit snippet editor with doc state exists");
+    if (!ed || !ed->documentState()) return;
+
+    TEST_ASSERT(ed->documentState()->activeLibs().contains(QStringLiteral("circuitikz")),
+                "default_circuit template must activate the circuitikz lib");
+
+    // And the circuitikz-gated keywords must pass the completion filter now
+    // ("op amp" is a circuitikz \pgfdeclareshape node, lib-gated in the DB).
+    const auto shapes = TikzKeywords::TikzKeywordDB::instance().filter(
+        QStringLiteral("circuitikz"), QStringLiteral("node"),
+        ed->documentState()->activeLibs(), TikzKeywords::Category::Shape);
+    bool hasCircuitShape = false;
+    for (const auto *kw : shapes) {
+        if (kw->name == QStringLiteral("op amp")) {
+            hasCircuitShape = true;
+            break;
+        }
+    }
+    TEST_ASSERT(hasCircuitShape,
+                "circuitikz shape completions available with the circuit template");
+
+    // Without the template, the same filter must stay gated (sanity check
+    // that the assertion above actually tests the template contribution).
+    const auto gated = TikzKeywords::TikzKeywordDB::instance().filter(
+        QStringLiteral("circuitikz"), QStringLiteral("node"), QSet<QString>(),
+        TikzKeywords::Category::Shape);
+    bool leaked = false;
+    for (const auto *kw : gated) {
+        if (kw->name == QStringLiteral("op amp")) {
+            leaked = true;
+            break;
+        }
+    }
+    TEST_ASSERT(!leaked, "circuitikz shapes stay hidden without the lib");
 }
 
 // Regression: the undo/redo toolbar actions used to be permanently clickable,
@@ -915,6 +972,8 @@ int main(int argc, char *argv[])
         test_metadata_field_completers(&mw);
 
         test_tag_filter_prune(snippetMgr, searchPanel);
+
+        test_template_packages_activate_completion(snippetMgr, searchPanel, tabWidget);
 
         test_undo_redo_action_state(&mw, snippetMgr, searchPanel, tabWidget);
 

@@ -1472,6 +1472,8 @@ void MainWindow::loadSnippetIntoEditor(const QString &id)
                     pkgs << pkg.trimmed();
             }
             editor->documentState()->setSnippetPackages(pkgs);
+            editor->documentState()->setTemplateContent(
+                templateContentFor(s.templateId));
             editor->reparseDocumentState();
         }
     }
@@ -1589,7 +1591,25 @@ void MainWindow::syncDocStateLibraries()
     }
     editor->documentState()->setSnippetPackages(pkgs);
 
+    // The LaTeX template also contributes packages/libraries (e.g.
+    // default_circuit loads circuitikz); without this, completions gated on
+    // those libraries never activate for template-provided packages.
+    editor->documentState()->setTemplateContent(
+        templateContentFor(templateCombo->currentData().toString()));
+
     editor->reparseDocumentState();
+}
+
+QString MainWindow::templateContentFor(const QString &templateId)
+{
+    if (templateId.isEmpty()
+        || templateId.contains('/') || templateId.contains('\\')
+        || templateId.contains(".."))
+        return QString();
+    QFile f(SettingsDialog::templateDir() + templateId + ".tex");
+    if (!f.open(QIODevice::ReadOnly | QIODevice::Text))
+        return QString();
+    return QString::fromUtf8(f.readAll());
 }
 
 void MainWindow::onCurrentSnippetChanged()

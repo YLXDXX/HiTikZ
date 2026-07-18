@@ -536,6 +536,130 @@ static int test_inline_coordinate_op_parsing()
     return failed;
 }
 
+// The LaTeX template a snippet compiles against contributes packages and
+// libraries too (e.g. default_circuit loads circuitikz). Regression: these
+// were never fed into activeLibs, so circuitikz completions stayed off for
+// circuit snippets whose metadata didn't repeat the package.
+static int test_template_content_activates_libs()
+{
+    int failed = 0;
+
+    QTextDocument doc;
+    doc.setPlainText("\\begin{tikzpicture}\n\\draw (0,0) -- (1,1);\n\\end{tikzpicture}");
+
+    // Real default_circuit template shape (options + PreviewEnvironment).
+    const QString circuitTemplate = QStringLiteral(
+        "\\documentclass[tikz, border=5pt]{standalone}\n"
+        "\\usepackage{tikz}\n"
+        "\\usepackage{xcolor}\n"
+        "\\usepackage[europeanvoltages,betterproportions]{circuitikz}\n"
+        "\\usepackage[active,tightpage]{preview}\n"
+        "\\PreviewEnvironment{circuitikz}\n"
+        "\\begin{document}\n"
+        "%%% TIKZ_CODE_HERE %%%\n"
+        "\\end{document}\n");
+
+    TikzDocumentState state;
+    state.setTemplateContent(circuitTemplate);
+    state.reparse(&doc);
+    if (!state.activeLibs().contains("circuitikz")) {
+        fprintf(stderr, "FAIL: DCS-TP1 - template \\usepackage{circuitikz} should activate circuitikz\n");
+        failed++;
+    }
+
+    // Template \usetikzlibrary lines are merged as-is.
+    TikzDocumentState state2;
+    state2.setTemplateContent(QStringLiteral(
+        "\\usepackage{tikz}\n"
+        "\\usetikzlibrary{calc, decorations.pathmorphing}\n"));
+    state2.reparse(&doc);
+    if (!state2.activeLibs().contains("calc")) {
+        fprintf(stderr, "FAIL: DCS-TP2 - template \\usetikzlibrary{calc} missing\n");
+        failed++;
+    }
+    if (!state2.activeLibs().contains("decorations.pathmorphing")) {
+        fprintf(stderr, "FAIL: DCS-TP3 - template \\usetikzlibrary{decorations.pathmorphing} missing\n");
+        failed++;
+    }
+
+    // Commented-out lines must not activate anything.
+    TikzDocumentState state3;
+    state3.setTemplateContent(QStringLiteral(
+        "% \\usepackage{circuitikz}\n"
+        "  % \\usetikzlibrary{calc}\n"
+        "\\usepackage{tikz} % \\usepackage{chemfig}\n"));
+    state3.reparse(&doc);
+    if (state3.activeLibs().contains("circuitikz")) {
+        fprintf(stderr, "FAIL: DCS-TP4 - commented \\usepackage must be ignored\n");
+        failed++;
+    }
+    if (state3.activeLibs().contains("calc")) {
+        fprintf(stderr, "FAIL: DCS-TP5 - commented \\usetikzlibrary must be ignored\n");
+        failed++;
+    }
+    if (state3.activeLibs().contains("chemfig")) {
+        fprintf(stderr, "FAIL: DCS-TP6 - inline-commented \\usepackage must be ignored\n");
+        failed++;
+    }
+
+    // Template provides merge with snippet metadata (union).
+    TikzDocumentState state4;
+    state4.setTemplateContent(circuitTemplate);
+    state4.setSnippetLibraries({"arrows.meta"});
+    state4.setSnippetPackages({"pgfplots"});
+    state4.reparse(&doc);
+    if (!state4.activeLibs().contains("circuitikz")
+        || !state4.activeLibs().contains("arrows.meta")
+        || !state4.activeLibs().contains("pgfplots")) {
+        fprintf(stderr, "FAIL: DCS-TP7 - template + metadata must merge\n");
+        failed++;
+    }
+
+    // Switching to a template without the package deactivates it again.
+    state4.setTemplateContent(QString());
+    state4.reparse(&doc);
+    if (state4.activeLibs().contains("circuitikz")) {
+        fprintf(stderr, "FAIL: DCS-TP8 - cleared template must drop its libs\n");
+        failed++;
+    }
+
+    if (failed == 0) fprintf(stderr, "PASS: template content activates libs\n");
+    return failed;
+}
+
+// Unified package→library mapping: metadata entries must behave like
+// \usepackage parsing, including tkz-euclide (previously missing in the
+// metadata path) and names carrying an option suffix.
+static int test_metadata_package_implications()
+{
+    int failed = 0;
+    QTextDocument doc;
+    doc.setPlainText("\\begin{tikzpicture}\n\\end{tikzpicture}");
+
+    TikzDocumentState state;
+    state.setSnippetPackages({"tkz-euclide"});
+    state.reparse(&doc);
+    if (!state.activeLibs().contains("tkz-euclide")) {
+        fprintf(stderr, "FAIL: DCS-MP1 - metadata 'tkz-euclide' should activate tkz-euclide\n");
+        failed++;
+    }
+
+    TikzDocumentState state2;
+    state2.setSnippetPackages({"circuitikz[europeanvoltages]", "TIKZ-CD"});
+    state2.reparse(&doc);
+    if (!state2.activeLibs().contains("circuitikz")) {
+        fprintf(stderr, "FAIL: DCS-MP2 - option suffix must not break the mapping\n");
+        failed++;
+    }
+    if (!state2.activeLibs().contains("cd")) {
+        fprintf(stderr, "FAIL: DCS-MP3 - mapping must be case-insensitive\n");
+        failed++;
+    }
+
+    if (failed == 0) fprintf(stderr, "PASS: metadata package implications\n");
+    return failed;
+}
+
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
@@ -561,6 +685,8 @@ int main(int argc, char *argv[])
     failed += test_name_path_parsing();
     failed += test_by_coordinate_parsing();
     failed += test_inline_coordinate_op_parsing();
+    failed += test_template_content_activates_libs();
+    failed += test_metadata_package_implications();
     if (failed > 0) { fprintf(stderr, "\n%d test(s) failed!\n", failed); return 1; }
     fprintf(stderr, "\nAll TikzDocumentState tests passed!\n");
     return 0;
