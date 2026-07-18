@@ -15,6 +15,8 @@
 #include <QCompleter>
 #include <QAbstractItemModel>
 #include <QKeyEvent>
+#include <QAction>
+#include <QTextDocument>
 
 static int g_testsPassed = 0;
 static int g_testsFailed = 0;
@@ -433,6 +435,79 @@ static void cleanup_snippets(SnippetManager *mgr)
     }
 }
 
+static QAction *findActionByText(MainWindow *mw, const QString &text)
+{
+    for (QAction *a : mw->findChildren<QAction *>()) {
+        if (a->text() == text) return a;
+    }
+    return nullptr;
+}
+
+// Regression: the undo/redo toolbar actions used to be permanently clickable,
+// even with a pristine document or no tab at all. They must track the current
+// editor's actual history availability.
+static void test_undo_redo_action_state(MainWindow *mw, SnippetManager *snippetMgr,
+                                        SearchPanel *searchPanel, QTabWidget *tabWidget)
+{
+    QAction *undoAct = findActionByText(mw, QStringLiteral("↩"));
+    QAction *redoAct = findActionByText(mw, QStringLiteral("↪"));
+    TEST_ASSERT(undoAct && redoAct, "undo/redo toolbar actions exist");
+    if (!undoAct || !redoAct) return;
+
+    QString id = snippetMgr->createSnippet("Test UndoRedo", "test/undoredo");
+    emit searchPanel->snippetSelected(id);
+    QApplication::processEvents();
+
+    TEST_ASSERT(!undoAct->isEnabled(), "undo disabled on freshly opened tab");
+    TEST_ASSERT(!redoAct->isEnabled(), "redo disabled on freshly opened tab");
+
+    CodeEditor *ed = qobject_cast<CodeEditor *>(tabWidget->currentWidget());
+    TEST_ASSERT(ed != nullptr, "current editor exists");
+    if (!ed) return;
+
+    ed->insertPlainText(QStringLiteral("\\draw (0,0) -- (1,1);"));
+    QApplication::processEvents();
+    TEST_ASSERT(undoAct->isEnabled(), "undo enabled after an edit");
+    TEST_ASSERT(!redoAct->isEnabled(), "redo still disabled after a fresh edit");
+
+    int guard = 0;
+    while (ed->document()->isUndoAvailable() && ++guard < 100)
+        ed->undo();
+    QApplication::processEvents();
+    TEST_ASSERT(!undoAct->isEnabled(), "undo disabled once history is exhausted");
+    TEST_ASSERT(redoAct->isEnabled(), "redo enabled after undoing");
+
+    guard = 0;
+    while (ed->document()->isRedoAvailable() && ++guard < 100)
+        ed->redo();
+    QApplication::processEvents();
+    TEST_ASSERT(undoAct->isEnabled(), "undo re-enabled after redoing");
+    TEST_ASSERT(!redoAct->isEnabled(), "redo disabled once redo history is exhausted");
+
+    // A pristine second tab must not inherit the first tab's action state.
+    QString id2 = snippetMgr->createSnippet("Test UndoRedo Pristine", "test/undoredo");
+    emit searchPanel->snippetSelected(id2);
+    QApplication::processEvents();
+    TEST_ASSERT(!undoAct->isEnabled(), "undo disabled on pristine second tab");
+    TEST_ASSERT(!redoAct->isEnabled(), "redo disabled on pristine second tab");
+
+    // Switching back restores the edited tab's per-document state.
+    int firstIdx = -1;
+    for (int i = 0; i < tabWidget->count(); ++i) {
+        if (tabWidget->tabBar()->tabData(i).toString() == id) {
+            firstIdx = i;
+            break;
+        }
+    }
+    TEST_ASSERT(firstIdx >= 0, "edited tab still open");
+    if (firstIdx >= 0) {
+        tabWidget->setCurrentIndex(firstIdx);
+        QApplication::processEvents();
+        TEST_ASSERT(undoAct->isEnabled(), "undo state restored when switching back");
+        TEST_ASSERT(!redoAct->isEnabled(), "redo state restored when switching back");
+    }
+}
+
 static void test_word_wrap_toggle()
 {
     CodeEditor editor;
@@ -784,6 +859,8 @@ int main(int argc, char *argv[])
         test_metadata_field_completers(&mw);
 
         test_tag_filter_prune(snippetMgr, searchPanel);
+
+        test_undo_redo_action_state(&mw, snippetMgr, searchPanel, tabWidget);
 
         cleanup_snippets(snippetMgr);
     }

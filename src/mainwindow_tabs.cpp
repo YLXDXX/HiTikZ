@@ -25,6 +25,7 @@
 #include <QRegularExpression>
 #include <QTextCursor>
 #include <QTextCharFormat>
+#include <QTextDocument>
 #include <QFileInfo>
 #include <QClipboard>
 #include <QImage>
@@ -90,6 +91,25 @@ void MainWindow::connectEditorSignals(CodeEditor *editor)
         if (m_loadingDepth == 0)
             onCurrentSnippetChanged();
     });
+    // Track per-document history availability; only the active tab may drive
+    // the shared toolbar actions (background tabs keep their own state, which
+    // updateUndoRedoActions() re-reads on tab switch).
+    connect(editor, &QPlainTextEdit::undoAvailable, this, [this, editor](bool available) {
+        if (undoAct && editor == currentEditor())
+            undoAct->setEnabled(available);
+    });
+    connect(editor, &QPlainTextEdit::redoAvailable, this, [this, editor](bool available) {
+        if (redoAct && editor == currentEditor())
+            redoAct->setEnabled(available);
+    });
+}
+
+void MainWindow::updateUndoRedoActions()
+{
+    if (!undoAct || !redoAct) return;
+    CodeEditor *ed = currentEditor();
+    undoAct->setEnabled(ed && ed->document()->isUndoAvailable());
+    redoAct->setEnabled(ed && ed->document()->isRedoAvailable());
 }
 
 void MainWindow::createNewTab(const QString &snippetId, const QString &code,
@@ -114,6 +134,10 @@ void MainWindow::createNewTab(const QString &snippetId, const QString &code,
         editor->setPlainText(code);
         m_loadingDepth--;
     }
+
+    // setPlainText above cleared the document history while the editor's
+    // signals were blocked, so refresh the actions explicitly.
+    updateUndoRedoActions();
 
     applyAppearanceSettings();
 }
@@ -176,6 +200,7 @@ void MainWindow::setEditorForTab(int index)
     // Ensure the arriving tab's editor reflects its own package/library metadata
     // for completion/highlighting, even when populated programmatically above.
     syncDocStateLibraries();
+    updateUndoRedoActions();
     performParseParams();
 }
 
@@ -190,6 +215,7 @@ void MainWindow::onTabChanged(int index)
         tikzLibrariesEdit->clear();
         clearPdfPreview();
         clearParams();
+        updateUndoRedoActions();
         return;
     }
     setEditorForTab(index);

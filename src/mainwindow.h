@@ -131,6 +131,9 @@ private:
     void setEditorForTab(int index);
     void createNewTab(const QString &snippetId, const QString &code, const QString &title);
     void connectEditorSignals(CodeEditor *editor);
+    // Enable undo/redo only when the current editor's document actually has
+    // something to undo/redo (disabled with no tabs or pristine history).
+    void updateUndoRedoActions();
 
     SnippetManager *snippetMgr;
     LatexCompiler *compiler;
@@ -172,6 +175,8 @@ private:
     QAction *compileAct;
     QAction *applyParamsAct;
     QAction *saveAct;
+    QAction *undoAct = nullptr;
+    QAction *redoAct = nullptr;
 
     QAction *forceStopAct;
     QSystemTrayIcon *trayIcon;
