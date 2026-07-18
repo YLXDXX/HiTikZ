@@ -2,6 +2,7 @@
 #include "latex_compiler.h"
 #include "mainwindow.h"
 #include "snippet_manager.h"
+#include "autostart_manager.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QFormLayout>
@@ -69,6 +70,11 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     wrapLongLinesCheck->setToolTip(QStringLiteral(
         "开启后，过长的代码行会在编辑器内自动折行显示；折行产生的续行在左侧以 ↳ 标记"));
     behaviorLayout->addWidget(wrapLongLinesCheck);
+    autostartCheck = new QCheckBox(QStringLiteral("开机自启动（启动后隐藏到系统托盘）"));
+    autostartCheck->setToolTip(QStringLiteral(
+        "在 ~/.config/autostart 中创建 hitikz.desktop，登录后自动以 --hidden 方式启动，"
+        "程序驻留系统托盘而不弹出主窗口"));
+    behaviorLayout->addWidget(autostartCheck);
     QHBoxLayout *threadLayout = new QHBoxLayout;
     threadLayout->addWidget(new QLabel(QStringLiteral("编译线程数:")));
     threadCountSpin = new QSpinBox;
@@ -237,6 +243,7 @@ void SettingsDialog::loadSettings()
     autoCompileOnSaveCheck->setChecked(settings.value("behavior/autoCompileOnSave", true).toBool());
     threadCountSpin->setValue(settings.value("behavior/threadCount", 6).toInt());
     wrapLongLinesCheck->setChecked(settings.value("behavior/wrapLongLines", true).toBool());
+    autostartCheck->setChecked(AutostartManager::isEnabled());
 }
 void SettingsDialog::saveSettings()
 {
@@ -260,6 +267,7 @@ void SettingsDialog::saveSettings()
     settings.setValue("behavior/autoCompileOnSave", autoCompileOnSaveCheck->isChecked());
     settings.setValue("behavior/threadCount", threadCountSpin->value());
     settings.setValue("behavior/wrapLongLines", wrapLongLinesCheck->isChecked());
+    AutostartManager::setEnabled(autostartCheck->isChecked());
 }
 
 void SettingsDialog::applyToCompiler(LatexCompiler *compiler)

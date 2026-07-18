@@ -68,6 +68,7 @@ signals:
 
 protected:
     void closeEvent(QCloseEvent *event) override;
+    void showEvent(QShowEvent *event) override;
     bool eventFilter(QObject *obj, QEvent *event) override;
 
 private:
@@ -180,6 +181,10 @@ private:
     bool m_compiling = false;
     bool m_batchGenerating = false;
     bool m_forceQuit = false;
+    // Startup tasks that must not pop dialogs while the window is hidden
+    // (e.g. --hidden autostart); they run once the window is first shown.
+    bool m_pendingDependencyCheck = false;
+    bool m_pendingDraftRecovery = false;
     bool m_clipboardPngPending = false;
     bool m_clipboardSvgPending = false;
     int m_loadingDepth = 0;

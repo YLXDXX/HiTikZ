@@ -48,6 +48,7 @@ private:
     QCheckBox *autoCompileOnSaveCheck;
     QSpinBox *threadCountSpin;
     QCheckBox *wrapLongLinesCheck;
+    QCheckBox *autostartCheck;
     QListWidget *templateListWidget;
     QPlainTextEdit *templateEdit;
 

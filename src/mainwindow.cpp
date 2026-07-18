@@ -101,7 +101,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     restoreWindowGeometry();
 
     trayIcon = new QSystemTrayIcon(this);
-    trayIcon->setIcon(QIcon::fromTheme("applications-graphics"));
+    trayIcon->setIcon(QIcon::fromTheme(QStringLiteral("hitikz"),
+                                       QIcon::fromTheme(QStringLiteral("applications-graphics"))));
     trayIcon->setToolTip(QStringLiteral("HiTikZ - TikZ 代码管理器"));
 
     trayMenu = new QMenu(this);
@@ -143,8 +144,14 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     trayIcon->setContextMenu(trayMenu);
     trayIcon->show();
 
+    // Startup dialogs (dependency warnings, draft recovery) are deferred while
+    // the window is hidden: with --hidden autostart nothing may pop up at
+    // login — these run on the first showEvent() instead.
     QTimer::singleShot(100, this, [this]() {
-        checkSystemDependencies();
+        if (isVisible())
+            checkSystemDependencies();
+        else
+            m_pendingDependencyCheck = true;
     });
 
     applyGlobalHotkey();
@@ -156,8 +163,30 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 
     startAutoSave();
     QTimer::singleShot(300, this, [this]() {
-        recoverDrafts();
+        if (isVisible())
+            recoverDrafts();
+        else
+            m_pendingDraftRecovery = true;
     });
+}
+
+void MainWindow::showEvent(QShowEvent *event)
+{
+    QMainWindow::showEvent(event);
+    if (m_pendingDependencyCheck) {
+        m_pendingDependencyCheck = false;
+        QTimer::singleShot(100, this, [this]() {
+            checkSystemDependencies();
+        });
+    }
+    if (m_pendingDraftRecovery) {
+        QTimer::singleShot(300, this, [this]() {
+            if (m_pendingDraftRecovery) {
+                m_pendingDraftRecovery = false;
+                recoverDrafts();
+            }
+        });
+    }
 }
 
 void MainWindow::centerOnScreen()
@@ -274,7 +303,11 @@ void MainWindow::closeEvent(QCloseEvent *event)
         }
     }
 
-    clearAllDrafts();
+    // Drafts from a previous crashed session that the user has not been shown
+    // yet (hidden autostart, quit from tray before the first show) must
+    // survive this shutdown so recovery can still be offered next start.
+    if (!m_pendingDraftRecovery)
+        clearAllDrafts();
     saveWindowGeometry();
 
     if (trayIcon)

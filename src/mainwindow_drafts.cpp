@@ -9,6 +9,7 @@
 #include "kde_global_shortcut.h"
 #endif
 #include "pdf_preview_widget.h"
+#include "draft_recovery_dialog.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QToolBar>
@@ -64,6 +65,12 @@ void MainWindow::startAutoSave()
 
 void MainWindow::performAutoSave()
 {
+    // While draft recovery is still pending (hidden autostart: the prompt is
+    // deferred until the window is first shown), the files on disk are crash
+    // leftovers the user has not seen yet — do not touch them.
+    if (m_pendingDraftRecovery)
+        return;
+
     QString draftDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/drafts/";
     {
         QDir dir(draftDir);
@@ -153,124 +160,25 @@ void MainWindow::clearAllDrafts()
 void MainWindow::recoverDrafts()
 {
     QString draftDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/drafts/";
-    QDir d(draftDir);
-    if (!d.exists()) return;
-
-    QStringList draftFiles = d.entryList(QStringList() << "*.json", QDir::Files);
-    if (draftFiles.isEmpty()) return;
-
-    struct DraftInfo {
-        QString filePath;
-        QString snippetId;
-        QString name;
-        QString code;
-        QString description;
-        QString tags;
-        QString packages;
-        QString tikzLibraries;
-        QString templateId;
-    };
-
-    QList<DraftInfo> drafts;
-    for (const QString &fileName : draftFiles) {
-        QString filePath = draftDir + fileName;
-        QFile file(filePath);
-        if (!file.open(QIODevice::ReadOnly)) continue;
-
-        QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
-        file.close();
-        if (!doc.isObject()) continue;
-
-        QJsonObject obj = doc.object();
-        DraftInfo info;
-        info.filePath = filePath;
-        info.snippetId = obj.value("snippetId").toString();
-        info.name = obj.value("name").toString();
-        info.code = obj.value("code").toString();
-        info.description = obj.value("description").toString();
-        info.tags = obj.value("tags").toString();
-        info.packages = obj.value("packages").toString();
-        info.tikzLibraries = obj.value("tikzLibraries").toString();
-        info.templateId = obj.value("templateId").toString();
-
-        if (info.name.isEmpty())
-            info.name = info.snippetId.isEmpty() ? QStringLiteral("未命名草稿") : info.snippetId.left(8);
-        if (info.code.trimmed().isEmpty()) continue;
-
-        drafts.append(info);
-    }
-
+    const QList<DraftRecoveryDialog::Draft> drafts =
+        DraftRecoveryDialog::loadDraftsFromDir(draftDir);
     if (drafts.isEmpty()) return;
 
-    QDialog dlg(this);
-    dlg.setWindowTitle(QStringLiteral("恢复草稿"));
-    dlg.setMinimumSize(450, 300);
-    QVBoxLayout *layout = new QVBoxLayout(&dlg);
+    DraftRecoveryDialog dlg(drafts, this);
+    const int result = dlg.exec();
 
-    QLabel *infoLabel = new QLabel(
-        QStringLiteral("检测到 %1 个未保存的草稿。\n请选择要恢复的草稿：").arg(drafts.size()));
-    infoLabel->setWordWrap(true);
-    layout->addWidget(infoLabel);
-
-    QScrollArea *scroll = new QScrollArea;
-    QWidget *scrollWidget = new QWidget;
-    QVBoxLayout *scrollLayout = new QVBoxLayout(scrollWidget);
-    scrollLayout->setContentsMargins(0, 0, 0, 0);
-
-    QList<QCheckBox *> checkboxes;
-    for (const DraftInfo &draft : drafts) {
-        QString label = draft.name;
-        if (!draft.description.isEmpty())
-            label += QStringLiteral(" — %1").arg(draft.description.left(60));
-        QCheckBox *cb = new QCheckBox(label);
-        cb->setChecked(true);
-        cb->setProperty("draftIndex", checkboxes.size());
-        scrollLayout->addWidget(cb);
-        checkboxes.append(cb);
+    if (result != DraftRecoveryDialog::RecoverSelected
+        && result != DraftRecoveryDialog::DiscardAll) {
+        // "稍后处理" / Esc / 关闭：保留草稿文件，下次启动再询问。
+        return;
     }
-    scrollLayout->addStretch();
 
-    QPushButton *selectAllBtn = new QPushButton(QStringLiteral("全选"));
-    QPushButton *deselectAllBtn = new QPushButton(QStringLiteral("取消全选"));
-    QHBoxLayout *btnRow = new QHBoxLayout;
-    btnRow->addWidget(selectAllBtn);
-    btnRow->addWidget(deselectAllBtn);
-    btnRow->addStretch();
-    scrollLayout->addLayout(btnRow);
-
-    connect(selectAllBtn, &QPushButton::clicked, &dlg, [&checkboxes]() {
-        for (QCheckBox *cb : checkboxes) cb->setChecked(true);
-    });
-    connect(deselectAllBtn, &QPushButton::clicked, &dlg, [&checkboxes]() {
-        for (QCheckBox *cb : checkboxes) cb->setChecked(false);
-    });
-
-    scroll->setWidget(scrollWidget);
-    scroll->setWidgetResizable(true);
-    layout->addWidget(scroll, 1);
-
-    QDialogButtonBox *btnBox = new QDialogButtonBox(
-        QDialogButtonBox::Ok | QDialogButtonBox::Discard);
-    btnBox->button(QDialogButtonBox::Ok)->setText(QStringLiteral("恢复所选"));
-    btnBox->button(QDialogButtonBox::Discard)->setText(QStringLiteral("全部丢弃"));
-    layout->addWidget(btnBox);
-
-    connect(btnBox, &QDialogButtonBox::accepted, &dlg, &QDialog::accept);
-    connect(btnBox, &QDialogButtonBox::rejected, &dlg, [&dlg]() {
-        dlg.done(QDialog::Rejected + 1);
-    });
-
-    int result = dlg.exec();
-    QList<int> recoveredIndices;
-    if (result == QDialog::Accepted) {
-        for (int i = 0; i < checkboxes.size(); ++i) {
-            if (checkboxes[i]->isChecked())
-                recoveredIndices.append(i);
-        }
-    }
+    const QList<int> recoveredIndices =
+        (result == DraftRecoveryDialog::RecoverSelected) ? dlg.selectedIndices()
+                                                         : QList<int>();
 
     for (int idx : recoveredIndices) {
-        const DraftInfo &draft = drafts[idx];
+        const DraftRecoveryDialog::Draft &draft = drafts[idx];
         if (draft.snippetId.isEmpty() || !snippetMgr->snippetExists(draft.snippetId)) {
             Snippet s;
             s.id = draft.snippetId.isEmpty()
@@ -289,24 +197,18 @@ void MainWindow::recoverDrafts()
             s.tikzLibraries = draft.tikzLibraries;
             s.templateId = draft.templateId;
 
-            if (draft.snippetId.isEmpty()) {
-                snippetMgr->saveSnippet(s);
-                currentSnippetId = s.id;
-            } else {
-                snippetMgr->saveSnippet(s);
-                currentSnippetId = s.id;
-            }
+            snippetMgr->saveSnippet(s);
+            currentSnippetId = s.id;
             createNewTab(s.id, draft.code, draft.name);
         } else {
             loadSnippetIntoEditor(draft.snippetId);
         }
-        QFile::remove(draft.filePath);
     }
 
-    if (result == QDialog::Rejected + 1) {
-        for (const DraftInfo &draft : drafts)
-            QFile::remove(draft.filePath);
-    }
+    // 恢复所选：已恢复的内容进入片段库，未勾选的是用户明确放弃的；
+    // 全部丢弃：全部删除。两种情况都清空草稿文件，避免每次启动重复弹窗。
+    for (const DraftRecoveryDialog::Draft &draft : drafts)
+        QFile::remove(draft.filePath);
 
     if (!recoveredIndices.isEmpty()) {
         refreshCategoryTree();

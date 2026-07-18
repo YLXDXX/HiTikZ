@@ -117,6 +117,8 @@ add_executable(TikzManager
     src/kde_global_shortcut.cpp
     src/pdf_preview_widget.cpp
     src/flow_layout.cpp
+    src/autostart_manager.cpp
+    src/draft_recovery_dialog.cpp
 )
 
 target_link_libraries(TikzManager PRIVATE Qt6::Widgets Qt6::Pdf Qt6::PdfWidgets Qt6::Concurrent)
@@ -224,6 +226,8 @@ add_executable(test_multitab
     src/kde_global_shortcut.cpp
     src/pdf_preview_widget.cpp
     src/flow_layout.cpp
+    src/autostart_manager.cpp
+    src/draft_recovery_dialog.cpp
     ${SNIPPET_MANAGER_SOURCES}
     ${LATEX_COMPILER_SOURCES}
     ${TIKZ_KEYWORDS_SOURCES}
@@ -241,6 +245,22 @@ add_executable(test_draft_recovery
 )
 target_link_libraries(test_draft_recovery PRIVATE Qt6::Core)
 add_test(NAME DraftRecovery COMMAND test_draft_recovery)
+
+add_executable(test_draft_recovery_dialog
+    tests/test_draft_recovery_dialog.cpp
+    src/draft_recovery_dialog.cpp
+)
+target_include_directories(test_draft_recovery_dialog PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_draft_recovery_dialog PRIVATE Qt6::Widgets)
+add_test(NAME DraftRecoveryDialog COMMAND test_draft_recovery_dialog)
+
+add_executable(test_autostart
+    tests/test_autostart.cpp
+    src/autostart_manager.cpp
+)
+target_include_directories(test_autostart PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_autostart PRIVATE Qt6::Core)
+add_test(NAME Autostart COMMAND test_autostart)
 
 add_executable(test_tex_import
     tests/test_tex_import.cpp
