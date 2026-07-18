@@ -331,6 +331,16 @@ static int test_detect_context()
         {QStringLiteral("\\draw (xyz spherical cs:radius=1,long"), TikzCompleter::TkzCtxCoordSysKey, "second key after comma"},
         // The value part after '=' inside cs: must not offer key completion.
         {QStringLiteral("\\draw (xyz cylindrical cs:z=1"), TikzCompleter::TkzCtxNone, "value after cs: key = is silent"},
+        // Regression: a completed value containing closed paren pairs (e.g.
+        // "first line={(A)--(B)},") used to hide the governing '(' from the
+        // naive lastIndexOf scan, killing completion for the next key.
+        {QStringLiteral("\\coordinate (X) at (intersection cs:first line={(A)--(B)}, "), TikzCompleter::TkzCtxCoordSysKey, "next key after brace value with parens"},
+        {QStringLiteral("\\coordinate (X) at (intersection cs:first line={(A)--(B)}, sec"), TikzCompleter::TkzCtxCoordSysKey, "typing next key after brace value"},
+        {QStringLiteral("\\coordinate (X) at (intersection cs:first line={(0,1)--(2,3)}, "), TikzCompleter::TkzCtxCoordSysKey, "commas inside braces are not key separators"},
+        // While a value is being typed the context stays silent (key side) or
+        // completes coordinate names (inside the value's own parens).
+        {QStringLiteral("\\coordinate (X) at (intersection cs:first line={"), TikzCompleter::TkzCtxNone, "silent right after value brace opens"},
+        {QStringLiteral("\\coordinate (X) at (intersection cs:first line={(A)--(B)}, second line={(E)--(F"), TikzCompleter::TkzCtxCoord, "coordinate name inside second value"},
     };
 
     for (const auto &tc : tests) {
@@ -603,6 +613,88 @@ static int test_path_word_completion_triggers()
 
     if (failed == 0)
         fprintf(stderr, "PASS: bare path/graphic words trigger completion\n");
+    return failed;
+}
+
+// Regression (user report): in
+//   \coordinate (X) at (intersection cs:first line={(A)--(B)}, |)
+// completion after the comma offered nothing — the closed "(A)"/"(B)" pairs
+// inside the finished value made the naive lastIndexOf('(') scans lose the
+// governing "(intersection..." paren, so neither the context nor the system
+// name ("intersection") could be determined. Keys verified against PGF 3.1.10
+// tikz.code.tex (cs/first line, cs/second line, cs/first node, cs/second node,
+// cs/solution).
+static int test_intersection_cs_after_value()
+{
+    int failed = 0;
+
+    // Helper-level checks.
+    {
+        const QString t = QStringLiteral(
+            "\\coordinate (X) at (intersection cs:first line={(A)--(B)}, ");
+        const int gp = TikzCompleter::governingOpenParenIndex(t);
+        const int expected = t.indexOf(QStringLiteral("(intersection"));
+        if (gp != expected) {
+            fprintf(stderr, "FAIL: ICS-1 - governing paren: expected %d, got %d\n",
+                    expected, gp);
+            failed++;
+        }
+        // Commas nested in brace values do not separate keys.
+        const QString seg = QStringLiteral("first line={(0,1)--(2,3)}, sec");
+        const int comma = TikzCompleter::lastTopLevelCommaIndex(seg);
+        if (comma != seg.lastIndexOf(QLatin1Char(','))
+            || seg.mid(comma + 1).trimmed() != QStringLiteral("sec")) {
+            fprintf(stderr, "FAIL: ICS-2 - top-level comma expected before 'sec'\n");
+            failed++;
+        }
+        if (TikzCompleter::lastTopLevelCommaIndex(
+                QStringLiteral("first line={(0,1)--(2,3)")) != -1) {
+            fprintf(stderr, "FAIL: ICS-3 - comma inside braces must not count\n");
+            failed++;
+        }
+    }
+
+    // End-to-end: popup appears and offers the remaining keys.
+    QPlainTextEdit editor;
+    editor.show();
+    TikzCompleter completer(&editor);
+    TikzDocumentState state;
+    completer.setDocumentState(&state);
+
+    struct { const char *text; bool shouldPopup; const char *desc; } cases[] = {
+        { "\\coordinate (X) at (intersection cs:first line={(A)--(B)}, ",
+          true,  "empty segment after finished value pops keys" },
+        { "\\coordinate (X) at (intersection cs:first line={(A)--(B)}, sec",
+          true,  "prefix 'sec' after finished value pops keys" },
+        { "\\coordinate (X) at (intersection cs:first line={(A)--(B)}, xyzq",
+          false, "nonsense prefix stays silent" },
+        { nullptr, false, nullptr }
+    };
+    for (int i = 0; cases[i].text != nullptr; ++i) {
+        editor.setPlainText(QString::fromUtf8(cases[i].text));
+        editor.moveCursor(QTextCursor::End);
+        completer.tryComplete();
+        if (completer.isPopupVisible() != cases[i].shouldPopup) {
+            fprintf(stderr, "FAIL: ICS-4.%d (%s) - expected popup=%d, got %d\n",
+                    i, cases[i].desc, cases[i].shouldPopup,
+                    completer.isPopupVisible());
+            failed++;
+        }
+    }
+
+    // The key model must have been rebuilt for "intersection" — i.e. the
+    // system name survived the value's nested parens.
+    const QStringList keys =
+        completer.modelWordsForContext(TikzCompleter::TkzCtxCoordSysKey);
+    for (const char *k : { "second line", "first node", "second node", "solution" }) {
+        if (!keys.contains(QString::fromUtf8(k))) {
+            fprintf(stderr, "FAIL: ICS-5 - key '%s' missing from intersection cs model\n", k);
+            failed++;
+        }
+    }
+
+    if (failed == 0)
+        fprintf(stderr, "PASS: intersection cs key completion after finished value\n");
     return failed;
 }
 
@@ -2973,6 +3065,7 @@ int main(int argc, char *argv[])
     failed += test_value_hints_angles_library();
     failed += test_path_keywords_completable();
     failed += test_path_word_completion_triggers();
+    failed += test_intersection_cs_after_value();
     failed += test_model_clearing_on_empty_list();
     failed += test_key_handlers();
     failed += test_eq_color_completion();

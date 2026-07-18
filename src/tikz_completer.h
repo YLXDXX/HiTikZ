@@ -75,6 +75,17 @@ public:
     // testing.
     static QString eqKeyName(const QString &textBefore);
 
+    // Index of the innermost '(' still open at the cursor, or -1. Brace-aware
+    // and paren-depth-aware, so closed pairs nested in a value do not hide the
+    // governing paren (e.g. "(intersection cs:first line={(A)--(B)}, |" must
+    // yield the "(intersection..." paren, not fail on the closed "(B)").
+    // Exposed for testing.
+    static int governingOpenParenIndex(const QString &textBefore);
+
+    // Index of the last ',' at brace-depth 0 in `segment`, or -1 (commas inside
+    // {...} values do not count). Exposed for testing.
+    static int lastTopLevelCommaIndex(const QString &segment);
+
     // Returns the path/node command name governing the option bracket at the
     // cursor: the last \draw/\node/\path/... on the line before `cursorCol`
     // (e.g. "node" for "\draw (0,0) -- \node[|"). Exposed for testing.

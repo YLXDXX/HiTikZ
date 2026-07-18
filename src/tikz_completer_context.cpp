@@ -9,6 +9,43 @@
 #include <QRegularExpression>
 #include <QWindow>
 
+int TikzCompleter::governingOpenParenIndex(const QString &textBefore)
+{
+    int parenDepth = 0;
+    int braceDepth = 0;
+    for (int i = textBefore.length() - 1; i >= 0; --i) {
+        const QChar ch = textBefore.at(i);
+        if (ch == QLatin1Char('}')) {
+            braceDepth++;
+        } else if (ch == QLatin1Char('{')) {
+            if (braceDepth > 0) braceDepth--;
+        } else if (braceDepth == 0) {
+            if (ch == QLatin1Char(')')) {
+                parenDepth++;
+            } else if (ch == QLatin1Char('(')) {
+                if (parenDepth > 0) parenDepth--;
+                else return i;
+            }
+        }
+    }
+    return -1;
+}
+
+int TikzCompleter::lastTopLevelCommaIndex(const QString &segment)
+{
+    // Forward scan so a still-unclosed brace value ("...={(0,1)--(2,3") also
+    // shields its commas: everything after the unmatched '{' is at depth > 0.
+    int braceDepth = 0;
+    int last = -1;
+    for (int i = 0; i < segment.length(); ++i) {
+        const QChar ch = segment.at(i);
+        if (ch == QLatin1Char('{')) braceDepth++;
+        else if (ch == QLatin1Char('}')) { if (braceDepth > 0) braceDepth--; }
+        else if (ch == QLatin1Char(',') && braceDepth == 0) last = i;
+    }
+    return last;
+}
+
 TikzCompleter::Context TikzCompleter::detectContext(const QString &textBefore) const
 {
     if (textBefore.isEmpty()) return TkzCtxNone;
@@ -87,21 +124,24 @@ TikzCompleter::Context TikzCompleter::detectContext(const QString &textBefore) c
             return TkzCtxAt;
     }
 
-    // Check for coordinate context: (name after an opening (
+    // Check for coordinate context: name/cs keys after the innermost unclosed
+    // '('. The paren must be found with a depth-aware scan — closed pairs
+    // nested in an already-typed value (e.g. "first line={(A)--(B)}") would
+    // otherwise hide the governing paren and kill completion for the next key.
     {
-        int lastOpenParen = textBefore.lastIndexOf('(');
-        int lastCloseParen = textBefore.lastIndexOf(')');
-        if (lastOpenParen > lastCloseParen && lastOpenParen >= 0) {
+        int lastOpenParen = governingOpenParenIndex(textBefore);
+        if (lastOpenParen >= 0) {
             QString afterParen = textBefore.mid(lastOpenParen + 1);
             // Coordinate-system usage: "(<name> cs:key=value,key=value)".
             // After the "cs:" marker the comma-separated tokens are option keys
             // (e.g. angle/radius/z for "xyz cylindrical"). Offer key completion
             // for the segment currently being typed, but stay silent while the
-            // value part (after '=') is entered.
+            // value part (after '=') is entered. Only commas at brace depth 0
+            // separate keys — commas inside a value ({(0,1)--(2,3)}) do not.
             int csIdx = afterParen.indexOf(QLatin1String("cs:"));
             if (csIdx >= 0) {
                 QString afterCs = afterParen.mid(csIdx + 3);
-                int lastComma = afterCs.lastIndexOf(',');
+                int lastComma = lastTopLevelCommaIndex(afterCs);
                 QString seg = (lastComma >= 0) ? afterCs.mid(lastComma + 1)
                                                : afterCs;
                 if (!seg.contains('='))
@@ -110,8 +150,12 @@ TikzCompleter::Context TikzCompleter::detectContext(const QString &textBefore) c
             }
             // Exclude coordinate pairs (x,y) and calc expressions ($...$), but
             // allow names with spaces (e.g. "critical 1") so they can be
-            // completed after a '('.
+            // completed after a '('. Nested closed pairs after the governing
+            // paren mean the cursor is past a complete sub-coordinate — not a
+            // name being typed — so keep the historical "no ')' after the open
+            // paren" behavior for this branch.
             if (!afterParen.contains(',') &&
+                !afterParen.contains(')') &&
                 !afterParen.startsWith('$') &&
                 afterParen.length() >= 0 && afterParen.length() < 30)
                 return TkzCtxCoord;

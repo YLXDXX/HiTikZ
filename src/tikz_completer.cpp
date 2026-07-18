@@ -273,14 +273,17 @@ void TikzCompleter::doComplete(bool manual)
     case TkzCtxCoordSysKey: {
         // Inside "(<name> cs:key,key,...)". Build the key model from the system
         // name preceding "cs:" and complete the last comma-separated segment.
-        int lp = textBefore.lastIndexOf('(');
+        // The governing '(' must be located depth-aware: after a completed
+        // value like "first line={(A)--(B)}," a naive lastIndexOf('(') lands on
+        // the nested "(B)" and loses the system name (no completion at all).
+        int lp = governingOpenParenIndex(textBefore);
         QString afterParen = (lp >= 0) ? textBefore.mid(lp + 1) : textBefore;
         int csIdx = afterParen.indexOf(QLatin1String("cs:"));
         QString sysName = (csIdx >= 0) ? afterParen.left(csIdx).trimmed()
                                        : QString();
         updateCoordSysKeyModel(sysName);
         QString afterCs = (csIdx >= 0) ? afterParen.mid(csIdx + 3) : afterParen;
-        int lastComma = afterCs.lastIndexOf(',');
+        int lastComma = lastTopLevelCommaIndex(afterCs);
         prefix = leftTrimmed((lastComma >= 0) ? afterCs.mid(lastComma + 1)
                                               : afterCs);
         break;
