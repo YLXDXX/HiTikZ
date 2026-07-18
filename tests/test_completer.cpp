@@ -842,6 +842,61 @@ static int test_circuitikz_annotation_keys()
         }
     }
 
+    // Component-class styling matrix (user report: \ctikzset{component
+    // text=left, amplifiers/fill=cyan!20} offered no completion for
+    // 'amplifiers/fill').
+    const char *classKeys[] = {
+        "amplifiers/fill","amplifiers/scale","amplifiers/thickness",
+        "RF/fill","RF/thickness","power supplies/scale","grounds/fill",
+        "muxdemuxes/thickness","tubes/fill","batteries/scale",
+        "resistors/fill","resistors/scale","resistors/modifier thickness",
+        "transistor bodydiode/relative thickness",
+        "transformer core/relative thickness",
+        "quadpoles/thickness","seven seg/thickness",
+        nullptr
+    };
+    for (int i = 0; classKeys[i]; ++i) {
+        if (!opts.contains(QString::fromUtf8(classKeys[i]))) {
+            fprintf(stderr, "FAIL: CTKA-9 - class styling key '%s' missing\n",
+                    classKeys[i]);
+            failed++;
+        }
+    }
+    // Reserved pseudo-classes are marked "do not touch" in the sources.
+    for (const char *k : { "default/fill", "none/thickness" }) {
+        if (opts.contains(QString::fromUtf8(k))) {
+            fprintf(stderr, "FAIL: CTKA-10 - reserved key '%s' must not be offered\n", k);
+            failed++;
+        }
+    }
+
+    // CircuiTikZ user commands (\ctikzset & co.), lib-gated.
+    {
+        auto commandNames = [&](const QSet<QString> &libs) {
+            QSet<QString> names;
+            const auto kws = TikzKeywordDB::instance().filter(
+                QStringLiteral("tikzpicture"), QString(), libs,
+                Category::Command);
+            for (const auto *kw : kws) names.insert(kw->name);
+            return names;
+        };
+        const QSet<QString> withLib = commandNames(ck);
+        for (const char *c : { "ctikzset", "circuitikzset", "ctikzloadstyle",
+                               "ctikzsetstyle", "ctikzgetanchor",
+                               "ctikzgetdirection", "ctikzflipx",
+                               "ctikzflipy", "ctikzflipxy", "ctikztextnot" }) {
+            if (!withLib.contains(QString::fromUtf8(c))) {
+                fprintf(stderr, "FAIL: CTKA-11 - command '\\%s' missing\n", c);
+                failed++;
+            }
+        }
+        const QSet<QString> without = commandNames(QSet<QString>());
+        if (without.contains(QStringLiteral("ctikzset"))) {
+            fprintf(stderr, "FAIL: CTKA-12 - \\ctikzset leaked without circuitikz\n");
+            failed++;
+        }
+    }
+
     if (failed == 0)
         fprintf(stderr, "PASS: circuitikz annotation/config key completion\n");
     return failed;

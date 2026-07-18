@@ -254,6 +254,24 @@ void registerCommands(Vec &db)
     for (int i = 0; siunitxCmds[i]; i++)
         addBuiltin(db, siunitxCmds[i], C::Command, {}, {}, {}, {"siunitx"});
 
+    // ═══════════════════════════════════════════════════════════════
+    //  CircuiTikZ user commands. Activated by \usepackage{circuitikz}.
+    //  Verified against CircuiTikZ 1.7.1 sources: pgfcirc.defines.tex:34-37
+    //  (\circuitikzset, \ctikzset, \ctikzvalof), :1004/:1010
+    //  (\ctikzloadstyle, \ctikzsetstyle), :1207/:1208 (\ctikzgetanchor,
+    //  \ctikzgetdirection), :118 (\ctikzPatchImplicitColor) and
+    //  pgfcircutils.tex:52-62 (\ctikzflipx/y/xy, \ctikztextnot).
+    const char *circuitikzCmds[] = {
+        "ctikzset","circuitikzset","ctikzvalof",
+        "ctikzloadstyle","ctikzsetstyle",
+        "ctikzgetanchor","ctikzgetdirection",
+        "ctikzflipx","ctikzflipy","ctikzflipxy","ctikztextnot",
+        "ctikzPatchImplicitColor",
+        nullptr
+    };
+    for (int i = 0; circuitikzCmds[i]; i++)
+        addBuiltin(db, circuitikzCmds[i], C::Command, {}, {}, {}, {"circuitikz"});
+
     const char *cmds[] = {
         "addplot","addplot3","addlegendentry","addlegendimage",
         "begin",

@@ -211,11 +211,40 @@ void registerExtended(Vec &db)
     ctkOpt("american open voltage", {}, {"center","legacy"});
     ctkOpt("logic ports", {}, {"american","european","ieee"});
     ctkOpt("logic ports/scale");
-    ctkOpt("resistors/scale");
-    ctkOpt("capacitors/scale");
-    ctkOpt("sources/scale");
-    ctkOpt("transistors/scale");
-    ctkOpt("diodes/scale");
+
+    // Component-class styling matrix (pgfcirc.defines.tex:1010-1140 and the
+    // class declarations across the shape files): <class>/fill, <class>/scale
+    // and <class>/thickness exist for every component class. The reserved
+    // pseudo-classes default/* and none/* are marked "do not touch" in the
+    // sources and are deliberately omitted.
+    for (const char *cls : {"amplifiers","batteries","blocks","capacitors",
+                            "chips","connectors","csources","diodes",
+                            "displays","electromechanicals","flipflops",
+                            "grounds","inductors","instruments","logic ports",
+                            "mechanicals","misc","muxdemuxes","power supplies",
+                            "resistors","RF","sources","switches",
+                            "transistors","tubes"}) {
+        for (const char *sub : {"fill","scale","thickness"}) {
+            const QByteArray key = QByteArray(cls) + '/' + sub;
+            addBuiltin(db, key.constData(), C::Option, {}, {}, {},
+                       {"circuitikz"});
+        }
+    }
+    // Relative/modifier thickness fine-tuning keys (same source region).
+    for (const char *k : {"resistors/modifier thickness",
+                          "capacitors/modifier thickness",
+                          "inductors/modifier thickness",
+                          "transistors/modifier thickness",
+                          "crossing vertical/relative thickness",
+                          "opto arrows/relative thickness",
+                          "switch arrows/relative thickness",
+                          "transformer core/relative thickness",
+                          "transistor bodydiode/relative thickness",
+                          "transistor bodydiode/scale",
+                          "transistor circle/relative thickness",
+                          "tripoles/thickness","quadpoles/thickness",
+                          "multipoles/thickness","seven seg/thickness"})
+        ctkOpt(k);
 
     // Bipole annotation keys on to[...] components. Full variant sets from the
     // sources — current (pgfcirccurrent.tex): 13 variants; voltage
