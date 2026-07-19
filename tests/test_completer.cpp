@@ -1339,7 +1339,7 @@ static int test_circuitikz_components_accurate()
         "inline tgate", "inline double tgate", "inline proximeter",
         // Diode-family full/empty/stroke variants (pgfcircbipoles.tex:4794-4836)
         "full diode", "empty diode", "stroke diode",
-        "Do", "D-", "leDo", "leD-", "pDo", "pD-", "zDo", "zD-",
+        "Do", "D-", "D*", "leDo", "leD-", "leD*", "pDo", "pD-", "pD*", "zDo", "zD-", "zD*",
         nullptr
     };
     for (int i = 0; validComponents[i]; ++i) {

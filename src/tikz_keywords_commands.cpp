@@ -106,8 +106,10 @@ void registerCommands(Vec &db)
         "stroke TVS diode", "stroke Shockley diode", "stroke bidirectionaldiode",
         "stroke thyristor", "stroke put", "stroke gto", "stroke gtobar",
         "stroke agtobar", "stroke triac",
-        // Diode shortcut suffixes: o (empty), - (stroke);
-        // * variants already registered with fulldiode family above
+        // Diode shortcut suffixes: * (full), o (empty), - (stroke)
+        "D*", "zD*", "zzD*", "sD*", "tD*", "leD*", "lasD*", "pD*",
+        "VC*", "tvsD*", "shD*", "biD*", "Ty*", "PUT*", "GTO*",
+        "GTOb*", "aGTOb*", "Tr*",
         "Do", "zDo", "zzDo", "sDo", "tDo", "leDo", "lasDo", "pDo",
         "VCo", "tvsDo", "shDo", "biDo", "Tyo", "PUTo", "GTOo",
         "GTObo", "aGTObo", "Tro",
