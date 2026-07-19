@@ -20,6 +20,7 @@ public:
     // Toggle soft-wrapping of over-long lines. When enabled, wrapped
     // continuation rows are marked in the line-number gutter.
     void setWordWrap(bool wrap);
+    void setBracketHighlightEnabled(bool enabled);
 
     TikzCompleter *completer() const;
     TikzDocumentState *documentState() const;
@@ -47,6 +48,7 @@ private:
     bool m_focusInProgress = false;
     QTimer *m_highlightDebounceTimer = nullptr;
     QTimer *m_reparseTimer = nullptr;
+    bool m_bracketHighlightEnabled = false;
 
     void performHighlightCurrentLine();
     void performBracketHighlight(QList<QTextEdit::ExtraSelection> &extraSelections);

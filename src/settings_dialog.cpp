@@ -69,7 +69,12 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     wrapLongLinesCheck = new QCheckBox(QStringLiteral("过长代码自动换行"));
     wrapLongLinesCheck->setToolTip(QStringLiteral(
         "开启后，过长的代码行会在编辑器内自动折行显示；折行产生的续行在左侧以 ↳ 标记"));
-    behaviorLayout->addWidget(wrapLongLinesCheck);
+     behaviorLayout->addWidget(wrapLongLinesCheck);
+    bracketHighlightCheck = new QCheckBox(QStringLiteral("括号配对高亮"));
+    bracketHighlightCheck->setToolTip(QStringLiteral(
+        "开启后，光标在 {}、[]、() 旁边时高亮显示与之配对的括号；找不到配对时以红色警示。"
+        "支持跨行嵌套"));
+    behaviorLayout->addWidget(bracketHighlightCheck);
     autostartCheck = new QCheckBox(QStringLiteral("开机自启动（启动后隐藏到系统托盘）"));
     autostartCheck->setToolTip(QStringLiteral(
         "在 ~/.config/autostart 中创建 hitikz.desktop，登录后自动以 --hidden 方式启动，"
@@ -243,6 +248,7 @@ void SettingsDialog::loadSettings()
     autoCompileOnSaveCheck->setChecked(settings.value("behavior/autoCompileOnSave", true).toBool());
     threadCountSpin->setValue(settings.value("behavior/threadCount", 6).toInt());
     wrapLongLinesCheck->setChecked(settings.value("behavior/wrapLongLines", true).toBool());
+    bracketHighlightCheck->setChecked(settings.value("behavior/bracketHighlight", false).toBool());
     autostartCheck->setChecked(AutostartManager::isEnabled());
 }
 void SettingsDialog::saveSettings()
@@ -267,6 +273,7 @@ void SettingsDialog::saveSettings()
     settings.setValue("behavior/autoCompileOnSave", autoCompileOnSaveCheck->isChecked());
     settings.setValue("behavior/threadCount", threadCountSpin->value());
     settings.setValue("behavior/wrapLongLines", wrapLongLinesCheck->isChecked());
+    settings.setValue("behavior/bracketHighlight", bracketHighlightCheck->isChecked());
     AutostartManager::setEnabled(autostartCheck->isChecked());
 }
 

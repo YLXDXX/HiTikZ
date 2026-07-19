@@ -106,6 +106,13 @@ void CodeEditor::setWordWrap(bool wrap)
         lineNumberArea->update();
 }
 
+void CodeEditor::setBracketHighlightEnabled(bool enabled)
+{
+    m_bracketHighlightEnabled = enabled;
+    if (enabled && hasFocus())
+        highlightCurrentLine();
+}
+
 void CodeEditor::updateLineNumberAreaWidth(int)
 {
     setViewportMargins(lineNumberAreaWidth(), 0, 0, 0);
@@ -653,7 +660,8 @@ void CodeEditor::performHighlightCurrentLine()
         }
     }
 
-    performBracketHighlight(extraSelections);
+    if (m_bracketHighlightEnabled)
+        performBracketHighlight(extraSelections);
 
     setExtraSelections(extraSelections);
 }

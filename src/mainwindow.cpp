@@ -1747,6 +1747,7 @@ void MainWindow::applyAppearanceSettings()
     logPanel->setFont(logFont);
 
     const bool wrapLongLines = settings.value("behavior/wrapLongLines", true).toBool();
+    const bool bracketHighlight = settings.value("behavior/bracketHighlight", false).toBool();
 
     for (int i = 0; i < tabWidget->count(); ++i) {
         CodeEditor *ed = qobject_cast<CodeEditor*>(tabWidget->widget(i));
@@ -1754,6 +1755,7 @@ void MainWindow::applyAppearanceSettings()
             ed->setFont(editorFont);
             ed->setTabStopDistance(4 * ed->fontMetrics().horizontalAdvance(' '));
             ed->setWordWrap(wrapLongLines);
+            ed->setBracketHighlightEnabled(bracketHighlight);
         }
     }
 }

@@ -104,6 +104,12 @@ TikzCompleter::Context TikzCompleter::detectContext(const QString &textBefore) c
             QChar beforeDot = textBefore.at(dotIdx - 1);
             if (beforeDot.isLetterOrNumber() || beforeDot == '/') {
                 QString afterDot = textBefore.mid(dotIdx + 1);
+                // If a closing ')' appears between the dot and the cursor,
+                // the dot belongs to an already-closed coordinate expression
+                // (e.g. "(FF.pin 1) -- (FF" — the dot is from "FF.pin", not
+                // the current group). Skip so the coordinate context can fire.
+                if (afterDot.contains(QLatin1Char(')')))
+                    goto dot_skip;
                 bool allWordChars = true;
                 for (const QChar &c : afterDot) {
                     if (c.isSpace()) break;
@@ -114,6 +120,7 @@ TikzCompleter::Context TikzCompleter::detectContext(const QString &textBefore) c
                     return TkzCtxDot;
             }
         }
+        dot_skip: ;
     }
 
     {

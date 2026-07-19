@@ -341,6 +341,14 @@ static int test_detect_context()
         // completes coordinate names (inside the value's own parens).
         {QStringLiteral("\\coordinate (X) at (intersection cs:first line={"), TikzCompleter::TkzCtxNone, "silent right after value brace opens"},
         {QStringLiteral("\\coordinate (X) at (intersection cs:first line={(A)--(B)}, second line={(E)--(F"), TikzCompleter::TkzCtxCoord, "coordinate name inside second value"},
+        // Regression: dot in closed coordinate expression (e.g. "(FF.pin 1)")
+        // must NOT trigger TkzCtxDot for a later "(FF" — the dot belongs to
+        // the earlier, closed group.
+        {QStringLiteral("\\draw (FF.pin 1) -- ++(-1,0) node (A) {} (F"), TikzCompleter::TkzCtxCoord, "single letter in 2nd coord after closed dot ref"},
+        {QStringLiteral("\\draw (FF.pin 1) -- ++(-1,0) node (A) {} (FF"), TikzCompleter::TkzCtxCoord, "FF complete in 2nd coord after closed dot ref"},
+        // Still TkzCtxDot for dots in the ACTIVE coordinate ref.
+        {QStringLiteral("\\draw (A) -- (B."), TikzCompleter::TkzCtxDot, "dot in open coord (no intervening ')')"},
+        {QStringLiteral("\\draw (A) -- (B.in"), TikzCompleter::TkzCtxDot, "typing anchor in open coord"},
     };
 
     for (const auto &tc : tests) {
