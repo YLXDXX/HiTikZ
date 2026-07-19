@@ -1320,6 +1320,10 @@ static int test_circuitikz_components_accurate()
         "resistor", "inductor", "potentiometer", "variable resistor",
         "variable inductor", "inductive sensor", "resistive sensor",
         "light dependent resistor", "vcc", "vee",
+        // Inline port components (verified CircuiTikZ 1.7.1 pgfcirctripoles.tex:2837-2843,
+        // pgfcircbipoles.tex:5777)
+        "inline not", "inline buffer", "inline schmitt", "inline invschmitt",
+        "inline tgate", "inline double tgate", "inline proximeter",
         nullptr
     };
     for (int i = 0; validComponents[i]; ++i) {
@@ -1335,6 +1339,8 @@ static int test_circuitikz_components_accurate()
         "npn", "pnp", "nmos", "pmos", "op amp", "ground", "rground", "sground",
         "american nor port", "european nor port", "and port", "nand port",
         "buffer port", "vcc", "vss", "vdd", "vee", "ocirc", "diamondpole",
+        "schmitt port", "invschmitt port", "tgate", "double tgate",
+        "ieee tgate", "ieee double tgate",
         nullptr
     };
     for (int i = 0; validShapes[i]; ++i) {
@@ -1353,7 +1359,9 @@ static int test_circuitikz_components_accurate()
             QStringLiteral("tikzpicture"), QStringLiteral("to"), noLibs,
             TikzKeywords::Category::Option);
         for (auto *kw : plain) {
-            if (kw->name == QLatin1String("rmeterwa") || kw->name == QLatin1String("pR")) {
+            if (kw->name == QLatin1String("rmeterwa") || kw->name == QLatin1String("pR")
+                || kw->name == QLatin1String("inline not")
+                || kw->name == QLatin1String("inline tgate")) {
                 fprintf(stderr, "FAIL: CTK-5 - '%s' leaked without circuitikz lib active\n",
                         kw->name.toUtf8().constData());
                 failed++;
@@ -1363,11 +1371,17 @@ static int test_circuitikz_components_accurate()
         auto gated = TikzKeywordDB::instance().filter(
             QStringLiteral("circuitikz"), QStringLiteral("to"), ckLibs,
             TikzKeywords::Category::Option);
-        bool foundRmeter = false;
-        for (auto *kw : gated)
-            if (kw->name == QLatin1String("rmeterwa")) { foundRmeter = true; break; }
+        bool foundRmeter = false, foundInlineNot = false;
+        for (auto *kw : gated) {
+            if (kw->name == QLatin1String("rmeterwa")) foundRmeter = true;
+            if (kw->name == QLatin1String("inline not")) foundInlineNot = true;
+        }
         if (!foundRmeter) {
             fprintf(stderr, "FAIL: CTK-6 - 'rmeterwa' not offered with circuitikz lib active\n");
+            failed++;
+        }
+        if (!foundInlineNot) {
+            fprintf(stderr, "FAIL: CTK-7 - 'inline not' not offered with circuitikz lib active\n");
             failed++;
         }
     }

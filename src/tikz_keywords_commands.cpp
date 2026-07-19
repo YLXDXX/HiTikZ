@@ -40,6 +40,8 @@ void registerCommands(Vec &db)
         "generic", "GTO", "gto", "GTOb", "gtobar",
         "hemt", "highpass", "highpass2", "I", "iamp",
         "iec connector", "iecconn", "iloop", "iloop2", "inductive sensor",
+        "inline buffer", "inline double tgate", "inline invschmitt", "inline not",
+        "inline proximeter", "inline schmitt", "inline tgate",
         "inductor", "inerter", "ioosource", "isource", "isourceAM",
         "isourceC", "isourceEU", "isourceN", "isourcesin", "L",
         "lamp", "lasD", "laser diode", "ldR", "leD",
