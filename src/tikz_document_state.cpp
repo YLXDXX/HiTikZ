@@ -36,9 +36,29 @@ TikzDocumentState::TikzDocumentState()
     m_newcmdRe = QRegularExpression(
         QStringLiteral("\\\\(?:new|renew|provide)command\\*?\\s*\\{?\\\\([a-zA-Z@]+)"));
     m_defRe = QRegularExpression(QStringLiteral("\\\\def\\s*\\\\([a-zA-Z]+)"));
+    // 'at (coord)' clause of a node/pic. The coordinate may contain one level
+    // of nested parens, e.g. at ($(a)+(b)$) with the calc library.
+    static const QString atClause = QStringLiteral(
+        "at\\s*\\((?:[^()]|\\([^()]*\\))*\\)");
+    // \node/\pic/\matrix command form. Verified against tikz.code.tex: after
+    // the operation keyword, [options], (name) and at (coord) may appear in
+    // ANY order and multiple times ("node[draw] (a) [rotate=10] {text}"), and
+    // \matrix is literally \path node[matrix]. The (name) is captured wherever
+    // it occurs in that sequence.
     m_nodeRe = QRegularExpression(
-        QStringLiteral("\\\\(?:node|pic)\\s*(?:") + optGroup +
-        QStringLiteral("\\s*)?(?:at\\s*\\([^)]*\\)\\s*)?\\(([^)]+)\\)"));
+        QStringLiteral("\\\\(?:node|pic|matrix)(?![a-zA-Z])\\s*(?:(?:") + optGroup +
+        QStringLiteral("|") + atClause +
+        QStringLiteral(")\\s*)*\\(([^)]+)\\)"));
+    // Path-operation form of node/pic (no backslash), e.g.
+    //   \draw (0,0) ... node [op amp] (OA) {OA1};
+    //   \draw (0,0) pic[red] (arc1) {angle=A--B--C};
+    // The negative look-behind keeps this from re-matching \node/\pic and from
+    // matching words ending in "node"/"pic". 'at (...)' groups are skipped so
+    // "node at (1,0) {}" never registers the coordinate as a name.
+    m_nodeOpRe = QRegularExpression(
+        QStringLiteral("(?<![\\\\a-zA-Z@])(?:node|pic)(?![a-zA-Z])\\s*(?:(?:") + optGroup +
+        QStringLiteral("|") + atClause +
+        QStringLiteral(")\\s*)*\\(([^)]+)\\)"));
     m_styleInTikzsetRe = QRegularExpression(
         QStringLiteral("([\\w\\s]+)/\\.(style|code|pic|append style|prefix style)"
                        "\\s*=\\s*\\{"));
@@ -189,6 +209,12 @@ void TikzDocumentState::parseLine(const QString &text, int blockStartPos,
     while (trimStart < len && text.at(trimStart) == QLatin1Char(' ')) trimStart++;
     if (trimStart < len && text.at(trimStart) == QLatin1Char('%')) return;
 
+    // Everything before a trailing comment still takes part in the whole-line
+    // scans at the end of this function (styles, path-op coordinates/nodes,
+    // name paths, ...). A '%' at depth 0 truncates the scanned text instead of
+    // aborting the line, so "\draw ... coordinate (A); % note" keeps A.
+    int scanLen = len;
+
     while (pos < len) {
         QChar ch = text.at(pos);
 
@@ -196,7 +222,18 @@ void TikzDocumentState::parseLine(const QString &text, int blockStartPos,
         if (ch == QLatin1Char('}')) { if (braceDepth > 0) braceDepth--; pos++; continue; }
         if (ch == QLatin1Char('[')) { bracketDepth++; pos++; continue; }
         if (ch == QLatin1Char(']')) { if (bracketDepth > 0) bracketDepth--; pos++; continue; }
-        if (ch == QLatin1Char('%') && braceDepth == 0 && bracketDepth == 0) return;
+        if (ch == QLatin1Char('%') && braceDepth == 0 && bracketDepth == 0) {
+            scanLen = pos;
+            break;
+        }
+
+        if (ch == QLatin1Char('\\') && pos + 1 < len
+            && !text.at(pos + 1).isLetter()) {
+            // Escaped character (\%, \{, \}, \\, ...): it neither starts a
+            // command nor counts for brace/bracket depth or comments.
+            pos += 2;
+            continue;
+        }
 
         if (ch == QLatin1Char('\\') && pos + 4 < len) {
             // \begin{...}
@@ -310,21 +347,9 @@ void TikzDocumentState::parseLine(const QString &text, int blockStartPos,
                     m_userCoords.insert(name);
                     m_userNodes.insert(name);
                 }
-                // Also extract name=<name> from options (e.g. \coordinate[name=D] (E))
-                {
-                    static const QRegularExpression nameRe(
-                        QStringLiteral("name\\s*=\\s*(?:\\{([^}]*)\\}|([^,\\]]+))"));
-                    QRegularExpressionMatch nv = nameRe.match(coo.captured(0));
-                    if (nv.hasMatch()) {
-                        QString optName = nv.captured(1);
-                        if (optName.isEmpty()) optName = nv.captured(2);
-                        optName = optName.trimmed();
-                        if (!optName.isEmpty()) {
-                            m_userCoords.insert(optName);
-                            m_userNodes.insert(optName);
-                        }
-                    }
-                }
+                // name=<name> inside the options (e.g. \coordinate[name=D] (E))
+                // is extracted by the brace-aware option scan at the end of
+                // this function.
                 pos = coo.capturedEnd();
                 continue;
             }
@@ -374,62 +399,17 @@ void TikzDocumentState::parseLine(const QString &text, int blockStartPos,
                 continue;
             }
 
-            // \node[...] (name)
+            // \node/\pic/\matrix [...] (name) — any group order, see m_nodeRe.
             QRegularExpressionMatch nm = m_nodeRe.match(text, pos);
             if (nm.hasMatch() && nm.capturedStart() == pos) {
                 QString nodeName = nm.captured(1).trimmed();
                 if (!nodeName.isEmpty())
                     m_userNodes.insert(nodeName);
-                // Also extract name=<name> from options (e.g. \node[name=B] (C))
-                {
-                    static const QRegularExpression nameRe(
-                        QStringLiteral("name\\s*=\\s*(?:\\{([^}]*)\\}|([^,\\]]+))"));
-                    QRegularExpressionMatch nv = nameRe.match(nm.captured(0));
-                    if (nv.hasMatch()) {
-                        QString optName = nv.captured(1);
-                        if (optName.isEmpty()) optName = nv.captured(2);
-                        optName = optName.trimmed();
-                        if (!optName.isEmpty())
-                            m_userNodes.insert(optName);
-                    }
-                }
+                // name=<name> inside the options (e.g. \node[name=B] (C)) is
+                // extracted by the brace-aware option scan at the end of this
+                // function.
                 pos = nm.capturedEnd();
                 continue;
-            }
-
-            // \node or \pic with name=... in options (no explicit (name) syntax).
-            // E.g. \node[place,name=critical 1] [below=of ...] {};
-            {
-                static const QRegularExpression nodeOrPic(
-                    QStringLiteral("^\\\\(node|pic)\\b"));
-                QRegularExpressionMatch npm = nodeOrPic.match(text.mid(pos));
-                if (npm.hasMatch()) {
-                    int p = pos + npm.capturedLength();
-                    while (p < len && text.at(p).isSpace()) p++;
-                    bool advanced = false;
-                    while (p < len && text.at(p) == QLatin1Char('[')) {
-                        int close = text.indexOf(QLatin1Char(']'), p);
-                        if (close < 0) break;
-                        QString bracket = text.mid(p + 1, close - p - 1);
-                        static const QRegularExpression nameRe(
-                            QStringLiteral("(?:^|,)\\s*name\\s*=\\s*(?:\\{([^}]*)\\}|([^,\\]]+))"));
-                        QRegularExpressionMatch nv = nameRe.match(bracket);
-                        if (nv.hasMatch()) {
-                            QString name = nv.captured(1);
-                            if (name.isEmpty()) name = nv.captured(2);
-                            name = name.trimmed();
-                            if (!name.isEmpty())
-                                m_userNodes.insert(name);
-                        }
-                        p = close + 1;
-                        while (p < len && text.at(p).isSpace()) p++;
-                        advanced = true;
-                    }
-                    if (advanced) {
-                        pos = p;
-                        continue;
-                    }
-                }
             }
 
             pos++;
@@ -439,8 +419,12 @@ void TikzDocumentState::parseLine(const QString &text, int blockStartPos,
         pos++;
     }
 
+    // Text taking part in the whole-line scans below: the part of the line
+    // before a trailing depth-0 comment (or the full line when there is none).
+    const QString scanText = (scanLen == len) ? text : text.left(scanLen);
+
     // Scan for style definitions anywhere in the text (handles multi-line \tikzset)
-    QRegularExpressionMatchIterator sit = m_styleInTikzsetRe.globalMatch(text);
+    QRegularExpressionMatchIterator sit = m_styleInTikzsetRe.globalMatch(scanText);
     while (sit.hasNext()) {
         QRegularExpressionMatch sm = sit.next();
         QString sName = sm.captured(1).trimmed();
@@ -454,7 +438,7 @@ void TikzDocumentState::parseLine(const QString &text, int blockStartPos,
     // Scan for the path-operation coordinate form 'coordinate (name)' used
     // inside a path, e.g. \draw (2,1) coordinate (test) circle [radius=2mm];
     // (The \coordinate command form is already handled above.)
-    QRegularExpressionMatchIterator coit = m_coordOpRe.globalMatch(text);
+    QRegularExpressionMatchIterator coit = m_coordOpRe.globalMatch(scanText);
     while (coit.hasNext()) {
         QRegularExpressionMatch cm = coit.next();
         QString name = cm.captured(1).trimmed();
@@ -464,9 +448,25 @@ void TikzDocumentState::parseLine(const QString &text, int blockStartPos,
         }
     }
 
+    // Scan for the path-operation node/pic form 'node [opts] (name)' used
+    // inside a path, e.g.
+    //   \draw (0,0) to[short,o-] ++(1,0) node[op amp] (OA) {OA1};
+    // (The \node/\pic command forms are already handled above.)
+    QRegularExpressionMatchIterator noit = m_nodeOpRe.globalMatch(scanText);
+    while (noit.hasNext()) {
+        QRegularExpressionMatch nm = noit.next();
+        QString name = nm.captured(1).trimmed();
+        if (!name.isEmpty())
+            m_userNodes.insert(name);
+    }
+
+    // Scan for name=/n= keys inside the option groups of node/pic/coordinate/
+    // matrix/to operations and axis-like environments.
+    extractOptionNames(scanText);
+
     // Scan for named paths: name path[ global|local]=<name>. These feed the
     // 'of=' completion inside \path[name intersections={of=A and B,...}].
-    QRegularExpressionMatchIterator pit = m_namePathRe.globalMatch(text);
+    QRegularExpressionMatchIterator pit = m_namePathRe.globalMatch(scanText);
     while (pit.hasNext()) {
         QRegularExpressionMatch pm = pit.next();
         QString pName = pm.captured(1);
@@ -479,7 +479,7 @@ void TikzDocumentState::parseLine(const QString &text, int blockStartPos,
     // Scan for by={...} coordinate names inside name intersections. Each entry
     // may carry an optional [options] prefix, e.g. by={[label=95:$L$]L,H} names
     // the intersection coordinates L and H.
-    QRegularExpressionMatchIterator bit = m_byRe.globalMatch(text);
+    QRegularExpressionMatchIterator bit = m_byRe.globalMatch(scanText);
     while (bit.hasNext()) {
         QRegularExpressionMatch bm = bit.next();
         const QString inner = bm.captured(1);
@@ -510,9 +510,148 @@ void TikzDocumentState::parseLine(const QString &text, int blockStartPos,
     }
 }
 
+namespace {
+// Index of the ']' closing the '[' at openIdx, honoring brace nesting so
+// brackets inside {...} values (e.g. label={[red]above:x}) do not close the
+// group. Returns -1 when the group is not closed on this line.
+int matchingBracketEnd(const QString &text, int openIdx)
+{
+    int brace = 0;
+    for (int i = openIdx + 1; i < text.length(); ++i) {
+        const QChar c = text.at(i);
+        if (c == QLatin1Char('{')) brace++;
+        else if (c == QLatin1Char('}')) { if (brace > 0) brace--; }
+        else if (brace == 0 && c == QLatin1Char(']')) return i;
+    }
+    return -1;
+}
+} // namespace
+
+void TikzDocumentState::extractOptionNames(const QString &text)
+{
+    // Operations whose option groups may carry a name= key. Verified against
+    // the TeXLive sources:
+    //  - /tikz/name applies to node/pic/coordinate (tikz.code.tex; \matrix is
+    //    literally \path node[matrix]),
+    //  - circuitikz maps name=/n= inside to[...] to bipole/name and creates
+    //    the extra coordinates <name>start and <name>end (pgfcircpath.tex),
+    //  - pgfplots' /pgfplots/name forwards to /tikz/name, so
+    //    \begin{axis}[name=ax] names the axis node (pgfplots.code.tex).
+    static const QRegularExpression opKwRe(QStringLiteral(
+        "(?<![a-zA-Z@\\\\])\\\\?(node|pic|coordinate|matrix|to)(?![a-zA-Z])"
+        "|\\\\begin\\s*\\{\\s*(axis|semilogxaxis|semilogyaxis|loglogaxis|"
+        "polaraxis|ternaryaxis|smithchart|groupplot)\\s*\\}"));
+
+    const int n = text.length();
+    QRegularExpressionMatchIterator kit = opKwRe.globalMatch(text);
+    while (kit.hasNext()) {
+        const QRegularExpressionMatch km = kit.next();
+        const bool isEnv = km.captured(1).isEmpty();
+        const QString kw = isEnv ? km.captured(2) : km.captured(1);
+        const bool circuitikzActive =
+            m_activeLibs.contains(QStringLiteral("circuitikz"));
+
+        // Walk the operation's argument sequence: any mix of [options],
+        // (name) and 'at (coord)' groups (tikz.code.tex allows any order).
+        int p = km.capturedEnd();
+        while (p < n) {
+            while (p < n && text.at(p).isSpace()) p++;
+            if (p >= n) break;
+            const QChar c = text.at(p);
+            if (c == QLatin1Char('[')) {
+                const int close = matchingBracketEnd(text, p);
+                if (close < 0) break;
+                const QString content = text.mid(p + 1, close - p - 1);
+
+                // Split on commas at brace/bracket depth 0 and look for
+                // name=<value> (and, for circuitikz to[...], n=<value>).
+                int depth = 0;
+                QString part;
+                const auto handlePart = [&]() {
+                    static const QRegularExpression nameKeyRe(QStringLiteral(
+                        "^\\s*(name|n)\\s*=\\s*(.*)$"));
+                    const QRegularExpressionMatch nv = nameKeyRe.match(part);
+                    part.clear();
+                    if (!nv.hasMatch()) return;
+                    const bool shorthand = nv.captured(1) == QLatin1String("n");
+                    // 'n' is the circuitikz shorthand and only valid there.
+                    if (shorthand
+                        && !(kw == QLatin1String("to") && circuitikzActive))
+                        return;
+                    QString value = nv.captured(2).trimmed();
+                    if (value.startsWith(QLatin1Char('{'))
+                        && value.endsWith(QLatin1Char('}')))
+                        value = value.mid(1, value.length() - 2).trimmed();
+                    if (value.isEmpty()) return;
+                    m_userNodes.insert(value);
+                    if (kw == QLatin1String("coordinate"))
+                        m_userCoords.insert(value);
+                    // circuitikz names a bipole node <name> and additionally
+                    // creates the coordinates <name>start and <name>end.
+                    if (kw == QLatin1String("to") && circuitikzActive) {
+                        m_userCoords.insert(value + QLatin1String("start"));
+                        m_userCoords.insert(value + QLatin1String("end"));
+                        m_userNodes.insert(value + QLatin1String("start"));
+                        m_userNodes.insert(value + QLatin1String("end"));
+                    }
+                };
+                for (int i = 0; i < content.length(); ++i) {
+                    const QChar cc = content.at(i);
+                    if (cc == QLatin1Char('{') || cc == QLatin1Char('['))
+                        depth++;
+                    else if (cc == QLatin1Char('}') || cc == QLatin1Char(']')) {
+                        if (depth > 0) depth--;
+                    }
+                    if (cc == QLatin1Char(',') && depth == 0) {
+                        handlePart();
+                        continue;
+                    }
+                    part.append(cc);
+                }
+                handlePart();
+
+                p = close + 1;
+                if (isEnv) break;      // env options: a single bracket group
+            } else if (!isEnv && c == QLatin1Char('(')) {
+                const int close = text.indexOf(QLatin1Char(')'), p);
+                if (close < 0) break;
+                p = close + 1;
+            } else if (!isEnv && c == QLatin1Char('a')
+                       && text.mid(p, 2) == QLatin1String("at")
+                       && (p + 2 >= n
+                           || !text.at(p + 2).isLetterOrNumber())) {
+                p += 2;
+            } else {
+                break;
+            }
+        }
+    }
+}
+
 void TikzDocumentState::handleBeginScope(const QString &envName, int pos, int braceDepth)
 {
     if (!m_tikzEnvSet.contains(envName)) return;
+    // Environments imply completion libraries: writing \begin{circuitikz}
+    // means circuitikz completions must be available even when the snippet
+    // itself carries no \usepackage line (the wrapper template provides the
+    // package at compile time). Same for the pgfplots axis family, tikz-cd
+    // and tikz-feynman.
+    if (envName == QLatin1String("circuitikz")) {
+        m_activeLibs.insert(QStringLiteral("circuitikz"));
+    } else if (envName == QLatin1String("tikzcd")) {
+        m_activeLibs.insert(QStringLiteral("cd"));
+    } else if (envName == QLatin1String("feynman")) {
+        m_activeLibs.insert(QStringLiteral("tikz-feynman"));
+    } else if (envName == QLatin1String("axis")
+               || envName == QLatin1String("semilogxaxis")
+               || envName == QLatin1String("semilogyaxis")
+               || envName == QLatin1String("loglogaxis")
+               || envName == QLatin1String("polaraxis")
+               || envName == QLatin1String("ternaryaxis")
+               || envName == QLatin1String("smithchart")
+               || envName == QLatin1String("groupplot")) {
+        m_activeLibs.insert(QStringLiteral("pgfplots"));
+    }
     Scope scope;
     scope.env = envName;
     scope.startPos = pos;

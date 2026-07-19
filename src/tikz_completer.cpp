@@ -268,6 +268,13 @@ void TikzCompleter::doComplete(bool manual)
     case TkzCtxCoord: {
         int lp = textBefore.lastIndexOf('(');
         if (lp >= 0) prefix = textBefore.mid(lp + 1);
+        // The perpendicular coordinate operators -| and |- introduce a second
+        // name inside the same parens (e.g. "(FB -| OA.out)"); complete only
+        // the name currently being typed after the operator.
+        const int perpIdx = qMax(prefix.lastIndexOf(QLatin1String("-|")),
+                                 prefix.lastIndexOf(QLatin1String("|-")));
+        if (perpIdx >= 0)
+            prefix = leftTrimmed(prefix.mid(perpIdx + 2));
         break;
     }
     case TkzCtxCoordSysKey: {

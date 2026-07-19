@@ -3250,6 +3250,107 @@ static int test_graphs_and_matrix_options()
     return failed;
 }
 
+// Regression (user report): node names declared by the PATH OPERATION form
+// 'node [opts] (name)' (no backslash) were never offered in coordinate
+// completion. Exact circuitikz op-amp example from the report.
+static int test_path_op_node_name_completion()
+{
+    int failed = 0;
+    QPlainTextEdit editor;
+    editor.show();
+    TikzCompleter completer(&editor);
+
+    QTextDocument doc;
+    doc.setPlainText(
+        "\\begin{circuitikz}[scale=1.2,european]\n"
+        "\\draw (0,0) node[above] {$v_i$} to [short,o-] ++ (1,0) node [op amp,noinv input up,anchor=+] (OA) {\\texttt{OA1}} ;\n"
+        "\\draw (OA.-) to[short,-*] ++(0,-1) coordinate (FB) -- ++(0,-0.5)  to[R=$R_1$] ++(0,-1)  node[ground]{};\n"
+        "\\draw (FB) to [R=$R_2$] (FB -| OA.out) to[short,-*] (OA.out);\n"
+        "\\end{circuitikz}\n");
+    TikzDocumentState state;
+    state.reparse(&doc);
+    completer.setDocumentState(&state);
+    completer.updateUserModels();
+
+    // The coordinate-completion model must offer both the path-op node (OA)
+    // and the inline coordinate (FB).
+    const QStringList coords = completer.modelWordsForContext(TikzCompleter::TkzCtxCoord);
+    if (!coords.contains(QStringLiteral("OA"))) {
+        fprintf(stderr, "FAIL: OPN-1 - coord model must contain path-op node 'OA'\n");
+        failed++;
+    }
+    if (!coords.contains(QStringLiteral("FB"))) {
+        fprintf(stderr, "FAIL: OPN-2 - coord model must contain 'FB'\n");
+        failed++;
+    }
+
+    // Typing "(O" inside the picture must pop up and complete to OA.
+    {
+        editor.setPlainText(QStringLiteral("\\draw (O"));
+        editor.moveCursor(QTextCursor::End);
+        completer.tryComplete();
+        if (!completer.isPopupVisible()) {
+            fprintf(stderr, "FAIL: OPN-3 - no popup for '(O' with node OA defined\n");
+            failed++;
+        } else {
+            QKeyEvent ret(QEvent::KeyPress, Qt::Key_Return, Qt::NoModifier);
+            completer.handleCompletionKey(&ret);
+            if (!editor.toPlainText().contains(QStringLiteral("(OA"))) {
+                fprintf(stderr, "FAIL: OPN-4 - accepting completion should insert OA (got '%s')\n",
+                        editor.toPlainText().toUtf8().constData());
+                failed++;
+            }
+        }
+    }
+
+    // After the perpendicular operator -| the second name must complete too:
+    // "(FB -| O" → prefix "O" → OA (previously the whole "FB -| O" was used
+    // as prefix and nothing matched).
+    {
+        editor.setPlainText(QStringLiteral("\\draw (FB) to [R=$R_2$] (FB -| O"));
+        editor.moveCursor(QTextCursor::End);
+        completer.tryComplete();
+        if (!completer.isPopupVisible()) {
+            fprintf(stderr, "FAIL: OPN-5 - no popup after '-|' operator\n");
+            failed++;
+        } else {
+            QKeyEvent ret(QEvent::KeyPress, Qt::Key_Return, Qt::NoModifier);
+            completer.handleCompletionKey(&ret);
+            if (!editor.toPlainText().contains(QStringLiteral("(FB -| OA"))) {
+                fprintf(stderr, "FAIL: OPN-6 - '-|' completion mangled text: '%s'\n",
+                        editor.toPlainText().toUtf8().constData());
+                failed++;
+            }
+        }
+    }
+
+    // "(FB -| OA." must switch to anchor (dot) completion — circuitikz is
+    // active via \begin{circuitikz}, so op-amp anchors like 'out' are offered.
+    {
+        const TikzCompleter::Context ctx = completer.detectContext(
+            QStringLiteral("\\draw (FB) to [R=$R_2$] (FB -| OA."));
+        if (ctx != TikzCompleter::TkzCtxDot) {
+            fprintf(stderr, "FAIL: OPN-7 - '(FB -| OA.' should be Dot context (got %d)\n",
+                    static_cast<int>(ctx));
+            failed++;
+        }
+        completer.updateUserModels();
+        const QStringList anchors = completer.modelWordsForContext(TikzCompleter::TkzCtxDot);
+        if (!anchors.contains(QStringLiteral("out"))) {
+            fprintf(stderr, "FAIL: OPN-8 - 'out' anchor missing (circuitikz active via env)\n");
+            failed++;
+        }
+        if (!anchors.contains(QStringLiteral("+")) || !anchors.contains(QStringLiteral("-"))) {
+            fprintf(stderr, "FAIL: OPN-9 - op-amp '+'/'-' anchors missing\n");
+            failed++;
+        }
+    }
+
+    if (failed == 0)
+        fprintf(stderr, "PASS: path-op node name completion (op amp regression)\n");
+    return failed;
+}
+
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
@@ -3304,6 +3405,7 @@ int main(int argc, char *argv[])
     failed += test_to_path_completion();
     failed += test_graphs_and_matrix_options();
     failed += test_coordinate_system_completion();
+    failed += test_path_op_node_name_completion();
 
     if (failed > 0) {
         fprintf(stderr, "\n%d test(s) failed!\n", failed);

@@ -85,6 +85,12 @@ private:
     void handleBeginScope(const QString &envName, int pos, int braceDepth);
     void handleEndScope(const QString &envName, int pos);
 
+    // Extracts names assigned via the name= (and circuitikz's n=) option key
+    // inside the bracket groups of node/pic/coordinate/matrix/to operations
+    // and pgfplots axis-like environments. Brace-aware, so option values
+    // containing brackets or commas (label={[red]...}) cannot derail it.
+    void extractOptionNames(const QString &text);
+
     // Packages that imply completion libraries (circuitikz → circuitikz,
     // tikz-cd → cd, ...). Shared by code parsing, metadata and templates.
     static void addPackageImplications(const QString &pkg, QSet<QString> &libs);
@@ -102,6 +108,7 @@ private:
     QRegularExpression m_newcmdRe;
     QRegularExpression m_defRe;
     QRegularExpression m_nodeRe;
+    QRegularExpression m_nodeOpRe;
     QRegularExpression m_styleInTikzsetRe;
     QRegularExpression m_commentRe;
     QRegularExpression m_usepackageRe;

@@ -660,6 +660,288 @@ static int test_metadata_package_implications()
     return failed;
 }
 
+// Path-operation node names: 'node [opts] (name)' inside a \draw/\path (no
+// backslash) must be extracted. This is the exact circuitikz op-amp example
+// from the bug report: the node (OA) was never offered in completion.
+static int test_path_op_node_names()
+{
+    int failed = 0;
+    QTextDocument doc;
+    doc.setPlainText(
+        "\\begin{circuitikz}[scale=1.2,european]\n"
+        "\\draw (0,0) node[above] {$v_i$} to [short,o-] ++ (1,0) node [op amp,noinv input up,anchor=+] (OA) {\\texttt{OA1}} ;\n"
+        "\\draw (OA.-) to[short,-*] ++(0,-1) coordinate (FB) -- ++(0,-0.5)  to[R=$R_1$] ++(0,-1)  node[ground]{};\n"
+        "\\draw (FB) to [R=$R_2$] (FB -| OA.out) to[short,-*] (OA.out);\n"
+        "\\end{circuitikz}\n");
+    TikzDocumentState state;
+    state.reparse(&doc);
+    const auto &nodes = state.userNodes();
+
+    if (!nodes.contains("OA")) {
+        fprintf(stderr, "FAIL: DCS-OP1 - path-op 'node [op amp,...] (OA)' not extracted\n");
+        failed++;
+    }
+    if (!state.userCoordinates().contains("FB")) {
+        fprintf(stderr, "FAIL: DCS-OP2 - inline 'coordinate (FB)' missing\n");
+        failed++;
+    }
+    // Coordinates must never be mistaken for node names.
+    if (nodes.contains("1,0") || nodes.contains("0,-1") || nodes.contains("0,-0.5")) {
+        fprintf(stderr, "FAIL: DCS-OP3 - coordinate mistaken for a node name\n");
+        failed++;
+    }
+    // Anchor references are reads, not definitions — but the base name is
+    // already known; just ensure the dotted forms don't leak in.
+    if (nodes.contains("OA.-") || nodes.contains("OA.out")) {
+        fprintf(stderr, "FAIL: DCS-OP4 - anchor reference leaked as node name\n");
+        failed++;
+    }
+    if (failed == 0) fprintf(stderr, "PASS: path-op node names (circuitikz op amp)\n");
+    return failed;
+}
+
+// The node/pic argument groups ([options], (name), at (coord)) may appear in
+// ANY order and multiple times (tikz.code.tex): "node[draw] (a) [rotate=10]".
+// 'at (...)' coordinates must never be captured as names.
+static int test_node_group_order_variants()
+{
+    int failed = 0;
+    QTextDocument doc;
+    doc.setPlainText(
+        "\\node (n1) [draw] {a};\n"
+        "\\node[draw] (n2) at (0,0) {b};\n"
+        "\\node at (0,0) (n3) {c};\n"
+        "\\node[draw] [rotate=10] (n4) {d};\n"
+        "\\node at ($(a)+(1,0)$) (n5) {e};\n"
+        "\\draw (0,0) -- (1,1) node (n6) at (2,2) {f};\n"
+        "\\draw (0,0) pic[red] (arc1) {angle = A--B--C};\n"
+        "\\node at (3,4) {no name};\n"
+        "\\draw (0,0) node at (5,6) {no name either};\n");
+    TikzDocumentState state;
+    state.reparse(&doc);
+    const auto &nodes = state.userNodes();
+
+    const char *expected[] = {"n1","n2","n3","n4","n5","n6","arc1",nullptr};
+    for (int i = 0; expected[i]; ++i) {
+        if (!nodes.contains(QString::fromUtf8(expected[i]))) {
+            fprintf(stderr, "FAIL: DCS-GO1 - node '%s' not extracted\n", expected[i]);
+            failed++;
+        }
+    }
+    // The at-coordinates must not leak in as node names.
+    const char *bogus[] = {"0,0","2,2","3,4","5,6","$(a)+(1,0)$",nullptr};
+    for (int i = 0; bogus[i]; ++i) {
+        if (nodes.contains(QString::fromUtf8(bogus[i]))) {
+            fprintf(stderr, "FAIL: DCS-GO2 - at-coordinate '%s' leaked as node name\n", bogus[i]);
+            failed++;
+        }
+    }
+    if (failed == 0) fprintf(stderr, "PASS: node group order variants\n");
+    return failed;
+}
+
+// \matrix is \path node[matrix] (tikz.code.tex line 1962): its (name) and
+// name= option must be extracted like any node name.
+static int test_matrix_names()
+{
+    int failed = 0;
+    QTextDocument doc;
+    doc.setPlainText(
+        "\\matrix (m) [matrix of math nodes] {a & b \\\\ c & d \\\\};\n"
+        "\\matrix[name=mm, matrix of nodes] {x & y \\\\};\n");
+    TikzDocumentState state;
+    state.reparse(&doc);
+    if (!state.userNodes().contains("m")) {
+        fprintf(stderr, "FAIL: DCS-MX1 - \\matrix (m) name not extracted\n");
+        failed++;
+    }
+    if (!state.userNodes().contains("mm")) {
+        fprintf(stderr, "FAIL: DCS-MX2 - \\matrix[name=mm] not extracted\n");
+        failed++;
+    }
+    if (failed == 0) fprintf(stderr, "PASS: matrix names\n");
+    return failed;
+}
+
+// circuitikz components named via to[R, name=R1] (or the n= shorthand) create
+// a node R1 plus the coordinates R1start/R1end (pgfcircpath.tex). Outside
+// circuitikz, name= in to[...] is still collected but without start/end.
+static int test_to_component_names()
+{
+    int failed = 0;
+    QTextDocument doc;
+    doc.setPlainText(
+        "\\begin{circuitikz}\n"
+        "\\draw (0,0) to[R, name=R1] (2,0) to[C=$C_1$, n=C1] (4,0);\n"
+        "\\draw (0,0) to[battery1, name={my batt}] (0,2);\n"
+        "\\end{circuitikz}\n");
+    TikzDocumentState state;
+    state.reparse(&doc);
+    const auto &nodes = state.userNodes();
+
+    if (!nodes.contains("R1")) {
+        fprintf(stderr, "FAIL: DCS-TO1 - to[R, name=R1] not extracted\n");
+        failed++;
+    }
+    if (!nodes.contains("C1")) {
+        fprintf(stderr, "FAIL: DCS-TO2 - to[..., n=C1] shorthand not extracted\n");
+        failed++;
+    }
+    if (!nodes.contains("my batt")) {
+        fprintf(stderr, "FAIL: DCS-TO3 - brace-wrapped to[name={my batt}] not extracted\n");
+        failed++;
+    }
+    if (!state.userCoordinates().contains("R1start")
+        || !state.userCoordinates().contains("R1end")) {
+        fprintf(stderr, "FAIL: DCS-TO4 - circuitikz R1start/R1end coordinates missing\n");
+        failed++;
+    }
+    // The component value must not be mistaken for a name (R=..., C=...).
+    if (nodes.contains("$C_1$")) {
+        fprintf(stderr, "FAIL: DCS-TO5 - component value leaked as name\n");
+        failed++;
+    }
+
+    // Outside circuitikz: name= accepted, n= and start/end must NOT apply.
+    QTextDocument doc2;
+    doc2.setPlainText(
+        "\\begin{tikzpicture}\n"
+        "\\draw (0,0) to[out=90,in=180, name=plainX] (2,2);\n"
+        "\\draw (0,0) to[bend left, n=notacomp] (1,1);\n"
+        "\\end{tikzpicture}\n");
+    TikzDocumentState state2;
+    state2.reparse(&doc2);
+    if (!state2.userNodes().contains("plainX")) {
+        fprintf(stderr, "FAIL: DCS-TO6 - plain tikz to[name=...] not extracted\n");
+        failed++;
+    }
+    if (state2.userCoordinates().contains("plainXstart")) {
+        fprintf(stderr, "FAIL: DCS-TO7 - start/end coords must be circuitikz-only\n");
+        failed++;
+    }
+    if (state2.userNodes().contains("notacomp")) {
+        fprintf(stderr, "FAIL: DCS-TO8 - n= shorthand must be circuitikz-only\n");
+        failed++;
+    }
+    if (failed == 0) fprintf(stderr, "PASS: to[...] component names\n");
+    return failed;
+}
+
+// pgfplots' /pgfplots/name forwards to /tikz/name (pgfplots.code.tex:2343):
+// \begin{axis}[name=ax1] names the axis node for later reference.
+static int test_axis_env_name()
+{
+    int failed = 0;
+    QTextDocument doc;
+    doc.setPlainText(
+        "\\begin{axis}[name=ax1, xlabel={$x$}]\n"
+        "\\addplot {x^2};\n"
+        "\\end{axis}\n"
+        "\\begin{groupplot}[name=gp, group style={group size=2 by 1}]\n"
+        "\\end{groupplot}\n");
+    TikzDocumentState state;
+    state.reparse(&doc);
+    if (!state.userNodes().contains("ax1")) {
+        fprintf(stderr, "FAIL: DCS-AX1 - \\begin{axis}[name=ax1] not extracted\n");
+        failed++;
+    }
+    if (!state.userNodes().contains("gp")) {
+        fprintf(stderr, "FAIL: DCS-AX2 - \\begin{groupplot}[name=gp] not extracted\n");
+        failed++;
+    }
+    if (failed == 0) fprintf(stderr, "PASS: axis env name= extraction\n");
+    return failed;
+}
+
+// Environments imply completion libraries: \begin{circuitikz} without any
+// \usepackage line must still activate circuitikz completions (the wrapper
+// template provides the package at compile time). Same for tikzcd → cd and
+// the pgfplots axis family → pgfplots.
+static int test_env_implies_libs()
+{
+    int failed = 0;
+    QTextDocument doc;
+    doc.setPlainText(
+        "\\begin{circuitikz}\n\\draw (0,0) to[R] (2,0);\n\\end{circuitikz}\n");
+    TikzDocumentState state;
+    state.reparse(&doc);
+    if (!state.activeLibs().contains("circuitikz")) {
+        fprintf(stderr, "FAIL: DCS-EI1 - \\begin{circuitikz} should activate circuitikz\n");
+        failed++;
+    }
+
+    QTextDocument doc2;
+    doc2.setPlainText("\\begin{tikzcd}\nA \\arrow[r] & B\n\\end{tikzcd}\n");
+    TikzDocumentState state2;
+    state2.reparse(&doc2);
+    if (!state2.activeLibs().contains("cd")) {
+        fprintf(stderr, "FAIL: DCS-EI2 - \\begin{tikzcd} should activate cd\n");
+        failed++;
+    }
+
+    QTextDocument doc3;
+    doc3.setPlainText("\\begin{axis}\n\\addplot {x};\n\\end{axis}\n");
+    TikzDocumentState state3;
+    state3.reparse(&doc3);
+    if (!state3.activeLibs().contains("pgfplots")) {
+        fprintf(stderr, "FAIL: DCS-EI3 - \\begin{axis} should activate pgfplots\n");
+        failed++;
+    }
+
+    // A plain tikzpicture must NOT activate any of these.
+    QTextDocument doc4;
+    doc4.setPlainText("\\begin{tikzpicture}\n\\draw (0,0) -- (1,1);\n\\end{tikzpicture}\n");
+    TikzDocumentState state4;
+    state4.reparse(&doc4);
+    if (state4.activeLibs().contains("circuitikz")
+        || state4.activeLibs().contains("cd")
+        || state4.activeLibs().contains("pgfplots")) {
+        fprintf(stderr, "FAIL: DCS-EI4 - tikzpicture must not imply extra libs\n");
+        failed++;
+    }
+    if (failed == 0) fprintf(stderr, "PASS: environments imply completion libs\n");
+    return failed;
+}
+
+// A trailing depth-0 '%' comment previously aborted the whole-line scans, so
+// names defined before the comment were lost. Escaped \% must not count as a
+// comment at all.
+static int test_trailing_comment_keeps_names()
+{
+    int failed = 0;
+    QTextDocument doc;
+    doc.setPlainText(
+        "\\draw (0,0) coordinate (K1) -- (1,1); % note about K1\n"
+        "\\draw (0,0) node (K2) {} ; % another note\n"
+        "\\tikzset{combox/.style={draw}} % style comment\n"
+        "\\coordinate (A) at (0,0); \\% literal percent \\coordinate (B) at (1,1);\n"
+        "% node (dead) {} — full-line comment must stay ignored\n");
+    TikzDocumentState state;
+    state.reparse(&doc);
+    if (!state.userCoordinates().contains("K1")) {
+        fprintf(stderr, "FAIL: DCS-TC1 - 'K1' lost to trailing comment\n");
+        failed++;
+    }
+    if (!state.userNodes().contains("K2")) {
+        fprintf(stderr, "FAIL: DCS-TC2 - 'K2' lost to trailing comment\n");
+        failed++;
+    }
+    if (!state.userStyles().contains("combox")) {
+        fprintf(stderr, "FAIL: DCS-TC3 - style 'combox' lost to trailing comment\n");
+        failed++;
+    }
+    if (!state.userCoordinates().contains("B")) {
+        fprintf(stderr, "FAIL: DCS-TC4 - 'B' lost after escaped \\%%\n");
+        failed++;
+    }
+    if (state.userNodes().contains("dead")) {
+        fprintf(stderr, "FAIL: DCS-TC5 - full-line comment content leaked\n");
+        failed++;
+    }
+    if (failed == 0) fprintf(stderr, "PASS: trailing comments keep names\n");
+    return failed;
+}
+
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
@@ -687,6 +969,13 @@ int main(int argc, char *argv[])
     failed += test_inline_coordinate_op_parsing();
     failed += test_template_content_activates_libs();
     failed += test_metadata_package_implications();
+    failed += test_path_op_node_names();
+    failed += test_node_group_order_variants();
+    failed += test_matrix_names();
+    failed += test_to_component_names();
+    failed += test_axis_env_name();
+    failed += test_env_implies_libs();
+    failed += test_trailing_comment_keeps_names();
     if (failed > 0) { fprintf(stderr, "\n%d test(s) failed!\n", failed); return 1; }
     fprintf(stderr, "\nAll TikzDocumentState tests passed!\n");
     return 0;
