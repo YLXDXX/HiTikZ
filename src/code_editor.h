@@ -49,6 +49,11 @@ private:
     QTimer *m_reparseTimer = nullptr;
 
     void performHighlightCurrentLine();
+    void performBracketHighlight(QList<QTextEdit::ExtraSelection> &extraSelections);
+    int findMatchingBracket(int pos, QChar bracket, const QTextDocument *doc) const;
+    static QChar closingBracketFor(QChar open);
+    static bool isOpenBracket(QChar ch);
+    static bool isCloseBracket(QChar ch);
 };
 
 class LineNumberArea : public QWidget {

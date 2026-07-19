@@ -20,6 +20,8 @@ CodeEditor::CodeEditor(QWidget *parent)
             this, &CodeEditor::updateLineNumberArea);
     connect(this, &CodeEditor::cursorPositionChanged,
             this, &CodeEditor::highlightCurrentLine);
+    connect(this, &CodeEditor::selectionChanged,
+            this, &CodeEditor::highlightCurrentLine);
 
     updateLineNumberAreaWidth(0);
     highlightCurrentLine();
@@ -473,6 +475,141 @@ void CodeEditor::highlightCurrentLine()
     }
 }
 
+bool CodeEditor::isOpenBracket(QChar ch)
+{
+    return ch == QLatin1Char('{') || ch == QLatin1Char('[')
+        || ch == QLatin1Char('(');
+}
+
+bool CodeEditor::isCloseBracket(QChar ch)
+{
+    return ch == QLatin1Char('}') || ch == QLatin1Char(']')
+        || ch == QLatin1Char(')');
+}
+
+QChar CodeEditor::closingBracketFor(QChar open)
+{
+    if (open == QLatin1Char('{')) return QLatin1Char('}');
+    if (open == QLatin1Char('[')) return QLatin1Char(']');
+    if (open == QLatin1Char('(')) return QLatin1Char(')');
+    return QChar();
+}
+
+int CodeEditor::findMatchingBracket(int pos, QChar bracket, const QTextDocument *doc) const
+{
+    const int totalChars = doc->characterCount();
+    // QTextDocument::characterCount() includes the implicit paragraph
+    // separator at the very end; stay within the actual text range.
+    const int lastIdx = totalChars - 1;
+
+    if (isOpenBracket(bracket)) {
+        const QChar close = closingBracketFor(bracket);
+        int depth = 0;
+        for (int i = pos + 1; i < lastIdx; ++i) {
+            const QChar ch = doc->characterAt(i);
+            if (ch == bracket) {
+                depth++;
+            } else if (ch == close) {
+                if (depth == 0) return i;
+                depth--;
+            }
+        }
+    } else if (isCloseBracket(bracket)) {
+        QChar open;
+        if (bracket == QLatin1Char('}'))      open = QLatin1Char('{');
+        else if (bracket == QLatin1Char(']')) open = QLatin1Char('[');
+        else                                  open = QLatin1Char('(');
+
+        int depth = 0;
+        for (int i = pos - 1; i >= 0; --i) {
+            const QChar ch = doc->characterAt(i);
+            if (ch == bracket) {
+                depth++;
+            } else if (ch == open) {
+                if (depth == 0) return i;
+                depth--;
+            }
+        }
+    }
+    return -1;
+}
+
+void CodeEditor::performBracketHighlight(QList<QTextEdit::ExtraSelection> &extraSelections)
+{
+    QTextCursor cursor = textCursor();
+    QTextDocument *doc = document();
+    const int totalChars = doc->characterCount();
+    if (totalChars <= 1) return;
+
+    int bracketPos = -1;
+    QChar bracket;
+
+    // Priority 1: user has selected a single bracket character.
+    if (cursor.hasSelection()) {
+        const QString sel = cursor.selectedText();
+        if (sel.length() == 1) {
+            const QChar ch = sel.at(0);
+            if (isOpenBracket(ch) || isCloseBracket(ch)) {
+                bracket = ch;
+                bracketPos = cursor.selectionStart();
+            }
+        }
+    }
+
+    // Priority 2: cursor is next to (left or right of) a bracket.
+    if (bracketPos < 0) {
+        const int pos = cursor.position();
+
+        // Check the character to the right of cursor.
+        if (pos < totalChars - 1) {
+            const QChar ch = doc->characterAt(pos);
+            if (isOpenBracket(ch) || isCloseBracket(ch)) {
+                bracket = ch;
+                bracketPos = pos;
+            }
+        }
+
+        // Check the character to the left of cursor.
+        if (bracketPos < 0 && pos > 0) {
+            const QChar ch = doc->characterAt(pos - 1);
+            if (isOpenBracket(ch) || isCloseBracket(ch)) {
+                bracket = ch;
+                bracketPos = pos - 1;
+            }
+        }
+    }
+
+    if (bracketPos < 0) return;
+
+    const int matchPos = findMatchingBracket(bracketPos, bracket, doc);
+
+    // Highlight the bracket at bracketPos.
+    {
+        QTextEdit::ExtraSelection sel;
+        QTextCursor hc(doc);
+        hc.setPosition(bracketPos);
+        hc.setPosition(bracketPos + 1, QTextCursor::KeepAnchor);
+        if (matchPos >= 0) {
+            sel.format.setBackground(QColor(100, 200, 255));
+        } else {
+            sel.format.setBackground(QColor(255, 100, 100));
+        }
+        sel.cursor = hc;
+        extraSelections.append(sel);
+    }
+
+    // Highlight the match.
+    if (matchPos >= 0) {
+        QTextEdit::ExtraSelection sel;
+        QTextCursor mc(doc);
+        mc.setPosition(matchPos);
+        mc.setPosition(matchPos + 1, QTextCursor::KeepAnchor);
+        sel.format.setBackground(QColor(100, 200, 255));
+        sel.cursor = mc;
+        extraSelections.append(sel);
+    }
+}
+
 void CodeEditor::performHighlightCurrentLine()
 {
     QList<QTextEdit::ExtraSelection> extraSelections;
@@ -515,6 +652,8 @@ void CodeEditor::performHighlightCurrentLine()
             }
         }
     }
+
+    performBracketHighlight(extraSelections);
 
     setExtraSelections(extraSelections);
 }

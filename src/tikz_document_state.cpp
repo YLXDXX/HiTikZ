@@ -63,8 +63,8 @@ TikzDocumentState::TikzDocumentState()
         QStringLiteral("|") + atClause +
         QStringLiteral(")\\s*)*\\(([^)]+)\\)"));
     m_styleInTikzsetRe = QRegularExpression(
-        QStringLiteral("([\\w\\s]+)/\\.(style|code|pic|append style|prefix style)"
-                       "\\s*=\\s*\\{"));
+        QStringLiteral("([\\w\\s-]+)/\\.(style|code|pic|append style|prefix style)"
+                        "\\s*=\\s*\\{"));
     m_commentRe = QRegularExpression(QStringLiteral("%"));
     m_usepackageRe = QRegularExpression(
         QStringLiteral("\\\\usepackage\\s*(?:\\[[^\\]]*\\]\\s*)?\\{([^}]*)\\}"));

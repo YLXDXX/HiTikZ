@@ -954,6 +954,38 @@ static int test_trailing_comment_keeps_names()
     return failed;
 }
 
+// Regression: style names with hyphens (sr-ff, my-pic-name) were never
+// captured because [\w\s]+ excluded '-'. The regex hit 'sr' then '/' could
+// not match the hyphen and the whole style was lost.
+static int test_style_name_with_hyphen()
+{
+    int failed = 0;
+    QTextDocument doc;
+    doc.setPlainText(
+        "\\tikzset{\n"
+        "  sr-ff/.style={flipflop,flipflop def={t1=S,t2=CP}},\n"
+        "  my-pic/.pic={draw,circle},\n"
+        "  test-lines/.style={color=#1!20,very thin},\n"
+        "}\n");
+    TikzDocumentState state;
+    state.reparse(&doc);
+    const auto &styles = state.userStyles();
+    if (!styles.contains("sr-ff")) {
+        fprintf(stderr, "FAIL: DCS-SH1 - 'sr-ff' with hyphen should be detected\n");
+        failed++;
+    }
+    if (!state.userPics().contains("my-pic")) {
+        fprintf(stderr, "FAIL: DCS-SH2 - 'my-pic' (pic kind) should be detected\n");
+        failed++;
+    }
+    if (!styles.contains("test-lines")) {
+        fprintf(stderr, "FAIL: DCS-SH3 - 'test-lines' with hyphen should be detected\n");
+        failed++;
+    }
+    if (failed == 0) fprintf(stderr, "PASS: style names with hyphen\n");
+    return failed;
+}
+
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
@@ -988,6 +1020,7 @@ int main(int argc, char *argv[])
     failed += test_axis_env_name();
     failed += test_env_implies_libs();
     failed += test_trailing_comment_keeps_names();
+    failed += test_style_name_with_hyphen();
     if (failed > 0) { fprintf(stderr, "\n%d test(s) failed!\n", failed); return 1; }
     fprintf(stderr, "\nAll TikzDocumentState tests passed!\n");
     return 0;

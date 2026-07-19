@@ -466,6 +466,95 @@ static int test_dir_removal_on_failure()
     return failed;
 }
 
+// Bracket-match algorithm: test the same character-by-character depth-tracking
+// logic used by CodeEditor::findMatchingBracket. No regex, works across lines.
+static int test_bracket_matching()
+{
+    int failed = 0;
+
+    // Replicate the matching algorithm from code_editor.cpp so the logic
+    // can be tested independently of the widget (no extra-selection API).
+    auto findMatch = [](const QString &text, int pos, QChar bracket) -> int {
+        auto isOpen = [](QChar c) {
+            return c == QLatin1Char('{') || c == QLatin1Char('[')
+                || c == QLatin1Char('(');
+        };
+        auto isClose = [](QChar c) {
+            return c == QLatin1Char('}') || c == QLatin1Char(']')
+                || c == QLatin1Char(')');
+        };
+        if (isOpen(bracket)) {
+            QChar close;
+            if (bracket == QLatin1Char('{'))      close = QLatin1Char('}');
+            else if (bracket == QLatin1Char('[')) close = QLatin1Char(']');
+            else                                  close = QLatin1Char(')');
+            int depth = 0;
+            for (int i = pos + 1; i < text.length(); ++i) {
+                if (text.at(i) == bracket) depth++;
+                else if (text.at(i) == close) {
+                    if (depth == 0) return i;
+                    depth--;
+                }
+            }
+        } else if (isClose(bracket)) {
+            QChar open;
+            if (bracket == QLatin1Char('}'))      open = QLatin1Char('{');
+            else if (bracket == QLatin1Char(']')) open = QLatin1Char('[');
+            else                                  open = QLatin1Char('(');
+            int depth = 0;
+            for (int i = pos - 1; i >= 0; --i) {
+                if (text.at(i) == bracket) depth++;
+                else if (text.at(i) == open) {
+                    if (depth == 0) return i;
+                    depth--;
+                }
+            }
+        }
+        return -1;
+    };
+
+    struct Case { const char *text; int pos; QChar bracket; int expected; const char *desc; };
+    const Case cases[] = {
+        // Simple pairs
+        { "{hello}", 0, '{',  6, "simple { }" },
+        { "{hello}", 6, '}',  0, "simple } {" },
+        { "[world]", 0, '[',  6, "simple [ ]" },
+        { "(test)",  0, '(',  5, "simple ( )" },
+        // Nested same type
+        { "{a{b}c}", 0, '{',  6, "outer {" },
+        { "{a{b}c}", 2, '{',  4, "inner {" },
+        { "{a{b}c}", 6, '}',  0, "outer }" },
+        { "{a{b}c}", 4, '}',  2, "inner }" },
+        // Mixed types
+        { "{[()]}",  0, '{',  5, "{[()]} outer {" },
+        { "{[()]}",  1, '[',  4, "{[()]} [" },
+        { "{[()]}",  2, '(',  3, "{[()]} (" },
+        { "{[()]}",  5, '}',  0, "{[()]} outer }" },
+        // Multi-line simulation — \n is 1 char
+        { "{\n  [hi]\n}", 0, '{',  9, "multiline {" },
+        { "{\n  [hi]\n}", 9, '}',  0, "multiline }" },
+        { "{\n  [hi]\n}", 4, '[',  7, "multiline [" },
+        // Unmatched
+        { "abc{def", 3, '{', -1, "unmatched {" },
+        { "abc}def", 3, '}', -1, "unmatched }" },
+        { "(",       0, '(', -1, "unmatched (" },
+        // Cursor adjacent to bracket
+        { "x{y}z", 1, '{',  3, "{ after x" },
+        { "x{y}z", 3, '}',  1, "} before z" },
+    };
+
+    for (const auto &c : cases) {
+        int result = findMatch(QString::fromUtf8(c.text), c.pos, c.bracket);
+        if (result != c.expected) {
+            fprintf(stderr, "FAIL: FIX-BM - '%s' pos=%d bracket='%c': expected %d, got %d\n",
+                    c.text, c.pos, c.bracket.toLatin1(), c.expected, result);
+            failed++;
+        }
+    }
+    if (failed == 0) fprintf(stderr, "PASS: bracket matching algorithm\n");
+    return failed;
+}
+
 int main(int argc, char *argv[]) {
     QCoreApplication app(argc, argv);
     int failed = 0;
@@ -481,6 +570,7 @@ int main(int argc, char *argv[]) {
     failed += test_scratch_file_cleanup();
     failed += test_path_contains_dangerous_chars();
     failed += test_dir_removal_on_failure();
+    failed += test_bracket_matching();
 
     if (failed > 0) {
         fprintf(stderr, "\n%d test(s) failed!\n", failed);
