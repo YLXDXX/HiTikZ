@@ -1275,8 +1275,8 @@ static int test_circuitikz_components_accurate()
         "cute_inductor", "american_inductor", "vvarcapacitor", "elco",
         "solarcell", "closingswitch", "openingswitch", "ospt", "noground",
         "emptygeneric", "fourport", "transformercore", "delayline",
-        "nchenh", "nchdep", "pchdep", "coils", "vcoils", "resistorshape",
-        "capacitorshape", "pTy", "qqQ", "vQshape", "diacshape",
+        "nchenh", "nchdep", "pchdep", "coils", "vcoils",
+        "pTy", "qqQ", "vQshape", "diacshape",
         // Internal bipole shape names (2nd arg of \pgfcirc@activate@bipole) that
         // are NOT valid to[...]/node[...] keys — verified to error under xelatex.
         // The spaced/shortcut forms (e.g. "cute inductor", "polar capacitor",
@@ -1295,15 +1295,20 @@ static int test_circuitikz_components_accurate()
         }
     }
 
-    // No leftover generated '<name>shape' single-word junk (real shapes never end
-    // in a bare "shape" suffix like "resistorshape").
+    // <name>shape forms are valid shapes declared via \pgfcircdeclarebipolescaled
+    // (pgfcirc.defines.tex:697) — e.g. resistorshape, potentiometershape.
+    // Only flag truly bogus entries where the base name is not itself
+    // a known component.
     for (const QString &w : combined) {
         if (w.endsWith(QLatin1String("shape")) && !w.contains(' ')
             && w != QLatin1String("shape")
             && w != QLatin1String("pgfdeclareshape")) {
-            fprintf(stderr, "FAIL: CTK-2 - leftover shape-suffix junk entry '%s'\n",
-                    w.toUtf8().constData());
-            failed++;
+            QString base = w.left(w.length() - 5); // remove "shape"
+            if (!set.contains(base)) {
+                fprintf(stderr, "FAIL: CTK-2 - orphan shape-suffix entry '%s' (base '%s' unknown)\n",
+                        w.toUtf8().constData(), base.toUtf8().constData());
+                failed++;
+            }
         }
     }
 
@@ -1340,7 +1345,7 @@ static int test_circuitikz_components_accurate()
         "american nor port", "european nor port", "and port", "nand port",
         "buffer port", "vcc", "vss", "vdd", "vee", "ocirc", "diamondpole",
         "schmitt port", "invschmitt port", "tgate", "double tgate",
-        "ieee tgate", "ieee double tgate",
+        "ieee tgate", "ieee double tgate", "potentiometershape",
         nullptr
     };
     for (int i = 0; validShapes[i]; ++i) {

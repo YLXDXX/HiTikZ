@@ -8,8 +8,10 @@ void registerExtended(Vec &db)
     // Authoritative list of node shapes (logic ports, transistors, grounds,
     // supplies, amplifiers, terminals, ...) extracted from the CircuiTikZ 1.7.1
     // sources (\pgfdeclareshape, gate .style expansions and ground/supply
-    // declarations). Registered as genuine shapes usable via node[...] — no
-    // bogus 'shape'-suffixed or misspelled entries are generated.
+    // declarations). Registered as genuine shapes usable via node[...].
+    // NOTE: Many bipoles also have a '<bipole>shape' form declared via
+    // \pgfcircdeclarebipolescaled (pgfcirc.defines.tex:697); these are valid
+    // node[...] shapes (see manual sections on bipole border anchors).
     auto ctikzNodeEnvs = {"tikzpicture","scope","circuitikz"};
     const char *ctikzNodeShapes[] = {
         "Lnigbt", "Lpigbt", "adder", "american and port", "american buffer port",
@@ -33,7 +35,7 @@ void registerExtended(Vec &db)
         "ocirc", "odiamondpole", "op amp", "or port", "oscillator",
         "osquarepole", "pfet", "pground", "pigbt", "pigfetd",
         "pigfete", "pigfetebulk", "pjfet", "plain amp", "plain crossing",
-        "plain mono amp", "pmos", "pmosd", "pnp", "proximeter",
+        "plain mono amp", "pmos", "pmosd", "pnp", "potentiometershape", "proximeter",
         "qfpchip", "rground", "rotaryswitch", "rxantenna", "schmitt",
         "schmitt port", "schmitt symbol", "sground", "spdt", "splitter", "squarepole",
         "tgate", "tground", "tlground", "tlinestub", "txantenna", "vcc",
