@@ -1334,10 +1334,12 @@ static int test_circuitikz_components_accurate()
         "resistor", "inductor", "potentiometer", "variable resistor",
         "variable inductor", "inductive sensor", "resistive sensor",
         "light dependent resistor", "vcc", "vee",
-        // Inline port components (verified CircuiTikZ 1.7.1 pgfcirctripoles.tex:2837-2843,
-        // pgfcircbipoles.tex:5777)
+        // Inline port components
         "inline not", "inline buffer", "inline schmitt", "inline invschmitt",
         "inline tgate", "inline double tgate", "inline proximeter",
+        // Diode-family full/empty/stroke variants (pgfcircbipoles.tex:4794-4836)
+        "full diode", "empty diode", "stroke diode",
+        "Do", "D-", "leDo", "leD-", "pDo", "pD-", "zDo", "zD-",
         nullptr
     };
     for (int i = 0; validComponents[i]; ++i) {

@@ -87,6 +87,33 @@ void registerCommands(Vec &db)
         "vsourcesin", "vsourcesquare", "vsourcetri", "vss", "vtattenuator",
         "wfuse", "wiggly fuse", "xgeneric", "xing", "zD",
         "Zener diode", "zzD", "ZZener diode",
+        // Full/empty/stroke diode-family variants (pgfcircbipoles.tex:4794-4836)
+        "full diode", "full Zener diode", "full ZZener diode",
+        "full Schottky diode", "full tunnel diode", "full led",
+        "full laser diode", "full photodiode", "full varcap",
+        "full TVS diode", "full Shockley diode", "full bidirectionaldiode",
+        "full thyristor", "full put", "full gto", "full gtobar",
+        "full agtobar", "full triac",
+        "empty diode", "empty Zener diode", "empty ZZener diode",
+        "empty Schottky diode", "empty tunnel diode", "empty led",
+        "empty laser diode", "empty photodiode", "empty varcap",
+        "empty TVS diode", "empty Shockley diode", "empty bidirectionaldiode",
+        "empty thyristor", "empty put", "empty gto", "empty gtobar",
+        "empty agtobar", "empty triac",
+        "stroke diode", "stroke Zener diode", "stroke ZZener diode",
+        "stroke Schottky diode", "stroke tunnel diode", "stroke led",
+        "stroke laser diode", "stroke photodiode", "stroke varcap",
+        "stroke TVS diode", "stroke Shockley diode", "stroke bidirectionaldiode",
+        "stroke thyristor", "stroke put", "stroke gto", "stroke gtobar",
+        "stroke agtobar", "stroke triac",
+        // Diode shortcut suffixes: o (empty), - (stroke);
+        // * variants already registered with fulldiode family above
+        "Do", "zDo", "zzDo", "sDo", "tDo", "leDo", "lasDo", "pDo",
+        "VCo", "tvsDo", "shDo", "biDo", "Tyo", "PUTo", "GTOo",
+        "GTObo", "aGTObo", "Tro",
+        "D-", "zD-", "zzD-", "sD-", "tD-", "leD-", "lasD-", "pD-",
+        "VC-", "tvsD-", "shD-", "biD-", "Ty-", "PUT-", "GTO-",
+        "GTOb-", "aGTOb-", "Tr-",
         nullptr
     };
     for (int i = 0; ctikzComponents[i]; i++) {
