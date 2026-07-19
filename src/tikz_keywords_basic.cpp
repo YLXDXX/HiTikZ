@@ -204,6 +204,13 @@ void registerAnchors(Vec &db)
         "collector","emitter","source","drain","bulk",
         "+","-",
         "left","right","top","bottom",
+        // pin anchors on dipchip / flipflop / muxdemux shapes
+        // (pgfcircmultipoles.tex § dipchip / § flipflop). Only the
+        // first 3 are offered as samples to avoid an explosion of
+        // numbered completion entries.
+        "pin 1","pin 2","pin 3",
+        // border pins for labels on dipchip shapes
+        "bpin 1","bpin 2","bpin 3",
         nullptr};
     for (int i = 0; circuitikz[i]; i++)
         addBuiltin(db, circuitikz[i], C::Anchor, {}, {"node"}, {},

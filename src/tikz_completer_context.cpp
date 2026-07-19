@@ -104,19 +104,27 @@ TikzCompleter::Context TikzCompleter::detectContext(const QString &textBefore) c
             QChar beforeDot = textBefore.at(dotIdx - 1);
             if (beforeDot.isLetterOrNumber() || beforeDot == '/') {
                 QString afterDot = textBefore.mid(dotIdx + 1);
-                // If a closing ')' appears between the dot and the cursor,
-                // the dot belongs to an already-closed coordinate expression
-                // (e.g. "(FF.pin 1) -- (FF" — the dot is from "FF.pin", not
-                // the current group). Skip so the coordinate context can fire.
-                if (afterDot.contains(QLatin1Char(')')))
+                if (afterDot.isEmpty())
                     goto dot_skip;
+                // Walk the anchor/name token after the dot. Anchor names
+                // can contain word chars and spaces (e.g. "pin 3", "north
+                // west"). Non-name characters such as '|', ')', '(' signal
+                // that the anchor is complete and the cursor has moved into
+                // a different context (e.g. "(FF.pin 3 -| AND1" — the dot
+                // is from "FF.pin" but the cursor is at the coordinate after
+                // -|). Skip so the coordinate context can fire.
                 bool allWordChars = true;
+                bool hasChars = false;
                 for (const QChar &c : afterDot) {
-                    if (c.isSpace()) break;
-                    if (!c.isLetterOrNumber() && c != '_' && c != '-')
-                    { allWordChars = false; break; }
+                    if (c.isSpace()) continue;
+                    if (c.isLetterOrNumber() || c == '_' || c == '-') {
+                        hasChars = true;
+                        continue;
+                    }
+                    allWordChars = false;
+                    break;
                 }
-                if (allWordChars && afterDot.length() >= 1)
+                if (allWordChars && hasChars)
                     return TkzCtxDot;
             }
         }

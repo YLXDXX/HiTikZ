@@ -349,6 +349,11 @@ static int test_detect_context()
         // Still TkzCtxDot for dots in the ACTIVE coordinate ref.
         {QStringLiteral("\\draw (A) -- (B."), TikzCompleter::TkzCtxDot, "dot in open coord (no intervening ')')"},
         {QStringLiteral("\\draw (A) -- (B.in"), TikzCompleter::TkzCtxDot, "typing anchor in open coord"},
+        // Regression: space after dot inside same paren must NOT trigger
+        // TkzCtxDot — "(FF.pin 3 -| AND1)" has dot from "FF.pin", then " 3".
+        {QStringLiteral("(FF.pin 3 -| A"), TikzCompleter::TkzCtxCoord, "space after dot → coord, not dot"},
+        {QStringLiteral("(FF.pin 3 -| AN"), TikzCompleter::TkzCtxCoord, "typing 2nd name after -| with space"},
+        {QStringLiteral("(FF.pin 3 -| AND1"), TikzCompleter::TkzCtxCoord, "full 2nd name after -| with space"},
     };
 
     for (const auto &tc : tests) {
@@ -2765,6 +2770,59 @@ static int test_anchor_library_gating()
     return failed;
 }
 
+// Verify circuitikz's dynamically-created pin anchors (pin 1–3, bpin 1–3)
+// for flipflop/dipchip/muxdemux shapes (pgfcircmultipoles.tex).
+static int test_circuitikz_pin_anchors()
+{
+    int failed = 0;
+    QPlainTextEdit editor;
+    TikzCompleter completer(&editor);
+    TikzDocumentState state;
+    QTextDocument doc;
+    doc.setPlainText(
+        "\\begin{circuitikz}\n"
+        "\\draw (0,0) node[flipflop] (FF) {};\n"
+        "\\end{circuitikz}\n");
+    state.reparse(&doc);
+    completer.setDocumentState(&state);
+    completer.updateUserModels();
+
+    const QStringList anchors = completer.modelWordsForContext(TikzCompleter::TkzCtxDot);
+    if (!anchors.contains(QStringLiteral("pin 1"))) {
+        fprintf(stderr, "FAIL: CPA-1 - 'pin 1' missing from dot model with circuitikz\n");
+        failed++;
+    }
+    if (!anchors.contains(QStringLiteral("pin 2"))) {
+        fprintf(stderr, "FAIL: CPA-2 - 'pin 2' missing from dot model\n");
+        failed++;
+    }
+    if (!anchors.contains(QStringLiteral("pin 3"))) {
+        fprintf(stderr, "FAIL: CPA-3 - 'pin 3' missing from dot model\n");
+        failed++;
+    }
+    if (!anchors.contains(QStringLiteral("bpin 1"))) {
+        fprintf(stderr, "FAIL: CPA-4 - 'bpin 1' missing from dot model\n");
+        failed++;
+    }
+
+    // Verify not leaking without circuitikz.
+    TikzDocumentState state2;
+    QTextDocument doc2;
+    doc2.setPlainText("\\begin{tikzpicture}\n\\end{tikzpicture}\n");
+    state2.reparse(&doc2);
+    completer.setDocumentState(&state2);
+    completer.updateUserModels();
+    const QStringList anchorsNoCtk = completer.modelWordsForContext(TikzCompleter::TkzCtxDot);
+    if (anchorsNoCtk.contains(QStringLiteral("pin 1"))) {
+        fprintf(stderr, "FAIL: CPA-5 - 'pin 1' leaked without circuitikz\n");
+        failed++;
+    }
+
+    if (failed == 0)
+        fprintf(stderr, "PASS: circuitikz pin anchors (pin 1–3, bpin 1–3)\n");
+    return failed;
+}
+
 // Feature 2: the 'label=' key must offer positional value completions (above,
 // above left, left, ...) so \node[label=|] can complete a compass/direction.
 // 'pin=' shares the same positional hints.
@@ -3456,6 +3514,7 @@ int main(int argc, char *argv[])
     failed += test_intersections_coord_completion();
     failed += test_anchors_source_accurate();
     failed += test_anchor_library_gating();
+    failed += test_circuitikz_pin_anchors();
     failed += test_label_position_completion();
     failed += test_name_path_in_node();
     failed += test_of_path_completion();
