@@ -211,6 +211,11 @@ void registerAnchors(Vec &db)
         "pin 1","pin 2","pin 3",
         // border pins for labels on dipchip shapes
         "bpin 1","bpin 2","bpin 3",
+        // Quadpole transformer port anchors (pgfcircquadpoles.tex:134-146)
+        "A1","A2","B1","B2",
+        "AA1","AA2","BB1","BB2",
+        "inner dot A1","inner dot A2","inner dot B1","inner dot B2",
+        "outer dot A1","outer dot A2","outer dot B1","outer dot B2",
         nullptr};
     for (int i = 0; circuitikz[i]; i++)
         addBuiltin(db, circuitikz[i], C::Anchor, {}, {"node"}, {},

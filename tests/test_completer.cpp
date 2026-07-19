@@ -1283,7 +1283,7 @@ static int test_circuitikz_components_accurate()
         "american nor gate", "american and gate", "american_coil", "cute_coil",
         "cute_inductor", "american_inductor", "vvarcapacitor", "elco",
         "solarcell", "closingswitch", "openingswitch", "ospt", "noground",
-        "emptygeneric", "fourport", "transformercore", "delayline",
+        "emptygeneric", "transformercore", "delayline",
         "nchenh", "nchdep", "pchdep", "coils", "vcoils",
         "pTy", "qqQ", "vQshape", "diacshape",
         // Internal bipole shape names (2nd arg of \pgfcirc@activate@bipole) that
@@ -1357,6 +1357,7 @@ static int test_circuitikz_components_accurate()
         "buffer port", "vcc", "vss", "vdd", "vee", "ocirc", "diamondpole",
         "schmitt port", "invschmitt port", "tgate", "double tgate",
         "ieee tgate", "ieee double tgate", "potentiometershape",
+        "transformer", "transformer core", "gyrator", "coupler", "fourport",
         nullptr
     };
     for (int i = 0; validShapes[i]; ++i) {
@@ -2661,6 +2662,11 @@ static int test_anchors_source_accurate()
         "B","C","E","S","D",
         "collector","emitter","source","drain","bulk",
         "+","-","left","right","top","bottom",
+        // Quadpole transformer port anchors (pgfcircquadpoles.tex:134-146)
+        "A1","A2","B1","B2",
+        "AA1","AA2","BB1","BB2",
+        "inner dot A1","inner dot A2","inner dot B1","inner dot B2",
+        "outer dot A1","outer dot A2","outer dot B1","outer dot B2",
         nullptr
     };
     for (int i = 0; ckt[i]; ++i) {
