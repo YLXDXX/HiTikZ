@@ -249,6 +249,49 @@ void registerExtended(Vec &db)
                           "multipoles/thickness","seven seg/thickness"})
         ctkOpt(k);
 
+    // Class-level convenience keys (pgfcircbipoles.tex:38-56, 637-638,
+    // 930-938, 1286-1293, 1976-1983, 2250, 2580-2583, 3707-3760).
+    // These set multiple bipoles/<component>/<param> keys at once.
+    for (const char *k : {
+        // Resistors (pgfcircbipoles.tex:38-39,637-638)
+        "resistors/width","resistors/zigs",
+        "resistors/zigzag stub","resistors/zigzag hook",
+        // Capacitors (pgfcircbipoles.tex:930,938)
+        "capacitors/width","capacitors/height",
+        // Inductors (pgfcircbipoles.tex:1286,1293)
+        "inductors/width","inductors/coils",
+        // Source symbols (pgfcircbipoles.tex:1976-1983,2250,2580-2583)
+        "sources/symbol/rotate","sources/symbol/thickness",
+        "sources/symbol/sign rotation",
+        "sources/symbol/delta scale","sources/symbol/wye scale",
+        "sources/symbol/eyw scale","sources/symbol/zig scale",
+        "csources/symbol/rotate","csources/symbol/thickness",
+        // Diodes, LEDs, photodiodes (pgfcircbipoles.tex:3707-3760)
+        "diode straight whiskers","diode sloped whiskers",
+        "led arrows from anode","led arrows from cathode",
+        "pd arrows to anode","pd arrows to cathode",
+        "thyristor style/legacy","thyristor style/compact",
+        // Quadpoles (pgfcircquadpoles.tex:20-39)
+        "quadpoles/transformer/width","quadpoles/transformer/height",
+        "quadpoles/transformer core/width","quadpoles/transformer core/height",
+        "quadpoles/transformer core/core height","quadpoles/transformer core/core width",
+        "quadpoles/gyrator/width","quadpoles/gyrator/height",
+        "quadpoles/fourport/width","quadpoles/fourport/height",
+        "quadpoles/coupler/width","quadpoles/coupler/height",
+        "transformer core/color","transformer core/dash",
+        // Monopoles (pgfcircmonopoles.tex:25-43)
+        "monopoles/ground/width","monopoles/ground/thickness",
+        "monopoles/rground/thickness","monopoles/tground/thickness",
+        "monopoles/vcc/width","monopoles/vee/width",
+        "monopoles/match/width","monopoles/chassis/width",
+        "monopoles/antenna/width","monopoles/txantenna/width",
+        // Multipoles (pgfcircmultipoles.tex:19-43)
+        "multipoles/font","multipoles/dipchip/width",
+        "multipoles/dipchip/pin spacing","multipoles/qfpchip/pin spacing",
+        // Misc convenience keys
+        "wiper pos"})
+        ctkOpt(k);
+
     // Bipole annotation keys on to[...] components. Full variant sets from the
     // sources — current (pgfcirccurrent.tex): 13 variants; voltage
     // (pgfcircvoltage.tex): 9 variants (no v>^/v>_/v<^/v<_ exist); flow

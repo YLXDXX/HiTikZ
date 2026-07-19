@@ -769,6 +769,15 @@ static int test_circuitikz_annotation_keys()
         "voltage/distance from node","voltage/distance from line",
         "flow/distance","flow/offset","label/align",
         "bipoles/length","current/distance","logic ports",
+        // Class-level convenience keys (pgfcircbipoles.tex + tripoles/...)
+        "resistors/width","resistors/zigs","resistors/zigzag stub",
+        "capacitors/width","capacitors/height",
+        "inductors/width","inductors/coils",
+        "sources/symbol/rotate","sources/symbol/thickness",
+        "csources/symbol/rotate","csources/symbol/thickness",
+        "wiper pos",
+        "quadpoles/transformer/width","quadpoles/transformer/height",
+        "monopoles/ground/width","multipoles/thickness",
         nullptr
     };
     for (int i = 0; config[i]; ++i) {
