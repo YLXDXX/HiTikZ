@@ -34,8 +34,11 @@ TikzDocumentState::TikzDocumentState()
         QStringLiteral("\\\\foreach\\s+((?:\\\\[a-zA-Z]+\\s*(?:/\\s*)?)+)"
                        "(?:\\s*") + optGroup + QStringLiteral(")?\\s*in"));
     m_newcmdRe = QRegularExpression(
-        QStringLiteral("\\\\(?:new|renew|provide)command\\*?\\s*\\{?\\\\([a-zA-Z@]+)"));
-    m_defRe = QRegularExpression(QStringLiteral("\\\\def\\s*\\\\([a-zA-Z]+)"));
+        QStringLiteral("\\\\(?:new|renew|provide)command\\*?\\s*\\{?\\\\([a-zA-Z0-9@]+)"));
+    m_defRe = QRegularExpression(
+        QStringLiteral("\\\\(?:def|edef|gdef|xdef)\\s*\\\\([a-zA-Z0-9]+)"));
+    m_letRe = QRegularExpression(
+        QStringLiteral("\\\\let\\s*\\\\([a-zA-Z0-9@]+)"));
     // 'at (coord)' clause of a node/pic. The coordinate may contain one level
     // of nested parens, e.g. at ($(a)+(b)$) with the calc library.
     static const QString atClause = QStringLiteral(
@@ -386,7 +389,7 @@ void TikzDocumentState::parseLine(const QString &text, int blockStartPos,
                 continue;
             }
 
-            // \def\foo
+            // \def/\edef/\gdef/\xdef\foo
             QRegularExpressionMatch defm = m_defRe.match(text, pos);
             if (defm.hasMatch() && defm.capturedStart() == pos) {
                 QString cmdText = defm.captured();
@@ -396,6 +399,15 @@ void TikzDocumentState::parseLine(const QString &text, int blockStartPos,
                     if (!cmdName.isEmpty()) m_userCmds.insert(cmdName);
                 }
                 pos = defm.capturedEnd();
+                continue;
+            }
+
+            // \let\foo=\bar  or  \let\foo\bar
+            QRegularExpressionMatch letm = m_letRe.match(text, pos);
+            if (letm.hasMatch() && letm.capturedStart() == pos) {
+                QString cmdName = QLatin1Char('\\') + letm.captured(1);
+                if (!cmdName.isEmpty()) m_userCmds.insert(cmdName);
+                pos = letm.capturedEnd();
                 continue;
             }
 

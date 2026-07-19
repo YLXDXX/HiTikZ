@@ -224,13 +224,25 @@ static int test_user_command_parsing()
     doc.setPlainText(
         "\\newcommand{\\mycmd}{content}\n"
         "\\renewcommand{\\oldcmd}[2]{#1 #2}\n"
-        "\\def\\myfunc#1{#1}\n");
+        "\\def\\myfunc#1{#1}\n"
+        "\\edef\\expanded{\\the\\count0}\n"
+        "\\gdef\\globcmd#1{#1}\n"
+        "\\xdef\\gxcmd{global expanded}\n"
+        "\\let\\alias=\\mycmd\n"
+        "\\let\\alias2\\oldcmd\n"
+        "\\let\\alias3=\n");
     TikzDocumentState state;
     state.reparse(&doc);
     const auto &cmds = state.userCommands();
     if (!cmds.contains("\\mycmd")) { fprintf(stderr, "FAIL: DCS-U1\n"); failed++; }
     if (!cmds.contains("\\oldcmd")) { fprintf(stderr, "FAIL: DCS-U2\n"); failed++; }
     if (!cmds.contains("\\myfunc")) { fprintf(stderr, "FAIL: DCS-U3\n"); failed++; }
+    if (!cmds.contains("\\expanded")) { fprintf(stderr, "FAIL: DCS-U4 - \\edef not parsed\n"); failed++; }
+    if (!cmds.contains("\\globcmd")) { fprintf(stderr, "FAIL: DCS-U5 - \\gdef not parsed\n"); failed++; }
+    if (!cmds.contains("\\gxcmd")) { fprintf(stderr, "FAIL: DCS-U6 - \\xdef not parsed\n"); failed++; }
+    if (!cmds.contains("\\alias")) { fprintf(stderr, "FAIL: DCS-U7 - \\let\\alias not parsed\n"); failed++; }
+    if (!cmds.contains("\\alias2")) { fprintf(stderr, "FAIL: DCS-U8 - \\let without '=' not parsed\n"); failed++; }
+    if (!cmds.contains("\\alias3")) { fprintf(stderr, "FAIL: DCS-U9 - \\let\\alias3= (no target) not parsed\n"); failed++; }
     if (failed == 0) fprintf(stderr, "PASS: user command parsing\n");
     return failed;
 }

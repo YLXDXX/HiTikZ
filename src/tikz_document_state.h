@@ -107,6 +107,7 @@ private:
     QRegularExpression m_foreachRe;
     QRegularExpression m_newcmdRe;
     QRegularExpression m_defRe;
+    QRegularExpression m_letRe;
     QRegularExpression m_nodeRe;
     QRegularExpression m_nodeOpRe;
     QRegularExpression m_styleInTikzsetRe;

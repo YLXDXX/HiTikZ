@@ -3351,6 +3351,57 @@ static int test_path_op_node_name_completion()
     return failed;
 }
 
+// Regression (user report): commands defined with \let (\let\coord=\showcoord)
+// were not offered in command completion because \let was never parsed.
+static int test_let_command_completion()
+{
+    int failed = 0;
+    QTextDocument doc;
+    doc.setPlainText(
+        "\\def\\showcoord(#1){coordinate(#1)}\n"
+        "\\let\\coord=\\showcoord\n"
+        "\\let\\coord2\\showcoord\n"
+        "\\edef\\expcmd{expanded}\n"
+        "\\gdef\\globcmd#1{#1}\n"
+        "\\xdef\\gxcmd{global}\n"
+        "\\begin{tikzpicture}\n\\end{tikzpicture}\n");
+    TikzDocumentState state;
+    state.reparse(&doc);
+
+    const auto &cmds = state.userCommands();
+    if (!cmds.contains("\\showcoord")) { fprintf(stderr, "FAIL: LET-1 - \\def\\showcoord not parsed\n"); failed++; }
+    if (!cmds.contains("\\coord")) { fprintf(stderr, "FAIL: LET-2 - \\let\\coord not parsed\n"); failed++; }
+    if (!cmds.contains("\\coord2")) { fprintf(stderr, "FAIL: LET-3 - \\let w/o '=' not parsed\n"); failed++; }
+    if (!cmds.contains("\\expcmd")) { fprintf(stderr, "FAIL: LET-4 - \\edef not parsed\n"); failed++; }
+    if (!cmds.contains("\\globcmd")) { fprintf(stderr, "FAIL: LET-5 - \\gdef not parsed\n"); failed++; }
+    if (!cmds.contains("\\gxcmd")) { fprintf(stderr, "FAIL: LET-6 - \\xdef not parsed\n"); failed++; }
+
+    // Verify the command completion model includes the let-defined command.
+    QPlainTextEdit editor;
+    editor.show();
+    TikzCompleter completer(&editor);
+    completer.setDocumentState(&state);
+    completer.updateUserModels();
+
+    const QStringList cmdsModel = completer.modelWordsForContext(TikzCompleter::TkzCtxCmd);
+    if (!cmdsModel.contains(QStringLiteral("\\coord"))) {
+        fprintf(stderr, "FAIL: LET-7 - '\\coord' not in command completion model\n");
+        failed++;
+    }
+    if (!cmdsModel.contains(QStringLiteral("\\coord2"))) {
+        fprintf(stderr, "FAIL: LET-8 - '\\coord2' not in command completion model\n");
+        failed++;
+    }
+    if (!cmdsModel.contains(QStringLiteral("\\showcoord"))) {
+        fprintf(stderr, "FAIL: LET-9 - '\\showcoord' not in command completion model\n");
+        failed++;
+    }
+
+    if (failed == 0)
+        fprintf(stderr, "PASS: \\let command completion\n");
+    return failed;
+}
+
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
@@ -3406,6 +3457,7 @@ int main(int argc, char *argv[])
     failed += test_graphs_and_matrix_options();
     failed += test_coordinate_system_completion();
     failed += test_path_op_node_name_completion();
+    failed += test_let_command_completion();
 
     if (failed > 0) {
         fprintf(stderr, "\n%d test(s) failed!\n", failed);
