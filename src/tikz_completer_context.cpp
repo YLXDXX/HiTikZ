@@ -206,8 +206,20 @@ TikzCompleter::Context TikzCompleter::detectContext(const QString &textBefore) c
                     }
                     if (eqIdx >= 0 && commaIdx >= 0) break;
                 }
-                if (eqIdx >= 0 && (commaIdx < 0 || commaIdx <= eqIdx))
+                if (eqIdx >= 0 && (commaIdx < 0 || commaIdx <= eqIdx)) {
+                    // If the RHS after '=' starts with or contains a backslash
+                    // macro (e.g. a=\SI{...}), route to command completion so
+                    // that package-gated commands like \SI (siunitx) are offered.
+                    const QString rhs = afterBracket.mid(eqIdx + 1).trimmed();
+                    const int lastBs = rhs.lastIndexOf(QLatin1Char('\\'));
+                    if (lastBs >= 0) {
+                        const QString afterBs = rhs.mid(lastBs + 1);
+                        if (!afterBs.isEmpty()
+                            && (afterBs.at(0).isLetter() || afterBs.at(0) == QLatin1Char('_')))
+                            return TkzCtxCmd;
+                    }
                     return TkzCtxEq;
+                }
                 return TkzCtxBrk;
             }
         }

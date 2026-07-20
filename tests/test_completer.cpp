@@ -321,6 +321,12 @@ static int test_detect_context()
         {QStringLiteral("[auto,pre/.style={<-,>={Stealth[round]},semithick},"), TikzCompleter::TkzCtxBrk, "new key after style with bracketed arrow"},
         {QStringLiteral("[auto,pre/.style={<-,>={Stealth[round]},semithick},th"), TikzCompleter::TkzCtxBrk, "typing key after style with bracketed arrow"},
         {QStringLiteral("[>={Stealth[round]},fill="), TikzCompleter::TkzCtxEq, "value context after bracketed-brace value"},
+        // \backslash after = inside bracket should route to command completion
+        // (e.g. a=\SI from siunitx, or font=\itshape in style bodies)
+        {QStringLiteral("[a=\\S"), TikzCompleter::TkzCtxCmd, "backslash after = in bracket -> cmd"},
+        {QStringLiteral("[a=\\SI"), TikzCompleter::TkzCtxCmd, "backslash cmd after = in bracket -> cmd"},
+        {QStringLiteral("[a=\\SI{1"), TikzCompleter::TkzCtxCmd, "backslash cmd with braces after = -> cmd"},
+        {QStringLiteral("[a = \\SI"), TikzCompleter::TkzCtxCmd, "space then backslash after = -> cmd"},
         // A ']' nested in braces must not be mistaken for the closer of an
         // earlier bracket group when the cursor is genuinely inside brackets.
         {QStringLiteral("[a={x]y},b"), TikzCompleter::TkzCtxBrk, "key after value containing a stray-looking ]"},
