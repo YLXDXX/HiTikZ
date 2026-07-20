@@ -324,6 +324,7 @@ void registerCommands(Vec &db)
         "pgfplotstableread","pgfplotstabletypeset",
         "pic","protected",
         "relax","renewcommand","repeat",
+        "scoped",
         "setlength","shade","shadedraw",
         "sin","sqrt",
         "text","tikzset","tikzstyle","to",
