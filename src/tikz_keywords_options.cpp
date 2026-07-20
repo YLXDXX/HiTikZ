@@ -262,6 +262,8 @@ void registerGeneralOptions(Vec &db)
     addBuiltin(db, "auto",             C::Option, {}, {"draw","path","node","edge"});
     addBuiltin(db, "swap",             C::Option, {}, {"draw","path","node","edge"});
     addBuiltin(db, "sloped",           C::Option, {}, {"draw","path","node","edge"});
+    addBuiltin(db, "current point is local", C::Option, {}, {"draw","path","node","edge"});
+    addBuiltin(db, "turn",             C::Option, {}, {"draw","path"});
 
     // Path positioning
     addBuiltin(db, "pos",              C::Option, {}, {"draw","path","node"});
