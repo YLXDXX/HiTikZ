@@ -608,10 +608,11 @@ void MainWindow::setupUI()
         int ret = QMessageBox::question(this, QStringLiteral("确认删除"),
             QStringLiteral("确定要删除此片段吗？"), QMessageBox::Yes | QMessageBox::No);
         if (ret == QMessageBox::Yes) {
-            int tabIdx = findTabForSnippet(currentSnippetId);
+            QString idToDelete = currentSnippetId;
+            int tabIdx = findTabForSnippet(idToDelete);
             if (tabIdx >= 0 && !maybeCloseTab(tabIdx))
                 return;
-            snippetMgr->deleteSnippet(currentSnippetId);
+            snippetMgr->deleteSnippet(idToDelete);
             if (tabIdx >= 0) {
                 QWidget *w = tabWidget->widget(tabIdx);
                 tabWidget->removeTab(tabIdx);

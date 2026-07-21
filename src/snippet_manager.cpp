@@ -164,6 +164,9 @@ Snippet SnippetManager::loadPreset(const QString &id)
 
 bool SnippetManager::deleteSnippet(const QString &id)
 {
+    if (id.isEmpty())
+        return false;
+
     QString path;
     if (isPresetId(id))
         path = getPresetSnippetPath(id);
