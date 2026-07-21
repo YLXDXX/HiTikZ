@@ -91,7 +91,8 @@ void SearchPanel::setupUI()
     categoryTree->setContextMenuPolicy(Qt::CustomContextMenu);
     categoryTree->setAcceptDrops(true);
     categoryTree->setDropIndicatorShown(true);
-    categoryTree->setDragDropMode(QAbstractItemView::DropOnly);
+    categoryTree->setDragEnabled(true);
+    categoryTree->setDragDropMode(QAbstractItemView::DragDrop);
     categoryTree->viewport()->setAcceptDrops(true);
     categoryModel = new QStandardItemModel(this);
     categoryTree->setModel(categoryModel);
@@ -104,11 +105,12 @@ void SearchPanel::setupUI()
     thumbnailList->setResizeMode(QListView::Adjust);
     thumbnailList->setWordWrap(true);
     thumbnailList->setDragEnabled(true);
-    thumbnailList->setDragDropMode(QAbstractItemView::DragOnly);
+    thumbnailList->setDragDropMode(QAbstractItemView::DragDrop);
     thumbnailList->setContextMenuPolicy(Qt::CustomContextMenu);
     thumbnailList->setSelectionMode(QAbstractItemView::ExtendedSelection);
     thumbnailModel = new QStandardItemModel(this);
     thumbnailList->setModel(thumbnailModel);
+    thumbnailList->viewport()->installEventFilter(this);
 
     connect(thumbnailList, &QListView::customContextMenuRequested,
         this, &SearchPanel::showThumbnailContextMenu);
@@ -301,6 +303,7 @@ void SearchPanel::refreshThumbnailList()
     thumbnailModel->clear();
 
     QList<SearchResult> results = snippetMgr->searchSnippets("");
+    QList<SearchResult> filtered;
     for (const SearchResult &r : results) {
         if (category == "__uncategorized__") {
             if (!r.snippet.category.isEmpty()) continue;
@@ -308,6 +311,17 @@ void SearchPanel::refreshThumbnailList()
                    && !SnippetManager::categoryMatches(r.snippet.category, category)) {
             continue;
         }
+        filtered.append(r);
+    }
+
+    std::sort(filtered.begin(), filtered.end(),
+        [](const SearchResult &a, const SearchResult &b) {
+            if (a.snippet.sortOrder != b.snippet.sortOrder)
+                return a.snippet.sortOrder < b.snippet.sortOrder;
+            return a.snippet.name.localeAwareCompare(b.snippet.name) < 0;
+        });
+
+    for (const SearchResult &r : filtered) {
         QString label = r.snippet.isPreset ? QStringLiteral("[预设] ") + r.snippet.name : r.snippet.name;
         QStandardItem *item = new QStandardItem(label);
         item->setData(r.snippet.id, Qt::UserRole);
@@ -329,6 +343,11 @@ QString SearchPanel::currentCategory() const
 
 void SearchPanel::refreshCategoryTree()
 {
+    QString savedCategory;
+    QModelIndex curIdx = categoryTree->currentIndex();
+    if (curIdx.isValid())
+        savedCategory = curIdx.data(Qt::UserRole).toString();
+
     categoryModel->clear();
     QStandardItem *rootItem = categoryModel->invisibleRootItem();
 
@@ -358,7 +377,28 @@ void SearchPanel::refreshCategoryTree()
         buildCategoryTree(rootItem, cat, catCounts);
     }
 
-    categoryTree->expandAll();
+    categoryTree->expand(allItem->index());
+    if (!savedCategory.isEmpty()) {
+        for (int i = 0; i < categoryModel->rowCount(); ++i) {
+            QModelIndex idx = categoryModel->index(i, 0);
+            QStandardItem *item = categoryModel->itemFromIndex(idx);
+            if (item && item->data(Qt::UserRole).toString() == savedCategory) {
+                categoryTree->setCurrentIndex(idx);
+                break;
+            }
+        }
+        if (savedCategory.contains('/')) {
+            QStringList parts = savedCategory.split('/');
+            QString partial;
+            for (int i = 0; i < parts.size() - 1; ++i) {
+                if (!partial.isEmpty()) partial += '/';
+                partial += parts[i];
+                QList<QStandardItem *> found = categoryModel->findItems(partial, Qt::MatchExactly | Qt::MatchRecursive);
+                if (!found.isEmpty())
+                    categoryTree->expand(found.first()->index());
+            }
+        }
+    }
 }
 
 void SearchPanel::buildCategoryTree(QStandardItem *parent, const QString &path,

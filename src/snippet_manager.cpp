@@ -238,6 +238,7 @@ QJsonObject SnippetManager::snippetToJson(const Snippet &s) const
     obj["packages"] = s.packages;
     obj["tikzLibraries"] = s.tikzLibraries;
     obj["compileCommand"] = s.compileCommand;
+    obj["sortOrder"] = s.sortOrder;
     QJsonArray tagsArr;
     for (const QString &tag : s.tags)
         tagsArr.append(tag);
@@ -256,6 +257,7 @@ Snippet SnippetManager::jsonToSnippet(const QJsonObject &obj) const
     s.packages = obj.value("packages").toString();
     s.tikzLibraries = obj.value("tikzLibraries").toString();
     s.compileCommand = obj.value("compileCommand").toString();
+    s.sortOrder = obj.value("sortOrder").toInt();
     QJsonArray tagsArr = obj.value("tags").toArray();
     for (const QJsonValue &v : tagsArr)
         s.tags.append(v.toString());
@@ -344,6 +346,50 @@ int SnippetManager::batchDeleteSnippets(const QStringList &ids)
     if (count > 0)
         emit categoriesChanged();
     return count;
+}
+
+void SnippetManager::reorderSnippets(const QStringList &orderedIds)
+{
+    for (int i = 0; i < orderedIds.size(); ++i) {
+        Snippet s = loadSnippet(orderedIds[i]);
+        if (s.id.isEmpty()) continue;
+        if (s.sortOrder == i) continue;
+        s.sortOrder = i;
+        saveSnippet(s);
+    }
+}
+
+QString SnippetManager::categoryOrderFile()
+{
+    return QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)
+           + "/category_order.json";
+}
+
+QStringList SnippetManager::loadCategoryOrder() const
+{
+    QFile file(categoryOrderFile());
+    if (!file.open(QIODevice::ReadOnly))
+        return {};
+    QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
+    file.close();
+    QStringList order;
+    if (doc.isArray()) {
+        for (const QJsonValue &v : doc.array())
+            order.append(v.toString());
+    }
+    return order;
+}
+
+void SnippetManager::saveCategoryOrder(const QStringList &order)
+{
+    QJsonArray arr;
+    for (const QString &cat : order)
+        arr.append(cat);
+    QSaveFile file(categoryOrderFile());
+    if (file.open(QIODevice::WriteOnly)) {
+        file.write(QJsonDocument(arr).toJson());
+        file.commit();
+    }
 }
 
 Snippet SnippetManager::loadMetaFromDir(const QString &dirPath) const

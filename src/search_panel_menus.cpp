@@ -172,40 +172,125 @@ QIcon SearchPanel::loadThumbnailIcon(const QString &snippetId) const
 
 bool SearchPanel::eventFilter(QObject *obj, QEvent *event)
 {
+    if (obj == thumbnailList->viewport() && event->type() == QEvent::Drop) {
+        QDropEvent *de = static_cast<QDropEvent *>(event);
+        const QMimeData *mime = de->mimeData();
+        if (!mime->hasFormat("application/x-qabstractitemmodeldatalist"))
+            return false;
+
+        QByteArray data = mime->data("application/x-qabstractitemmodeldatalist");
+        QDataStream stream(&data, QIODevice::ReadOnly);
+        QList<QString> draggedIds;
+        QList<QStandardItem *> draggedItems;
+        while (!stream.atEnd() && stream.status() == QDataStream::Ok) {
+            int row, col;
+            QMap<int, QVariant> roleData;
+            stream >> row >> col >> roleData;
+            QString id = roleData[Qt::UserRole].toString();
+            if (id.isEmpty()) continue;
+            QStandardItem *item = nullptr;
+            for (int i = 0; i < thumbnailModel->rowCount(); ++i) {
+                if (thumbnailModel->index(i, 0).data(Qt::UserRole).toString() == id) {
+                    item = thumbnailModel->item(i);
+                    break;
+                }
+            }
+            if (item && !draggedIds.contains(id)) {
+                draggedIds.append(id);
+                draggedItems.append(item->clone());
+                thumbnailModel->removeRow(item->row());
+            }
+        }
+
+        if (draggedItems.isEmpty()) return false;
+
+        QPoint dropPt = de->position().toPoint();
+        QModelIndex dropIdx = thumbnailList->indexAt(dropPt);
+        int insertRow = dropIdx.isValid() ? dropIdx.row() : thumbnailModel->rowCount();
+
+        for (int i = 0; i < draggedItems.size(); ++i) {
+            thumbnailModel->insertRow(insertRow + i, draggedItems[i]);
+        }
+
+        QStringList orderedIds;
+        for (int i = 0; i < thumbnailModel->rowCount(); ++i)
+            orderedIds.append(thumbnailModel->index(i, 0).data(Qt::UserRole).toString());
+        if (orderedIds.size() > 1)
+            snippetMgr->reorderSnippets(orderedIds);
+
+        de->accept();
+        return true;
+    }
+
     if (obj == categoryTree->viewport() && event->type() == QEvent::Drop) {
         QDropEvent *de = static_cast<QDropEvent *>(event);
         const QMimeData *mime = de->mimeData();
         QModelIndex targetIdx = categoryTree->indexAt(de->position().toPoint());
-        QString targetCat;
-        if (targetIdx.isValid())
-            targetCat = targetIdx.data(Qt::UserRole).toString();
 
         if (mime->hasFormat("application/x-qabstractitemmodeldatalist")) {
             QByteArray data = mime->data("application/x-qabstractitemmodeldatalist");
             QDataStream stream(&data, QIODevice::ReadOnly);
             QSet<QString> seen;
-            bool anyUpdated = false;
+            bool isCategoryDrag = false;
+            QStringList draggedIds;
 
             while (!stream.atEnd() && stream.status() == QDataStream::Ok) {
                 int row, col;
                 QMap<int, QVariant> roleData;
                 stream >> row >> col >> roleData;
-                QString snippetId = roleData[Qt::UserRole].toString();
+                QString itemId = roleData[Qt::UserRole].toString();
+                if (itemId.isEmpty()) continue;
+                if (seen.contains(itemId)) continue;
+                seen.insert(itemId);
+                draggedIds.append(itemId);
 
-                if (!snippetId.isEmpty() && !seen.contains(snippetId)) {
-                    seen.insert(snippetId);
-                    snippetMgr->updateSnippetCategory(snippetId, targetCat);
-                    anyUpdated = true;
+                if (itemId != QLatin1String("__uncategorized__")
+                    && !itemId.isEmpty() && !itemId.contains('-')) {
+                    isCategoryDrag = true;
                 }
             }
 
-            if (anyUpdated) {
-                refreshCategoryTree();
-                refreshSearch();
-                de->accept();
-                return true;
+            if (isCategoryDrag) {
+                QStringList savedOrder;
+                QStandardItem *root = categoryModel->invisibleRootItem();
+                for (int i = 0; i < root->rowCount(); ++i) {
+                    collectOrderedCategories(root->child(i), savedOrder);
+                }
+                if (!savedOrder.isEmpty()) {
+                    snippetMgr->saveCategoryOrder(savedOrder);
+                    refreshCategoryTree();
+                    de->accept();
+                    return true;
+                }
+            } else {
+                QString targetCat;
+                if (targetIdx.isValid())
+                    targetCat = targetIdx.data(Qt::UserRole).toString();
+
+                bool anyMoved = false;
+                for (const QString &snippetId : draggedIds) {
+                    snippetMgr->updateSnippetCategory(snippetId, targetCat);
+                    anyMoved = true;
+                }
+
+                if (anyMoved) {
+                    refreshCategoryTree();
+                    refreshSearch();
+                    de->accept();
+                    return true;
+                }
             }
         }
     }
     return QWidget::eventFilter(obj, event);
+}
+
+void SearchPanel::collectOrderedCategories(QStandardItem *item, QStringList &order)
+{
+    if (!item) return;
+    QString cat = item->data(Qt::UserRole).toString();
+    if (cat != QLatin1String("__uncategorized__") && !cat.isEmpty())
+        order.append(cat);
+    for (int i = 0; i < item->rowCount(); ++i)
+        collectOrderedCategories(item->child(i), order);
 }

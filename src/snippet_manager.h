@@ -21,6 +21,7 @@ struct Snippet {
     QString compileCommand;
     QString code;
     bool isPreset = false;
+    int sortOrder = 0;
 };
 Q_DECLARE_METATYPE(Snippet)
 
@@ -72,6 +73,11 @@ public:
 
     bool batchUpdateCategory(const QStringList &ids, const QString &newCategory);
     int batchDeleteSnippets(const QStringList &ids);
+
+    void reorderSnippets(const QStringList &orderedIds);
+    static QString categoryOrderFile();
+    QStringList loadCategoryOrder() const;
+    void saveCategoryOrder(const QStringList &order);
 
     void invalidateCaches();
 

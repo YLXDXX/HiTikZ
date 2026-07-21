@@ -64,6 +64,7 @@ private:
     void showThumbnailContextMenu(const QPoint &pos);
     QStringList getSelectedSnippetIds() const;
     QIcon loadThumbnailIcon(const QString &snippetId) const;
+    static void collectOrderedCategories(QStandardItem *item, QStringList &order);
 
     SnippetManager *snippetMgr;
 
