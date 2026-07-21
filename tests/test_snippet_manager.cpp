@@ -201,6 +201,76 @@ int main(int argc, char *argv[]) {
         mgr.deleteSnippet(id);
     }
 
+    // Test 13: sortOrder field serialization/deserialization
+    {
+        QString id = mgr.createSnippet("SortOrder Test", "test/order");
+        CHECK(!id.isEmpty(), "Should create snippet for sortOrder test");
+
+        Snippet s = mgr.loadSnippet(id);
+        CHECK(s.sortOrder == 0, "Default sortOrder should be 0");
+
+        s.sortOrder = 42;
+        mgr.saveSnippet(s);
+        Snippet s2 = mgr.loadSnippet(id);
+        CHECK(s2.sortOrder == 42, "sortOrder should survive JSON roundtrip");
+        qDebug() << "PASS: Test 13 - sortOrder JSON serialization";
+
+        mgr.deleteSnippet(id);
+    }
+
+    // Test 14: reorderSnippets
+    {
+        QString id1 = mgr.createSnippet("Reorder A", "test/reorder");
+        QString id2 = mgr.createSnippet("Reorder B", "test/reorder");
+        QString id3 = mgr.createSnippet("Reorder C", "test/reorder");
+
+        // Verify default order is 0 for all
+        CHECK(mgr.loadSnippet(id1).sortOrder == 0, "New snippet sortOrder should be 0");
+        CHECK(mgr.loadSnippet(id2).sortOrder == 0, "New snippet sortOrder should be 0");
+        CHECK(mgr.loadSnippet(id3).sortOrder == 0, "New snippet sortOrder should be 0");
+
+        // Reorder: C, A, B
+        QStringList orderedIds = {id3, id1, id2};
+        mgr.reorderSnippets(orderedIds);
+
+        CHECK(mgr.loadSnippet(id3).sortOrder == 0, "First item sortOrder should be 0");
+        CHECK(mgr.loadSnippet(id1).sortOrder == 1, "Second item sortOrder should be 1");
+        CHECK(mgr.loadSnippet(id2).sortOrder == 2, "Third item sortOrder should be 2");
+
+        // Reorder again: A, C, B
+        mgr.reorderSnippets({id1, id3, id2});
+        CHECK(mgr.loadSnippet(id1).sortOrder == 0, "After reorder: A should be 0");
+        CHECK(mgr.loadSnippet(id3).sortOrder == 1, "After reorder: C should be 1");
+        CHECK(mgr.loadSnippet(id2).sortOrder == 2, "After reorder: B should be 2");
+
+        qDebug() << "PASS: Test 14 - reorderSnippets";
+
+        mgr.deleteSnippet(id1);
+        mgr.deleteSnippet(id2);
+        mgr.deleteSnippet(id3);
+    }
+
+    // Test 15: Category order save/load
+    {
+        QStringList order1 = {"math", "physics", "chemistry"};
+        mgr.saveCategoryOrder(order1);
+
+        QStringList loaded = mgr.loadCategoryOrder();
+        CHECK(loaded.size() == 3, "Loaded category order should have 3 items");
+        CHECK(loaded[0] == "math", "First category should be math");
+        CHECK(loaded[1] == "physics", "Second category should be physics");
+        CHECK(loaded[2] == "chemistry", "Third category should be chemistry");
+
+        QStringList order2 = {"chemistry", "math"};
+        mgr.saveCategoryOrder(order2);
+        loaded = mgr.loadCategoryOrder();
+        CHECK(loaded.size() == 2, "Updated order should have 2 items");
+        CHECK(loaded[0] == "chemistry", "Reordered: chemistry should be first");
+        CHECK(loaded[1] == "math", "Reordered: math should be second");
+
+        qDebug() << "PASS: Test 15 - Category order save/load";
+    }
+
     if (g_failed > 0) {
         qDebug() << "\n" << g_failed << "test(s) FAILED!";
         return 1;

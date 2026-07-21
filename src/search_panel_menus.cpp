@@ -180,43 +180,54 @@ bool SearchPanel::eventFilter(QObject *obj, QEvent *event)
 
         QByteArray data = mime->data("application/x-qabstractitemmodeldatalist");
         QDataStream stream(&data, QIODevice::ReadOnly);
-        QList<QString> draggedIds;
-        QList<QStandardItem *> draggedItems;
+        QSet<QString> draggedIdSet;
+
         while (!stream.atEnd() && stream.status() == QDataStream::Ok) {
             int row, col;
             QMap<int, QVariant> roleData;
             stream >> row >> col >> roleData;
             QString id = roleData[Qt::UserRole].toString();
-            if (id.isEmpty()) continue;
-            QStandardItem *item = nullptr;
-            for (int i = 0; i < thumbnailModel->rowCount(); ++i) {
-                if (thumbnailModel->index(i, 0).data(Qt::UserRole).toString() == id) {
-                    item = thumbnailModel->item(i);
-                    break;
-                }
-            }
-            if (item && !draggedIds.contains(id)) {
-                draggedIds.append(id);
-                draggedItems.append(item->clone());
-                thumbnailModel->removeRow(item->row());
-            }
+            if (!id.isEmpty())
+                draggedIdSet.insert(id);
         }
 
-        if (draggedItems.isEmpty()) return false;
+        if (draggedIdSet.isEmpty()) return false;
+
+        QStringList restIds;
+        for (int i = 0; i < thumbnailModel->rowCount(); ++i) {
+            QString id = thumbnailModel->index(i, 0).data(Qt::UserRole).toString();
+            if (!draggedIdSet.contains(id))
+                restIds.append(id);
+        }
 
         QPoint dropPt = de->position().toPoint();
         QModelIndex dropIdx = thumbnailList->indexAt(dropPt);
-        int insertRow = dropIdx.isValid() ? dropIdx.row() : thumbnailModel->rowCount();
+        int insertPos = restIds.size();
 
-        for (int i = 0; i < draggedItems.size(); ++i) {
-            thumbnailModel->insertRow(insertRow + i, draggedItems[i]);
+        if (dropIdx.isValid()) {
+            QString targetId = dropIdx.data(Qt::UserRole).toString();
+            int idx = restIds.indexOf(targetId);
+            if (idx >= 0) insertPos = idx;
         }
 
-        QStringList orderedIds;
-        for (int i = 0; i < thumbnailModel->rowCount(); ++i)
-            orderedIds.append(thumbnailModel->index(i, 0).data(Qt::UserRole).toString());
-        if (orderedIds.size() > 1)
-            snippetMgr->reorderSnippets(orderedIds);
+        QStringList draggedIds = draggedIdSet.values();
+        for (int i = 0; i < draggedIds.size(); ++i)
+            restIds.insert(insertPos + i, draggedIds[i]);
+
+        thumbnailModel->clear();
+        for (const QString &id : restIds) {
+            Snippet s = snippetMgr->loadSnippet(id);
+            QString label = s.isPreset ? QStringLiteral("[预设] ") + s.name : s.name;
+            QStandardItem *item = new QStandardItem(label);
+            item->setData(id, Qt::UserRole);
+            item->setToolTip(s.description);
+            QIcon icon = loadThumbnailIcon(id);
+            if (!icon.isNull()) item->setIcon(icon);
+            thumbnailModel->appendRow(item);
+        }
+
+        if (restIds.size() > 1)
+            snippetMgr->reorderSnippets(restIds);
 
         de->accept();
         return true;
@@ -227,11 +238,12 @@ bool SearchPanel::eventFilter(QObject *obj, QEvent *event)
         const QMimeData *mime = de->mimeData();
         QModelIndex targetIdx = categoryTree->indexAt(de->position().toPoint());
 
+        bool fromThumbnails = (de->source() == thumbnailList->viewport()
+                               || de->source() == thumbnailList);
+
         if (mime->hasFormat("application/x-qabstractitemmodeldatalist")) {
             QByteArray data = mime->data("application/x-qabstractitemmodeldatalist");
             QDataStream stream(&data, QIODevice::ReadOnly);
-            QSet<QString> seen;
-            bool isCategoryDrag = false;
             QStringList draggedIds;
 
             while (!stream.atEnd() && stream.status() == QDataStream::Ok) {
@@ -240,42 +252,63 @@ bool SearchPanel::eventFilter(QObject *obj, QEvent *event)
                 stream >> row >> col >> roleData;
                 QString itemId = roleData[Qt::UserRole].toString();
                 if (itemId.isEmpty()) continue;
-                if (seen.contains(itemId)) continue;
-                seen.insert(itemId);
-                draggedIds.append(itemId);
-
-                if (itemId != QLatin1String("__uncategorized__")
-                    && !itemId.isEmpty() && !itemId.contains('-')) {
-                    isCategoryDrag = true;
-                }
+                if (!draggedIds.contains(itemId))
+                    draggedIds.append(itemId);
             }
 
-            if (isCategoryDrag) {
-                QStringList savedOrder;
-                QStandardItem *root = categoryModel->invisibleRootItem();
-                for (int i = 0; i < root->rowCount(); ++i) {
-                    collectOrderedCategories(root->child(i), savedOrder);
-                }
-                if (!savedOrder.isEmpty()) {
-                    snippetMgr->saveCategoryOrder(savedOrder);
-                    refreshCategoryTree();
-                    de->accept();
-                    return true;
-                }
-            } else {
+            if (draggedIds.isEmpty()) return false;
+
+            if (fromThumbnails) {
                 QString targetCat;
                 if (targetIdx.isValid())
                     targetCat = targetIdx.data(Qt::UserRole).toString();
 
-                bool anyMoved = false;
-                for (const QString &snippetId : draggedIds) {
+                for (const QString &snippetId : draggedIds)
                     snippetMgr->updateSnippetCategory(snippetId, targetCat);
-                    anyMoved = true;
-                }
 
-                if (anyMoved) {
+                refreshCategoryTree();
+                refreshSearch();
+                de->accept();
+                return true;
+            }
+
+            QList<QStandardItem *> draggedItems;
+            QStandardItem *root = categoryModel->invisibleRootItem();
+            for (const QString &id : draggedIds) {
+                QList<QStandardItem *> found = categoryModel->findItems(
+                    id, Qt::MatchExactly | Qt::MatchRecursive);
+                for (QStandardItem *item : found) {
+                    if (!draggedItems.contains(item)) {
+                        draggedItems.append(item);
+                        break;
+                    }
+                }
+            }
+
+            if (!draggedItems.isEmpty() && targetIdx.isValid()) {
+                QStandardItem *targetItem = categoryModel->itemFromIndex(targetIdx);
+                if (targetItem && !draggedItems.contains(targetItem)) {
+                    QStandardItem *targetParent = targetItem->parent() ? targetItem->parent() : root;
+                    int targetRow = targetItem->row();
+                    if (targetParent == root && targetItem->data(Qt::UserRole).toString().isEmpty())
+                        targetRow = 0;
+
+                    for (QStandardItem *item : draggedItems) {
+                        QStandardItem *srcParent = item->parent() ? item->parent() : root;
+                        if (srcParent == targetParent && item->row() < targetRow)
+                            targetRow--;
+                        QList<QStandardItem *> taken = srcParent->takeRow(item->row());
+                        for (int i = 0; i < taken.size(); ++i)
+                            targetParent->insertRow(targetRow + i, taken[i]);
+                    }
+
+                    QStringList savedOrder;
+                    for (int i = 0; i < root->rowCount(); ++i)
+                        collectOrderedCategories(root->child(i), savedOrder);
+                    if (!savedOrder.isEmpty())
+                        snippetMgr->saveCategoryOrder(savedOrder);
+
                     refreshCategoryTree();
-                    refreshSearch();
                     de->accept();
                     return true;
                 }
