@@ -39,6 +39,9 @@ TikzDocumentState::TikzDocumentState()
         QStringLiteral("\\\\(?:def|edef|gdef|xdef)\\s*\\\\([a-zA-Z0-9]+)"));
     m_letRe = QRegularExpression(
         QStringLiteral("\\\\let\\s*\\\\([a-zA-Z0-9@]+)"));
+    m_pgfmathRe = QRegularExpression(
+        QStringLiteral("\\\\(?:pgfmathset|pgfmathsetlength|pgfmathtruncate)macro"
+                       "\\s*\\{?\\\\([a-zA-Z0-9@]+)"));
     // 'at (coord)' clause of a node/pic. The coordinate may contain one level
     // of nested parens, e.g. at ($(a)+(b)$) with the calc library.
     static const QString atClause = QStringLiteral(
@@ -408,6 +411,19 @@ void TikzDocumentState::parseLine(const QString &text, int blockStartPos,
                 QString cmdName = QLatin1Char('\\') + letm.captured(1);
                 if (!cmdName.isEmpty()) m_userCmds.insert(cmdName);
                 pos = letm.capturedEnd();
+                continue;
+            }
+
+            // \pgfmathsetmacro{\foo} / \pgfmathsetlengthmacro{\foo} / \pgfmathtruncatemacro{\foo}
+            QRegularExpressionMatch pgfm = m_pgfmathRe.match(text, pos);
+            if (pgfm.hasMatch() && pgfm.capturedStart() == pos) {
+                QString cmdText = pgfm.captured();
+                int bs = cmdText.lastIndexOf(QLatin1Char('\\'));
+                if (bs >= 0) {
+                    QString cmdName = cmdText.mid(bs);
+                    if (!cmdName.isEmpty()) m_userCmds.insert(cmdName);
+                }
+                pos = pgfm.capturedEnd();
                 continue;
             }
 

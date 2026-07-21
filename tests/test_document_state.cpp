@@ -247,6 +247,26 @@ static int test_user_command_parsing()
     return failed;
 }
 
+static int test_pgfmath_macro_parsing()
+{
+    int failed = 0;
+    QTextDocument doc;
+    doc.setPlainText(
+        "\\pgfmathsetmacro{\\Mval}{int(\\Reading*2)/2}\n"
+        "\\pgfmathsetmacro\\bare{3.14*2}\n"
+        "\\pgfmathsetlengthmacro{\\len}{sqrt(2)*1cm}\n"
+        "\\pgfmathtruncatemacro{\\trunc}{int(5.7)}\n");
+    TikzDocumentState state;
+    state.reparse(&doc);
+    const auto &cmds = state.userCommands();
+    if (!cmds.contains("\\Mval")) { fprintf(stderr, "FAIL: DCS-PM1 - \\pgfmathsetmacro{\\Mval} not parsed\n"); failed++; }
+    if (!cmds.contains("\\bare")) { fprintf(stderr, "FAIL: DCS-PM2 - \\pgfmathsetmacro\\bare not parsed\n"); failed++; }
+    if (!cmds.contains("\\len")) { fprintf(stderr, "FAIL: DCS-PM3 - \\pgfmathsetlengthmacro{\\len} not parsed\n"); failed++; }
+    if (!cmds.contains("\\trunc")) { fprintf(stderr, "FAIL: DCS-PM4 - \\pgfmathtruncatemacro{\\trunc} not parsed\n"); failed++; }
+    if (failed == 0) fprintf(stderr, "PASS: pgfmath macro parsing\n");
+    return failed;
+}
+
 static int test_current_env_name()
 {
     int failed = 0;
@@ -1000,6 +1020,7 @@ int main(int argc, char *argv[])
     failed += test_foreach_optional_bracket();
     failed += test_color_parsing();
     failed += test_user_command_parsing();
+    failed += test_pgfmath_macro_parsing();
     failed += test_current_env_name();
     failed += test_snippet_libraries();
     failed += test_circuitikz_scope();
