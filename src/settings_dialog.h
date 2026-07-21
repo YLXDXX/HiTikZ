@@ -32,6 +32,7 @@ private:
     QLineEdit *xelatexPathEdit;
     QLineEdit *pdftocairoPathEdit;
     QLineEdit *inkscapePathEdit;
+    QLineEdit *pdfViewerEdit;
     QComboBox *svgToolCombo;
     QLineEdit *texInputsEdit;
     QSpinBox *pngDpiSpin;

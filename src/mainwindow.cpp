@@ -325,6 +325,7 @@ void MainWindow::setupUI()
 
     QAction *newAct = toolBar->addAction(QStringLiteral("新建片段"));
     QAction *deleteAct = toolBar->addAction(QStringLiteral("删除片段"));
+    duplicateAct = toolBar->addAction(QStringLiteral("复制片段"));
 
     QToolButton *importExportBtn = new QToolButton;
     importExportBtn->setText(QStringLiteral("导入/导出"));
@@ -378,6 +379,7 @@ void MainWindow::setupUI()
     QAction *copyFullAct = toolBar->addAction(QStringLiteral("复制文档"));
     QAction *copyPngAct = toolBar->addAction(QStringLiteral("复制PNG"));
     QAction *copySvgAct = toolBar->addAction(QStringLiteral("复制SVG"));
+    openPdfExternalAct = toolBar->addAction(QStringLiteral("外部PDF"));
 
     toolBar->addSeparator();
 
@@ -1141,6 +1143,33 @@ void MainWindow::setupUI()
     connect(copyPngAct, &QAction::triggered, this, copyPngFromCurrentPreview);
     connect(copySvgAct, &QAction::triggered, this, copySvgFromCurrentPreview);
 
+    connect(openPdfExternalAct, &QAction::triggered, this, [this]() {
+        QString pdfPath;
+        if (!currentSnippetId.isEmpty()) {
+            pdfPath = snippetDataPath(currentSnippetId) + "/preview.pdf";
+        }
+        if (pdfPath.isEmpty() || !QFile::exists(pdfPath)) {
+            pdfPath = compiler->pdfPath();
+        }
+        if (pdfPath.isEmpty() || !QFile::exists(pdfPath)) {
+            statusBar()->showMessage(QStringLiteral("请先编译生成PDF预览"), kStatusBarShortMs);
+            return;
+        }
+        QSettings settings("HiTikZ", "TikzManager");
+        QString viewerCmd = settings.value("tools/pdfViewer", "").toString().trimmed();
+        if (viewerCmd.isEmpty()) {
+            statusBar()->showMessage(QStringLiteral("请在设置中配置外部PDF查看器命令"), kStatusBarLongMs);
+            return;
+        }
+        QStringList parts = QProcess::splitCommand(viewerCmd);
+        if (parts.isEmpty()) return;
+        QString program = parts.takeFirst();
+        parts.append(pdfPath);
+        if (!QProcess::startDetached(program, parts)) {
+            statusBar()->showMessage(QStringLiteral("启动外部PDF查看器失败"), kStatusBarLongMs);
+        }
+    });
+
     connect(settingsAct, &QAction::triggered, this, [this]() {
         SettingsDialog dlg(this);
         dlg.setSnippetManager(snippetMgr);
@@ -1402,6 +1431,33 @@ void MainWindow::setupConnections()
             compiler->cancelCompile();
             statusBar()->showMessage(QStringLiteral("编译已强制中断"), kStatusBarLongMs);
         }
+    });
+
+    connect(duplicateAct, &QAction::triggered, this, [this]() {
+        if (currentSnippetId.isEmpty()) {
+            statusBar()->showMessage(QStringLiteral("请先选择或打开一个片段"), kStatusBarShortMs);
+            return;
+        }
+        saveCurrentSnippet();
+        Snippet orig = snippetMgr->loadSnippet(currentSnippetId);
+        if (orig.id.isEmpty()) return;
+
+        QString baseName = orig.name;
+        QString newId = snippetMgr->createSnippet(baseName, orig.category);
+        Snippet dup = snippetMgr->loadSnippet(newId);
+        dup.code = orig.code;
+        dup.description = orig.description;
+        dup.tags = orig.tags;
+        dup.templateId = orig.templateId;
+        dup.packages = orig.packages;
+        dup.tikzLibraries = orig.tikzLibraries;
+        dup.compileCommand = orig.compileCommand;
+        snippetMgr->saveSnippet(dup);
+
+        refreshSearch();
+        refreshCategoryTree();
+        loadSnippetIntoEditor(newId);
+        statusBar()->showMessage(QStringLiteral("片段已复制"), kStatusBarShortMs);
     });
 
     connect(compiler, &LatexCompiler::compilationFinished,

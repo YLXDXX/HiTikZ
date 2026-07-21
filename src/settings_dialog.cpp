@@ -55,6 +55,10 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     formLayout->addRow(QStringLiteral("xelatex 命令:"), xelatexPathEdit);
     formLayout->addRow(QStringLiteral("pdftocairo 命令:"), pdftocairoPathEdit);
     formLayout->addRow(QStringLiteral("inkscape 命令:"), inkscapePathEdit);
+    pdfViewerEdit = new QLineEdit;
+    pdfViewerEdit->setPlaceholderText(QStringLiteral(
+        "外部 PDF 查看器，如 okular、evince、xdg-open，其后可附加参数"));
+    formLayout->addRow(QStringLiteral("外部 PDF 查看器:"), pdfViewerEdit);
     formLayout->addRow(QStringLiteral("SVG 转换工具:"), svgToolCombo);
     formLayout->addRow(QStringLiteral("命令搜索路径:"), texInputsEdit);
     formLayout->addRow(QStringLiteral("PNG DPI:"), pngDpiSpin);
@@ -232,6 +236,7 @@ void SettingsDialog::loadSettings()
     xelatexPathEdit->setText(settings.value("xelatex/path", "xelatex").toString());
     pdftocairoPathEdit->setText(settings.value("pdftocairo/path", "pdftocairo").toString());
     inkscapePathEdit->setText(settings.value("inkscape/path", "inkscape").toString());
+    pdfViewerEdit->setText(settings.value("tools/pdfViewer", "").toString());
     svgToolCombo->setCurrentIndex(svgToolCombo->findData(settings.value("svg/tool", "pdftocairo").toString()));
     texInputsEdit->setText(settings.value("paths/texinputs", "").toString());
     pngDpiSpin->setValue(settings.value("png/dpi", 300).toInt());
@@ -257,6 +262,7 @@ void SettingsDialog::saveSettings()
     settings.setValue("xelatex/path", xelatexPathEdit->text());
     settings.setValue("pdftocairo/path", pdftocairoPathEdit->text());
     settings.setValue("inkscape/path", inkscapePathEdit->text());
+    settings.setValue("tools/pdfViewer", pdfViewerEdit->text());
     settings.setValue("svg/tool", svgToolCombo->currentData().toString());
     settings.setValue("paths/texinputs", texInputsEdit->text());
     settings.setValue("png/dpi", pngDpiSpin->value());

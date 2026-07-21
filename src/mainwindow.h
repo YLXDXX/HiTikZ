@@ -180,6 +180,8 @@ private:
     QAction *saveAct;
     QAction *undoAct = nullptr;
     QAction *redoAct = nullptr;
+    QAction *duplicateAct = nullptr;
+    QAction *openPdfExternalAct = nullptr;
 
     QAction *forceStopAct;
     QSystemTrayIcon *trayIcon;
