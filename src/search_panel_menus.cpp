@@ -272,47 +272,33 @@ bool SearchPanel::eventFilter(QObject *obj, QEvent *event)
                 return true;
             }
 
-            QList<QStandardItem *> draggedItems;
-            QStandardItem *root = categoryModel->invisibleRootItem();
-            for (const QString &id : draggedIds) {
-                QList<QStandardItem *> found = categoryModel->findItems(
-                    id, Qt::MatchExactly | Qt::MatchRecursive);
-                for (QStandardItem *item : found) {
-                    if (!draggedItems.contains(item)) {
-                        draggedItems.append(item);
-                        break;
-                    }
-                }
+            if (!targetIdx.isValid()) return false;
+
+            QString targetCat = targetIdx.data(Qt::UserRole).toString();
+            QStringList savedOrder = snippetMgr->loadCategoryOrder();
+
+            if (savedOrder.isEmpty()) {
+                savedOrder = snippetMgr->getAllCategories();
             }
 
-            if (!draggedItems.isEmpty() && targetIdx.isValid()) {
-                QStandardItem *targetItem = categoryModel->itemFromIndex(targetIdx);
-                if (targetItem && !draggedItems.contains(targetItem)) {
-                    QStandardItem *targetParent = targetItem->parent() ? targetItem->parent() : root;
-                    int targetRow = targetItem->row();
-                    if (targetParent == root && targetItem->data(Qt::UserRole).toString().isEmpty())
-                        targetRow = 0;
+            int insertAt = savedOrder.indexOf(targetCat);
+            if (insertAt < 0) insertAt = savedOrder.size();
 
-                    for (QStandardItem *item : draggedItems) {
-                        QStandardItem *srcParent = item->parent() ? item->parent() : root;
-                        if (srcParent == targetParent && item->row() < targetRow)
-                            targetRow--;
-                        QList<QStandardItem *> taken = srcParent->takeRow(item->row());
-                        for (int i = 0; i < taken.size(); ++i)
-                            targetParent->insertRow(targetRow + i, taken[i]);
-                    }
-
-                    QStringList savedOrder;
-                    for (int i = 0; i < root->rowCount(); ++i)
-                        collectOrderedCategories(root->child(i), savedOrder);
-                    if (!savedOrder.isEmpty())
-                        snippetMgr->saveCategoryOrder(savedOrder);
-
-                    refreshCategoryTree();
-                    de->accept();
-                    return true;
-                }
+            QStringList newOrder;
+            for (const QString &cat : savedOrder) {
+                if (!draggedIds.contains(cat))
+                    newOrder.append(cat);
             }
+
+            for (int i = 0; i < draggedIds.size(); ++i)
+                newOrder.insert(insertAt + i, draggedIds[i]);
+
+            if (!newOrder.isEmpty())
+                snippetMgr->saveCategoryOrder(newOrder);
+
+            de->accept();
+            QTimer::singleShot(0, this, [this]() { refreshCategoryTree(); });
+            return true;
         }
     }
     return QWidget::eventFilter(obj, event);
