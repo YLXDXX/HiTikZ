@@ -306,3 +306,22 @@ add_executable(test_enhanced_highlighter
 target_include_directories(test_enhanced_highlighter PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_enhanced_highlighter PRIVATE Qt6::Widgets)
 add_test(NAME EnhancedHighlighter COMMAND test_enhanced_highlighter)
+
+add_executable(test_review_fixes
+    tests/test_review_fixes.cpp
+    src/code_editor.cpp
+    ${SEARCH_PANEL_SOURCES}
+    ${SNIPPET_MANAGER_SOURCES}
+    src/snippet_properties_dialog.cpp
+    src/flow_layout.cpp
+    src/tikz_highlighter.cpp
+    ${TIKZ_COMPLETER_SOURCES}
+    ${TIKZ_KEYWORDS_SOURCES}
+    src/tikz_document_state.cpp
+)
+target_include_directories(test_review_fixes PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_review_fixes PRIVATE Qt6::Widgets Qt6::Pdf Qt6::PdfWidgets Qt6::Concurrent)
+target_compile_definitions(test_review_fixes PRIVATE
+    RESOURCE_DIR=${CMAKE_SOURCE_DIR}/resources
+)
+add_test(NAME ReviewFixes COMMAND test_review_fixes)

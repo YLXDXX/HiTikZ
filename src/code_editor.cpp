@@ -505,15 +505,29 @@ QChar CodeEditor::closingBracketFor(QChar open)
 int CodeEditor::findMatchingBracket(int pos, QChar bracket, const QTextDocument *doc) const
 {
     const int totalChars = doc->characterCount();
-    // QTextDocument::characterCount() includes the implicit paragraph
-    // separator at the very end; stay within the actual text range.
     const int lastIdx = totalChars - 1;
+
+    auto isEscaped = [&](int index) -> bool {
+        int backslashes = 0;
+        for (int j = index - 1; j >= 0; --j) {
+            if (doc->characterAt(j) == QLatin1Char('\\'))
+                backslashes++;
+            else
+                break;
+        }
+        return (backslashes % 2) == 1;
+    };
+
+    if (pos >= 0 && pos < lastIdx && isEscaped(pos))
+        return -1;
 
     if (isOpenBracket(bracket)) {
         const QChar close = closingBracketFor(bracket);
         int depth = 0;
         for (int i = pos + 1; i < lastIdx; ++i) {
             const QChar ch = doc->characterAt(i);
+            if ((ch == bracket || ch == close) && isEscaped(i)) continue;
+
             if (ch == bracket) {
                 depth++;
             } else if (ch == close) {
@@ -530,6 +544,8 @@ int CodeEditor::findMatchingBracket(int pos, QChar bracket, const QTextDocument 
         int depth = 0;
         for (int i = pos - 1; i >= 0; --i) {
             const QChar ch = doc->characterAt(i);
+            if ((ch == bracket || ch == open) && isEscaped(i)) continue;
+
             if (ch == bracket) {
                 depth++;
             } else if (ch == open) {

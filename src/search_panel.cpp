@@ -363,12 +363,14 @@ void SearchPanel::refreshCategoryTree()
     QStandardItem *allItem = new QStandardItem(QStringLiteral("全部 (%1)").arg(totalCount));
     allItem->setData("", Qt::UserRole);
     allItem->setEditable(false);
+    allItem->setFlags(allItem->flags() & ~Qt::ItemIsDragEnabled);
     rootItem->appendRow(allItem);
 
     if (uncategorizedCount > 0) {
         QStandardItem *uncatItem = new QStandardItem(QStringLiteral("未分类 (%1)").arg(uncategorizedCount));
         uncatItem->setData("__uncategorized__", Qt::UserRole);
         uncatItem->setEditable(false);
+        uncatItem->setFlags(uncatItem->flags() & ~Qt::ItemIsDragEnabled);
         rootItem->appendRow(uncatItem);
     }
 
@@ -378,24 +380,22 @@ void SearchPanel::refreshCategoryTree()
     }
 
     categoryTree->expand(allItem->index());
+
     if (!savedCategory.isEmpty()) {
-        for (int i = 0; i < categoryModel->rowCount(); ++i) {
-            QModelIndex idx = categoryModel->index(i, 0);
-            QStandardItem *item = categoryModel->itemFromIndex(idx);
-            if (item && item->data(Qt::UserRole).toString() == savedCategory) {
-                categoryTree->setCurrentIndex(idx);
-                break;
-            }
-        }
-        if (savedCategory.contains('/')) {
-            QStringList parts = savedCategory.split('/');
-            QString partial;
-            for (int i = 0; i < parts.size() - 1; ++i) {
-                if (!partial.isEmpty()) partial += '/';
-                partial += parts[i];
-                QList<QStandardItem *> found = categoryModel->findItems(partial, Qt::MatchExactly | Qt::MatchRecursive);
-                if (!found.isEmpty())
-                    categoryTree->expand(found.first()->index());
+        QModelIndexList found = categoryModel->match(
+            categoryModel->index(0, 0),
+            Qt::UserRole,
+            savedCategory,
+            1,
+            Qt::MatchExactly | Qt::MatchRecursive);
+        if (!found.isEmpty()) {
+            categoryTree->setCurrentIndex(found.first());
+            categoryTree->scrollTo(found.first());
+
+            QModelIndex parent = found.first().parent();
+            while (parent.isValid()) {
+                categoryTree->expand(parent);
+                parent = parent.parent();
             }
         }
     }

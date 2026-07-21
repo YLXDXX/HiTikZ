@@ -116,30 +116,27 @@ bool SnippetManager::saveSnippet(const Snippet &s)
     if (!QDir().mkpath(path))
         return false;
 
+    QSaveFile texFile(path + "snippet.tex");
+    if (!texFile.open(QIODevice::WriteOnly))
+        return false;
+    texFile.write(s.code.toUtf8());
+    if (!texFile.commit())
+        return false;
+
     QJsonObject json = snippetToJson(s);
     QJsonDocument doc(json);
     QSaveFile metaFile(path + "meta.json");
-    if (metaFile.open(QIODevice::WriteOnly)) {
-        metaFile.write(doc.toJson());
-        if (!metaFile.commit())
-            return false;
-    } else {
+    if (!metaFile.open(QIODevice::WriteOnly))
         return false;
-    }
+    metaFile.write(doc.toJson());
+    if (!metaFile.commit())
+        return false;
 
-    QSaveFile texFile(path + "snippet.tex");
-    if (texFile.open(QIODevice::WriteOnly)) {
-        texFile.write(s.code.toUtf8());
-        if (!texFile.commit()) {
-            return false;
-        }
-        removeSnippetFromSearchIndex(s.id);
-        addSnippetToSearchIndex(s);
-        invalidateCachesLight();
-        emit snippetModified(s.id);
-        return true;
-    }
-    return false;
+    removeSnippetFromSearchIndex(s.id);
+    addSnippetToSearchIndex(s);
+    invalidateCachesLight();
+    emit snippetModified(s.id);
+    return true;
 }
 
 Snippet SnippetManager::loadSnippet(const QString &id)
