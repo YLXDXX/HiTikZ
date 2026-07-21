@@ -185,10 +185,19 @@ void SearchPanel::refreshTagFilter()
     });
     m_tagFlowLayout->addWidget(m_moreTagsBtn);
 
+    m_tagButtonContainer->setVisible(false);
     existingLayout->addWidget(m_tagButtonContainer);
 
-    if (m_tagCollapseTimer)
-        m_tagCollapseTimer->start();
+    QTimer::singleShot(0, this, [this]() {
+        if (m_tagButtonContainer) {
+            if (QLayout *l = tagFilterWidget->layout()) {
+                l->invalidate();
+                l->activate();
+            }
+            applyTagRowCollapse();
+            m_tagButtonContainer->setVisible(true);
+        }
+    });
 
     // A pruned selection changes the effective filter; refresh the results so
     // the thumbnail list reflects the now-smaller tag set.
