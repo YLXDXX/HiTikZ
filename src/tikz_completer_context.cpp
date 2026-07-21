@@ -52,6 +52,35 @@ TikzCompleter::Context TikzCompleter::detectContext(const QString &textBefore) c
     int len = textBefore.length();
     if (len == 0) return TkzCtxNone;
 
+    // Handle font= / node font= and of= value contexts before the backslash
+    // trigger (TkzCtxCmd at line ↓) and the bracket scan can intercept them.
+    // The 'font' key value is a sequence of backslash font macros (\bfseries,
+    // \itshape, \Large, ...) and 'of' joins path names with " and ". Both
+    // would otherwise be routed to TkzCtxCmd by the generic backslash-in-
+    // value logic, effectively hiding their value candidates from the user.
+    // Works inside brackets (e.g. [scale=3,font=\Large]) and braces (e.g.
+    // .style={draw,font=\it}).
+    {
+        const int eqIdx = governingEqIndex(textBefore);
+        if (eqIdx >= 0) {
+            int ks = eqIdx - 1;
+            while (ks >= 0 && (textBefore.at(ks).isLetterOrNumber()
+                               || textBefore.at(ks) == ' '))
+                ks--;
+            const QString key = textBefore.mid(ks + 1, eqIdx - ks - 1).trimmed();
+            const QString lkey = key.toLower();
+            const QString afterEq = textBefore.mid(eqIdx + 1);
+            if (lkey == QLatin1String("of")) {
+                if (!afterEq.contains(QLatin1Char(',')))
+                    return TkzCtxEq;
+            } else if (lkey == QLatin1String("font")
+                       || lkey == QLatin1String("node font")) {
+                if (!afterEq.contains(QLatin1Char(',')))
+                    return TkzCtxEq;
+            }
+        }
+    }
+
     QChar lastChar = textBefore.at(len - 1);
 
     // Trigger command completion when \ is preceded by any non-letter char,
@@ -221,41 +250,6 @@ TikzCompleter::Context TikzCompleter::detectContext(const QString &textBefore) c
                     return TkzCtxEq;
                 }
                 return TkzCtxBrk;
-            }
-        }
-    }
-
-    // Inside a brace group, some keys take values the generic word-boundary
-    // logic below would misclassify:
-    //   • the intersections 'of=' value joins two path names with " and "
-    //     (e.g. \path[name intersections={of=D--F and circle K}]), and
-    //   • 'font='/'node font=' values are backslash macros (\itshape, \ttfamily,
-    //     ...) which would otherwise be rerouted to command completion when
-    //     written in a style body (e.g. foo/.style={draw,font=\it}).
-    // Scope this to those keys so ordinary node text containing '=' or '\'
-    // (e.g. \node {x = y}) is never mistaken for a value context. The
-    // single-word in-brace cases (e.g. {fill=re, {>=s) remain handled by the
-    // '=' word boundary below.
-    {
-        const int eqIdx = governingEqIndex(textBefore);
-        if (eqIdx >= 0) {
-            // Extract the key immediately preceding this '='.
-            int ks = eqIdx - 1;
-            while (ks >= 0 && (textBefore.at(ks).isLetterOrNumber()
-                               || textBefore.at(ks) == ' '))
-                ks--;
-            const QString key = textBefore.mid(ks + 1, eqIdx - ks - 1).trimmed();
-            const QString lkey = key.toLower();
-            const QString afterEq = textBefore.mid(eqIdx + 1);
-            if (lkey == QLatin1String("of")) {
-                if (!afterEq.contains(QLatin1Char(',')))
-                    return TkzCtxEq;
-            } else if (lkey == QLatin1String("font")
-                       || lkey == QLatin1String("node font")) {
-                // Value is a run of font macros like "\bfseries\itshape"; stay in
-                // value context as long as there is no comma ending the option.
-                if (!afterEq.contains(QLatin1Char(',')))
-                    return TkzCtxEq;
             }
         }
     }

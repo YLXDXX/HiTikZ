@@ -3080,6 +3080,34 @@ static int test_font_completion()
         }
     }
 
+    // font= values inside brackets: the backslash macros (\Large, \bfseries)
+    // must still resolve to TkzCtxEq, not TkzCtxCmd. This is the scenario
+    // \begin{tikzpicture}[scale=3,font=\Large].
+    {
+        struct { const char *text; TikzCompleter::Context expected; const char *desc; } brCases[] = {
+            { "[font=",             TikzCompleter::TkzCtxEq, "font= in bracket" },
+            { "[font=\\",            TikzCompleter::TkzCtxEq, "font=\\ in bracket" },
+            { "[font=\\Large",       TikzCompleter::TkzCtxEq, "font=\\Large in bracket" },
+            { "[scale=3,font=",     TikzCompleter::TkzCtxEq, "scale=3,font= in bracket" },
+            { "[scale=3,font=\\",    TikzCompleter::TkzCtxEq, "scale=3,font=\\ in bracket" },
+            { "[scale=3,font=\\Large", TikzCompleter::TkzCtxEq, "scale=3,font=\\Large in bracket" },
+            { "[node font=",        TikzCompleter::TkzCtxEq, "node font= in bracket" },
+            { "[node font=\\it",    TikzCompleter::TkzCtxEq, "node font=\\it in bracket" },
+            { "[a=\\SI{1}",         TikzCompleter::TkzCtxCmd, "a=\\SI in bracket (non-font, cmd)" },
+            { nullptr, TikzCompleter::TkzCtxNone, nullptr }
+        };
+        for (int i = 0; brCases[i].text; ++i) {
+            TikzCompleter::Context got =
+                completer.detectContext(QString::fromUtf8(brCases[i].text));
+            if (got != brCases[i].expected) {
+                fprintf(stderr, "FAIL: FNT-7 (%s) - expected %d, got %d\n",
+                        brCases[i].desc, static_cast<int>(brCases[i].expected),
+                        static_cast<int>(got));
+                failed++;
+            }
+        }
+    }
+
     if (failed == 0)
         fprintf(stderr, "PASS: font / node font value completion\n");
     return failed;
