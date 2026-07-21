@@ -56,6 +56,9 @@ QString SnippetManager::getPresetSnippetPath(const QString &id) const
 
 bool SnippetManager::snippetExists(const QString &id) const
 {
+    if (id.isEmpty())
+        return false;
+
     return QDir(getSnippetPath(id)).exists() || QDir(getPresetSnippetPath(id)).exists();
 }
 
@@ -101,6 +104,9 @@ QString SnippetManager::createSnippet(const QString &name, const QString &catego
 
 bool SnippetManager::saveSnippet(const Snippet &s)
 {
+    if (s.id.isEmpty())
+        return false;
+
     QString path;
     if (isPresetId(s.id))
         path = getPresetSnippetPath(s.id);
@@ -138,6 +144,9 @@ bool SnippetManager::saveSnippet(const Snippet &s)
 
 Snippet SnippetManager::loadSnippet(const QString &id)
 {
+    if (id.isEmpty())
+        return Snippet();
+
     if (isPresetId(id))
         return loadPreset(id);
 
@@ -152,6 +161,9 @@ Snippet SnippetManager::loadSnippet(const QString &id)
 
 Snippet SnippetManager::loadPreset(const QString &id)
 {
+    if (id.isEmpty())
+        return Snippet();
+
     QString path = getPresetSnippetPath(id);
     if (!QDir(path).exists())
         return Snippet();
@@ -285,6 +297,9 @@ int SnippetManager::renameCategory(const QString &oldCategory, const QString &ne
 
 int SnippetManager::deleteCategory(const QString &category)
 {
+    if (category.isEmpty())
+        return 0;
+
     int count = 0;
     QList<Snippet> all = getAllSnippets();
     for (const Snippet &s : all) {

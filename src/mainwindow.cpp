@@ -1715,6 +1715,9 @@ void MainWindow::onCurrentSnippetChanged()
 
 QString MainWindow::snippetDataPath(const QString &id) const
 {
+    if (id.isEmpty())
+        return QString();
+
     if (snippetMgr->isPresetId(id))
         return snippetMgr->getPresetPath() + id;
     else
