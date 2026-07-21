@@ -12,6 +12,7 @@
 #include <QMimeData>
 #include <QDataStream>
 #include <QDropEvent>
+#include <QDragMoveEvent>
 #include <QEvent>
 #include <QResizeEvent>
 #include <QFileInfo>
@@ -233,6 +234,17 @@ bool SearchPanel::eventFilter(QObject *obj, QEvent *event)
         return true;
     }
 
+    if (obj == categoryTree->viewport() && event->type() == QEvent::DragMove) {
+        QDragMoveEvent *de = static_cast<QDragMoveEvent *>(event);
+        bool fromThumbnails = (de->source() == thumbnailList->viewport()
+                               || de->source() == thumbnailList);
+        if (!fromThumbnails && de->mimeData()->hasFormat(
+                "application/x-qabstractitemmodeldatalist")) {
+            de->acceptProposedAction();
+            return true;
+        }
+    }
+
     if (obj == categoryTree->viewport() && event->type() == QEvent::Drop) {
         QDropEvent *de = static_cast<QDropEvent *>(event);
         const QMimeData *mime = de->mimeData();
@@ -277,9 +289,8 @@ bool SearchPanel::eventFilter(QObject *obj, QEvent *event)
             QString targetCat = targetIdx.data(Qt::UserRole).toString();
             QStringList savedOrder = snippetMgr->loadCategoryOrder();
 
-            if (savedOrder.isEmpty()) {
+            if (savedOrder.isEmpty())
                 savedOrder = snippetMgr->getAllCategories();
-            }
 
             int insertAt = savedOrder.indexOf(targetCat);
             if (insertAt < 0) insertAt = savedOrder.size();
@@ -289,6 +300,9 @@ bool SearchPanel::eventFilter(QObject *obj, QEvent *event)
                 if (!draggedIds.contains(cat))
                     newOrder.append(cat);
             }
+
+            if (insertAt > newOrder.size())
+                insertAt = newOrder.size();
 
             for (int i = 0; i < draggedIds.size(); ++i)
                 newOrder.insert(insertAt + i, draggedIds[i]);
