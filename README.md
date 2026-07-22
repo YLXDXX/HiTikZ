@@ -109,7 +109,7 @@ HiTikZ 围绕「片段（snippet）」这一核心概念组织：每个片段是
 ### 内容与实现
 
 - **120 个高质量预置片段**：涵盖数学、物理、电路、化学等领域，均从 tikz.net 和 TeXample.net 精选并经 XeLaTeX 编译验证
-- **C++17 + Qt6 原生实现**：高性能，启动快，原生 Wayland 支持
+- **C++17 + Qt6 原生实现**：高性能，启动快，支持 Wayland（通过 XWayland 兼容层）与 X11
 
 ---
 
@@ -695,7 +695,7 @@ calc,er,angles,patterns,decorations.pathmorphing,shadows.blur,pgfplots.fillbetwe
 
 ## 键盘快捷键
 
-全部快捷键均可在**设置面板 → 快捷键设置**中自定义键序列，清空则禁用该快捷键。
+以下 8 项操作均可在**设置面板 → 快捷键设置**中自定义键序列，清空则禁用该快捷键。编辑器内置快捷键（`Tab`/`Shift+Tab` 块缩进、`Ctrl+Space` 补全、`Ctrl+Z` 撤销、`Ctrl+Shift+Z` 重做）为固定键位。
 
 | 功能 | 默认快捷键 |
 |------|----------|
@@ -959,6 +959,7 @@ tests/
 ├── test_completer.cpp               # 补全词库完整性 + detectContext 13 种上下文 69 用例（含 \end{}、花括号内 = 值补全、坐标系 cs: 键）+ 箭头大小写双变体 + 定位键坐标补全 + 装饰完整列表 + 库门控 + label/pin 方位 + font/node font 字体值（含样式体内）+ to path 与坐标宏 + graphs/matrix 选项 + of= 命名路径 + 坐标系名/键补全（3d/calc/perspective 门控）+ 含空格补全上屏无多余字符 + 已完成值内嵌括号对后 cs: 键补全回归 + CircuiTikZ 标注/修饰/类样式/用户命令审计 + CircuiTikZ/tikz-cd/tkz-euclide/chemfig/tikz-feynman 源码一致校验
 ├── test_document_state.cpp          # 文档状态追踪（23 个用例：范围/库/样式/坐标/pic/foreach(含可选参数)/颜色/\usepackage 激活 physics·siunitx·pgfplots/节点 name= 选项语法提取/命名路径 name path/by= 交点名提取/LaTeX 模板内容激活补全库/元数据宏包映射统一）
 └── test_enhanced_highlighter.cpp    # 增强语法高亮（14 个用例：PGF路径/处理器/用户定义名/key=value花括号深度/跨行选项/综合）
+├── test_review_fixes.cpp             # 代码审查修复验证（saveSnippet 数据一致性、转义括号匹配、虚拟节点拖拽禁用、分类树选择恢复、子分类跟随移动、自身/后代拖放拒绝）
 
 # ── 打包与安装 ──
 cmake/
@@ -1018,7 +1019,7 @@ MainWindow
 
 ## 测试
 
-项目包含十五套自动化测试（通过 CTest 运行）：
+项目包含十六套自动化测试（通过 CTest 运行）：
 
 | 测试 | 内容 |
 |------|------|
@@ -1037,13 +1038,14 @@ MainWindow
 | `test_completer` | 补全词库完整性（去重、条目数量、TeX 条件原语含 `\fi`/`\ifcase` 等）、detectContext 13 种上下文检测（69 用例含 `\end{}`、花括号内 `=`、坐标系 `cs:`、方括号内 `font=\Large` 等值补全回归）、箭头大小写双变体、定位键坐标补全、PGF 键处理器/值提示/颜色值补全、key 提取的花括号/中括号感知、跨行上下文回溯、装饰完整 27 名 eq 补全、锚点源码准确性、库门控、label/pin/font/node font 值补全、`to path`/`\tikztostart`/graphs/matrix 选项、`of=` 命名路径、坐标系名与 cs: 键补全、含空格补全值上屏；CircuiTikZ/标准 TikZ/数学函数/装饰/physics·siunitx/pgfplots/tikz-cd·tkz-euclide·chemfig·tikz-feynman 各词库组源码一致性校验 |
 | `test_document_state` | 文档状态追踪：范围栈检测、库解析、用户样式（含空格名）/坐标/节点/pic名（含 `name=` 选项语法）/路径操作坐标/foreach变量（含空格多变量、可选方括号参数）/颜色/命令解析（含 `\pgfmathsetmacro`/`\pgfmathsetlengthmacro`/`\pgfmathtruncatemacro`）、命名路径与 `by=` 交点名提取、环境名查询、片段库注入、`\usepackage` 激活补全库、LaTeX 模板内容激活、元数据宏包映射统一（24 个测试用例） |
 | `test_enhanced_highlighter` | 增强语法高亮：PGF路径/键处理器/库规则不崩溃，用户样式/节点名/foreach变量高亮检测，key=value分色（含花括号深度隔离），跨行选项括号高亮，多行注释，综合测试，foreach空格分隔变量，**注释保护**验证（14 个测试用例） |
+| `test_review_fixes` | 代码审查修复验证：saveSnippet 数据一致性（tex 先于 meta 保存）、LaTeX 转义括号 `\{` `\}` 跳过匹配、分类树虚拟节点拖拽禁用、子分类选择恢复（match 递归搜索）、分类拖动子分类跟随、自身/后代拖放拒绝 |
 
 运行测试：
 ```bash
 cd build && ctest --output-on-failure
 ```
 
-全部 15 套测试通过，方可提交。
+全部 16 套测试通过，方可提交。
 
 ---
 
