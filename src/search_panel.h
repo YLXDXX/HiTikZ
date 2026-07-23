@@ -67,6 +67,7 @@ private:
     QStringList getSelectedSnippetIds() const;
     QIcon loadThumbnailIcon(const QString &snippetId) const;
     static void collectOrderedCategories(QStandardItem *item, QStringList &order);
+    void collectItemMapping(QStandardItem *item, QMap<QString, QStandardItem*> &map);
 
     SnippetManager *snippetMgr;
 
@@ -89,5 +90,6 @@ private:
     bool m_inTagCollapse = false;
     QString m_pendingCatFilter;
     bool m_hasPendingCatFilter = false;
+    QString m_filterSnippetId;
     static const int kMaxTagRows = 2;
 };

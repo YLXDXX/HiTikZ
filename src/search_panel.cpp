@@ -64,11 +64,27 @@ SearchPanel::SearchPanel(SnippetManager *mgr, QWidget *parent)
         this, [this](const QModelIndex &current, const QModelIndex &) {
             if (!current.isValid()) return;
             if (m_suppressSelectEmit) return;
+            int nodeType = current.data(Qt::UserRole + 1).toInt();
+            if (nodeType == 1) {
+                m_filterSnippetId = current.data(Qt::UserRole).toString();
+            } else {
+                m_filterSnippetId.clear();
+            }
             refreshThumbnailList();
         });
 
     connect(categoryTree, &QTreeView::customContextMenuRequested,
         this, &SearchPanel::showCategoryContextMenu);
+
+    connect(categoryTree, &QTreeView::doubleClicked,
+        this, [this](const QModelIndex &index) {
+            if (!index.isValid()) return;
+            if (index.data(Qt::UserRole + 1).toInt() == 1) {
+                QString id = index.data(Qt::UserRole).toString();
+                if (!id.isEmpty())
+                    emit snippetSelected(id);
+            }
+        });
 }
 
 void SearchPanel::setupUI()
@@ -232,20 +248,30 @@ void SearchPanel::refreshSearch()
 
     // Category filter: use explicit override if set, otherwise read from tree
     QString currentCat;
+    QString filterSnippetId;
     if (m_hasPendingCatFilter) {
         currentCat = m_pendingCatFilter;
         m_hasPendingCatFilter = false;
         m_pendingCatFilter.clear();
     } else {
         QModelIndex catIdx = categoryTree->currentIndex();
-        if (catIdx.isValid())
-            currentCat = catIdx.data(Qt::UserRole).toString();
+        if (catIdx.isValid()) {
+            int nodeType = catIdx.data(Qt::UserRole + 1).toInt();
+            if (nodeType == 1) {
+                filterSnippetId = catIdx.data(Qt::UserRole).toString();
+            } else {
+                currentCat = catIdx.data(Qt::UserRole).toString();
+            }
+        }
     }
 
     thumbnailModel->clear();
 
     QList<SearchResult> results = snippetMgr->searchSnippets(query);
     for (const SearchResult &r : results) {
+        if (!filterSnippetId.isEmpty() && r.snippet.id != filterSnippetId)
+            continue;
+
         if (!m_selectedTags.isEmpty()) {
             bool hasAllTags = true;
             for (const QString &tag : m_selectedTags) {
@@ -303,17 +329,31 @@ void SearchPanel::refreshThumbnailList()
 {
     QModelIndex current = categoryTree->currentIndex();
     if (!current.isValid()) return;
-    QString category = current.data(Qt::UserRole).toString();
+
+    QString category;
+    QString snippetId;
+
+    int nodeType = current.data(Qt::UserRole + 1).toInt();
+    if (nodeType == 1) {
+        snippetId = current.data(Qt::UserRole).toString();
+    } else {
+        category = current.data(Qt::UserRole).toString();
+    }
+
     thumbnailModel->clear();
 
     QList<SearchResult> results = snippetMgr->searchSnippets("");
     QList<SearchResult> filtered;
     for (const SearchResult &r : results) {
-        if (category == "__uncategorized__") {
-            if (!r.snippet.category.isEmpty()) continue;
-        } else if (!category.isEmpty()
-                   && !SnippetManager::categoryMatches(r.snippet.category, category)) {
-            continue;
+        if (!snippetId.isEmpty()) {
+            if (r.snippet.id != snippetId) continue;
+        } else {
+            if (category == "__uncategorized__") {
+                if (!r.snippet.category.isEmpty()) continue;
+            } else if (!category.isEmpty()
+                       && !SnippetManager::categoryMatches(r.snippet.category, category)) {
+                continue;
+            }
         }
         filtered.append(r);
     }
@@ -384,6 +424,30 @@ void SearchPanel::refreshCategoryTree()
     }
 
     categoryTree->expand(allItem->index());
+
+    // ── Add direct snippet nodes under each category ──
+    QList<Snippet> allSnippets = snippetMgr->getAllSnippets(false);
+    QList<Snippet> allPresets = snippetMgr->getAllPresets(false);
+    allSnippets.append(allPresets);
+
+    QMap<QString, QStandardItem*> catItemMap;
+    for (int i = 0; i < rootItem->rowCount(); ++i)
+        collectItemMapping(rootItem->child(i), catItemMap);
+
+    for (const Snippet &s : allSnippets) {
+        if (s.category.isEmpty() || !catItemMap.contains(s.category))
+            continue;
+        QStandardItem *parentItem = catItemMap.value(s.category);
+        QString label = s.isPreset ? QStringLiteral("[预设] ") + s.name : s.name;
+        QStandardItem *snipItem = new QStandardItem(label);
+        snipItem->setData(s.id, Qt::UserRole);
+        snipItem->setData(1, Qt::UserRole + 1);
+        snipItem->setEditable(false);
+        snipItem->setFlags(snipItem->flags() & ~Qt::ItemIsDragEnabled);
+        QIcon icon = loadThumbnailIcon(s.id);
+        if (!icon.isNull()) snipItem->setIcon(icon);
+        parentItem->appendRow(snipItem);
+    }
 
     if (!savedCategory.isEmpty()) {
         QModelIndexList found = categoryModel->match(
@@ -456,4 +520,14 @@ void SearchPanel::resizeEvent(QResizeEvent *event)
     QWidget::resizeEvent(event);
     if (m_tagCollapseTimer && !m_inTagCollapse)
         m_tagCollapseTimer->start();
+}
+
+void SearchPanel::collectItemMapping(QStandardItem *item, QMap<QString, QStandardItem*> &map)
+{
+    if (!item) return;
+    QString cat = item->data(Qt::UserRole).toString();
+    if (cat != QLatin1String("__uncategorized__") && !cat.isEmpty())
+        map.insert(cat, item);
+    for (int i = 0; i < item->rowCount(); ++i)
+        collectItemMapping(item->child(i), map);
 }
