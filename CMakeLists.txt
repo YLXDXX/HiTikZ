@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(TikzManager VERSION 0.1 LANGUAGES CXX)
+project(TikzManager VERSION 0.2 LANGUAGES CXX)
 
 # Single source of truth for the version number is the project() call above.
 # It is exposed to the C++ code as APP_VERSION (see target_compile_definitions).
