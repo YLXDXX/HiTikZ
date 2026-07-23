@@ -224,10 +224,10 @@ int main(int argc, char *argv[]) {
         QString id2 = mgr.createSnippet("Reorder B", "test/reorder");
         QString id3 = mgr.createSnippet("Reorder C", "test/reorder");
 
-        // Verify default order is 0 for all
-        CHECK(mgr.loadSnippet(id1).sortOrder == 0, "New snippet sortOrder should be 0");
-        CHECK(mgr.loadSnippet(id2).sortOrder == 0, "New snippet sortOrder should be 0");
-        CHECK(mgr.loadSnippet(id3).sortOrder == 0, "New snippet sortOrder should be 0");
+        double o1 = mgr.loadSnippet(id1).sortOrder;
+        double o2 = mgr.loadSnippet(id2).sortOrder;
+        double o3 = mgr.loadSnippet(id3).sortOrder;
+        CHECK(o3 < o2 && o2 < o1, "New snippets should be at front (descending sortOrders)");
 
         // Reorder: C, A, B
         QStringList orderedIds = {id3, id1, id2};

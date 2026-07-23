@@ -97,6 +97,21 @@ QString SnippetManager::createSnippet(const QString &name, const QString &catego
     s.name = name;
     s.category = category;
     s.code = QStringLiteral("\\begin{tikzpicture}\n\n\\end{tikzpicture}");
+
+    double minOrder = 0.0;
+    bool found = false;
+    QList<Snippet> all = getAllSnippets();
+    all.append(getAllPresets());
+    for (const auto& snip : all) {
+        if (snip.category == category) {
+            if (!found || snip.sortOrder < minOrder) {
+                minOrder = snip.sortOrder;
+                found = true;
+            }
+        }
+    }
+    s.sortOrder = found ? minOrder - 1.0 : 0.0;
+
     saveSnippet(s);
     emit snippetCreated(s.id);
     return s.id;
@@ -254,7 +269,7 @@ Snippet SnippetManager::jsonToSnippet(const QJsonObject &obj) const
     s.packages = obj.value("packages").toString();
     s.tikzLibraries = obj.value("tikzLibraries").toString();
     s.compileCommand = obj.value("compileCommand").toString();
-    s.sortOrder = obj.value("sortOrder").toInt();
+    s.sortOrder = obj.value("sortOrder").toDouble();
     QJsonArray tagsArr = obj.value("tags").toArray();
     for (const QJsonValue &v : tagsArr)
         s.tags.append(v.toString());

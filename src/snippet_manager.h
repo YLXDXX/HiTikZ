@@ -21,7 +21,7 @@ struct Snippet {
     QString compileCommand;
     QString code;
     bool isPreset = false;
-    int sortOrder = 0;
+    double sortOrder = 0.0;
 };
 Q_DECLARE_METATYPE(Snippet)
 
