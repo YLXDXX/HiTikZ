@@ -1343,6 +1343,7 @@ void MainWindow::setupConnections()
             QMessageBox::Yes | QMessageBox::No);
         if (ret != QMessageBox::Yes) return;
 
+        QStringList actuallyDeletedIds;
         for (const QString &id : ids) {
             int tabIdx = findTabForSnippet(id);
             if (tabIdx >= 0) {
@@ -1358,9 +1359,10 @@ void MainWindow::setupConnections()
                 tabWidget->removeTab(tabIdx);
                 w->deleteLater();
             }
+            actuallyDeletedIds.append(id);
         }
 
-        int count = snippetMgr->batchDeleteSnippets(ids);
+        int count = snippetMgr->batchDeleteSnippets(actuallyDeletedIds);
         statusBar()->showMessage(QStringLiteral("已删除 %1 个片段").arg(count), kStatusBarShortMs);
         // Deleting snippets can remove the last owner of a tag; prune the tag
         // strip and drop any now-unused selected tag (refreshTagFilter re-runs
