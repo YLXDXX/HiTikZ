@@ -123,25 +123,30 @@ QStringList SnippetManager::importSnippetsZip(const QString &zipPath)
     QTemporaryDir tempDir;
     if (!tempDir.isValid()) return importedIds;
 
+    QString extractSubDir = tempDir.path() + "/extracted/";
+    QDir().mkpath(extractSubDir);
+
     QProcess unzip;
-    unzip.start("tar", QStringList() << "-xzf" << zipPath << "-C" << tempDir.path());
+    unzip.start("tar", QStringList() << "-xzf" << zipPath << "-C" << extractSubDir);
     runProcessSync(unzip, 10000);
 
     if (unzip.exitCode() != 0) {
+        QDir(extractSubDir).removeRecursively();
+        QDir().mkpath(extractSubDir);
         QProcess unzipFallback;
-        unzipFallback.start("unzip", QStringList() << "-o" << zipPath << "-d" << tempDir.path());
+        unzipFallback.start("unzip", QStringList() << "-o" << zipPath << "-d" << extractSubDir);
         runProcessSync(unzipFallback, 10000);
         if (unzipFallback.exitCode() != 0)
             return importedIds;
     }
 
-    QDir extractDir(tempDir.path());
+    QDir extractDir(extractSubDir);
     QStringList subDirs = extractDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
 
     for (const QString &subDir : subDirs) {
-        QString metaJsonPath = tempDir.path() + "/" + subDir + "/meta.json";
+        QString metaJsonPath = extractSubDir + "/" + subDir + "/meta.json";
         if (!QFile::exists(metaJsonPath)) {
-            QString snippetTexPath = tempDir.path() + "/" + subDir + "/snippet.tex";
+            QString snippetTexPath = extractSubDir + "/" + subDir + "/snippet.tex";
             if (!QFile::exists(snippetTexPath)) continue;
         }
 
@@ -149,11 +154,11 @@ QStringList SnippetManager::importSnippetsZip(const QString &zipPath)
         QString destDir = basePath + newId + "/";
         QDir().mkpath(destDir);
 
-        QStringList files = QDir(tempDir.path() + "/" + subDir).entryList(QDir::Files);
+        QStringList files = QDir(extractSubDir + "/" + subDir).entryList(QDir::Files);
         bool importOk = true;
         for (const QString &file : files) {
-            if (!QFile::copy(tempDir.path() + "/" + subDir + "/" + file, destDir + file)) {
-                qWarning() << "Failed to import file:" << tempDir.path() + "/" + subDir + "/" + file;
+            if (!QFile::copy(extractSubDir + "/" + subDir + "/" + file, destDir + file)) {
+                qWarning() << "Failed to import file:" << extractSubDir + "/" + subDir + "/" + file;
                 importOk = false;
                 break;
             }
