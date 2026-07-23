@@ -87,6 +87,9 @@ void MainWindow::performAutoSave()
 
         QString sid = tabWidget->tabBar()->tabData(i).toString();
 
+        if (!sid.isEmpty() && !snippetMgr->snippetExists(sid))
+            sid.clear();
+
         QString draftPath = draftDir + (sid.isEmpty()
             ? QStringLiteral("scratch_%1").arg(i) : sid) + ".json";
 
@@ -181,9 +184,7 @@ void MainWindow::recoverDrafts()
         const DraftRecoveryDialog::Draft &draft = drafts[idx];
         if (draft.snippetId.isEmpty() || !snippetMgr->snippetExists(draft.snippetId)) {
             Snippet s;
-            s.id = draft.snippetId.isEmpty()
-                ? QUuid::createUuid().toString(QUuid::WithoutBraces)
-                : draft.snippetId;
+            s.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
             s.name = draft.name;
             s.description = draft.description;
             s.code = draft.code;

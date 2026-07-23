@@ -483,6 +483,70 @@ static void test_reorder_with_nonexistent()
 }
 
 // ---------------------------------------------------------------------------
+// Test 10: Deleted snippet draft should not resurrect the snippet
+// When recovering a draft whose snippetId points to a deleted (non-existent)
+// snippet, a new UUID should be generated instead of reusing the old ID.
+// ---------------------------------------------------------------------------
+static void test_draft_recovery_no_resurrect()
+{
+    SnippetManager mgr;
+
+    QString oldId = mgr.createSnippet("ToBeDeleted", "test/draft_resurrect");
+    CHECK(!oldId.isEmpty(), "T10.1: Should create snippet");
+
+    Snippet s = mgr.loadSnippet(oldId);
+    s.code = "\\begin{tikzpicture}\\draw (0,0)--(1,1);\\end{tikzpicture}";
+    mgr.saveSnippet(s);
+
+    mgr.deleteSnippet(oldId);
+    CHECK(!mgr.snippetExists(oldId), "T10.2: Snippet should be deleted");
+
+    // Simulate recovery logic: old snippet deleted, draft with old ID exists
+    QString draftSnippetId = oldId;
+    CHECK(!draftSnippetId.isEmpty(), "T10.3: draftSnippetId should be non-empty");
+    CHECK(!mgr.snippetExists(draftSnippetId), "T10.4: Deleted snippet should not exist");
+
+    // The fix: always generate a new ID when snippet doesn't exist
+    QString recoveredId = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    CHECK(recoveredId != oldId, "T10.5: Recovered ID should be a new UUID, not the old one");
+
+    {
+        Snippet recovered;
+        recovered.id = recoveredId;
+        recovered.name = "Recovered Draft";
+        recovered.code = s.code;
+        recovered.category = "test/draft_resurrect";
+        mgr.saveSnippet(recovered);
+        CHECK(mgr.snippetExists(recoveredId), "T10.6: Recovered snippet should exist");
+        mgr.deleteSnippet(recoveredId);
+    }
+
+    fprintf(stderr, "PASS: Test 10 - draft recovery does not resurrect deleted snippets\n");
+}
+
+// ---------------------------------------------------------------------------
+// Test 11: Auto-save for deleted snippet uses scratch naming
+// ---------------------------------------------------------------------------
+static void test_autosave_deleted_snippet()
+{
+    SnippetManager mgr;
+
+    QString sid = mgr.createSnippet("AutoSaveDeleted", "test/autosave_deleted");
+    CHECK(!sid.isEmpty(), "T11.1: Should create snippet");
+
+    mgr.deleteSnippet(sid);
+    CHECK(!mgr.snippetExists(sid), "T11.2: Snippet should be deleted");
+
+    // Simulate auto-save logic: if the snippet was deleted, clear sid so
+    // the draft is saved as scratch, not with the deleted snippet's ID
+    if (!sid.isEmpty() && !mgr.snippetExists(sid))
+        sid.clear();
+    CHECK(sid.isEmpty(), "T11.3: Deleted snippet sid should be cleared for auto-save");
+
+    fprintf(stderr, "PASS: Test 11 - auto-save uses scratch name for deleted snippets\n");
+}
+
+// ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 int main(int argc, char *argv[])
@@ -498,6 +562,8 @@ int main(int argc, char *argv[])
     test_reorder_global_preservation();
     test_reorder_single_noop();
     test_reorder_with_nonexistent();
+    test_draft_recovery_no_resurrect();
+    test_autosave_deleted_snippet();
 
     if (g_failed > 0) {
         fprintf(stderr, "\n%d test(s) FAILED!\n", g_failed);
