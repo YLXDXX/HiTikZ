@@ -34,6 +34,69 @@ void SearchPanel::showCategoryContextMenu(const QPoint &pos)
     QStandardItem *item = categoryModel->itemFromIndex(idx);
     if (!item) return;
 
+    int nodeType = item->data(Qt::UserRole + 1).toInt();
+    if (nodeType == 1) {
+        QString snippetId = item->data(Qt::UserRole).toString();
+        if (snippetId.isEmpty()) return;
+
+        if (!categoryTree->selectionModel()->isSelected(idx)) {
+            categoryTree->selectionModel()->setCurrentIndex(idx, QItemSelectionModel::ClearAndSelect);
+        }
+
+        QMenu menu(this);
+        QAction *openAct = menu.addAction(QStringLiteral("打开"));
+        menu.addSeparator();
+        QAction *copyAct = menu.addAction(QStringLiteral("复制"));
+        QAction *exportAct = menu.addAction(QStringLiteral("导出"));
+        QAction *delAct = menu.addAction(QStringLiteral("删除"));
+        menu.addSeparator();
+        QAction *propAct = menu.addAction(QStringLiteral("属性"));
+
+        QAction *chosen = menu.exec(categoryTree->viewport()->mapToGlobal(pos));
+        if (!chosen) return;
+
+        if (chosen == openAct) {
+            emit snippetSelected(snippetId);
+        } else if (chosen == copyAct) {
+            emit copySnippetRequested(snippetId);
+        } else if (chosen == exportAct) {
+            emit batchExportRequested({snippetId});
+        } else if (chosen == delAct) {
+            emit batchDeleteRequested({snippetId});
+        } else if (chosen == propAct) {
+            SnippetPropertiesDialog dlg(snippetId, snippetMgr, this);
+            if (dlg.exec() == QDialog::Accepted) {
+                QString savedCategory;
+                QModelIndex savedCatIdx = categoryTree->currentIndex();
+                if (savedCatIdx.isValid())
+                    savedCategory = savedCatIdx.data(Qt::UserRole).toString();
+                {
+                    const QSignalBlocker thumbBlocker(thumbnailList->selectionModel());
+                    const QSignalBlocker catBlocker(categoryTree->selectionModel());
+                    refreshCategoryTree();
+                }
+                QTimer::singleShot(0, this, [this, savedCategory]() {
+                    m_suppressSelectEmit = true;
+                    QModelIndexList found = categoryModel->match(
+                        categoryModel->index(0, 0),
+                        Qt::UserRole,
+                        savedCategory,
+                        1,
+                        Qt::MatchExactly | Qt::MatchRecursive);
+                    if (!found.isEmpty()) {
+                        categoryTree->setCurrentIndex(found.first());
+                        categoryTree->scrollTo(found.first());
+                    }
+                    m_suppressSelectEmit = false;
+                });
+                m_pendingCatFilter = savedCategory;
+                m_hasPendingCatFilter = true;
+                refreshSearch();
+            }
+        }
+        return;
+    }
+
     QString catData = item->data(Qt::UserRole).toString();
     bool isAll = catData.isEmpty();
 
