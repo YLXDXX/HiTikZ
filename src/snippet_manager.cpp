@@ -329,6 +329,15 @@ int SnippetManager::deleteCategory(const QString &category)
             count++;
         }
     }
+
+    removeCategoryFromPersisted(category);
+    QStringList cats = loadAllPersistedCategories();
+    for (int i = cats.size() - 1; i >= 0; --i) {
+        if (cats[i] == category || cats[i].startsWith(category + "/"))
+            cats.removeAt(i);
+    }
+    savePersistedCategories(cats);
+
     if (count > 0)
         emit categoriesChanged();
     return count;
@@ -401,6 +410,59 @@ void SnippetManager::saveCategoryOrder(const QStringList &order)
     if (file.open(QIODevice::WriteOnly)) {
         file.write(QJsonDocument(arr).toJson());
         file.commit();
+    }
+}
+
+QString SnippetManager::categoryListFile() const
+{
+    return QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)
+           + "/category_list.json";
+}
+
+QStringList SnippetManager::loadAllPersistedCategories() const
+{
+    QFile file(categoryListFile());
+    if (!file.open(QIODevice::ReadOnly))
+        return {};
+    QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
+    file.close();
+    QStringList cats;
+    if (doc.isArray()) {
+        for (const auto &v : doc.array())
+            cats.append(v.toString());
+    }
+    return cats;
+}
+
+void SnippetManager::savePersistedCategories(const QStringList &cats)
+{
+    QJsonArray arr;
+    for (const auto &cat : cats)
+        arr.append(cat);
+    QSaveFile file(categoryListFile());
+    if (file.open(QIODevice::WriteOnly)) {
+        file.write(QJsonDocument(arr).toJson());
+        file.commit();
+    }
+}
+
+void SnippetManager::addCategory(const QString &category)
+{
+    if (category.isEmpty()) return;
+    QStringList cats = loadAllPersistedCategories();
+    if (!cats.contains(category)) {
+        cats.append(category);
+        savePersistedCategories(cats);
+        invalidateCachesLight();
+        emit categoriesChanged();
+    }
+}
+
+void SnippetManager::removeCategoryFromPersisted(const QString &category)
+{
+    QStringList cats = loadAllPersistedCategories();
+    if (cats.removeAll(category) > 0) {
+        savePersistedCategories(cats);
     }
 }
 

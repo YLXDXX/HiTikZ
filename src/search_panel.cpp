@@ -142,7 +142,7 @@ void SearchPanel::setupUI()
             QStringLiteral("子分类名称:"), QLineEdit::Normal, "", &ok);
         if (ok && !name.isEmpty()) {
             QString newCat = parentCat.isEmpty() ? name : parentCat + "/" + name;
-            snippetMgr->createSnippet(QStringLiteral("新片段"), newCat);
+            snippetMgr->addCategory(newCat);
             refreshCategoryTree();
             refreshSearch();
         }
@@ -152,7 +152,7 @@ void SearchPanel::setupUI()
         QString name = QInputDialog::getText(this, QStringLiteral("新建大类"),
             QStringLiteral("大类名称:"), QLineEdit::Normal, "", &ok);
         if (ok && !name.isEmpty()) {
-            snippetMgr->createSnippet(QStringLiteral("新片段"), name);
+            snippetMgr->addCategory(name);
             refreshCategoryTree();
             refreshSearch();
         }

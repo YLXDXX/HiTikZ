@@ -52,6 +52,7 @@ public:
     bool updateSnippetCategory(const QString &id, const QString &newCategory);
     int renameCategory(const QString &oldCategory, const QString &newCategory);
     int deleteCategory(const QString &category);
+    void addCategory(const QString &category);
 
     static void copyPresetsFromResources(const QString &resourceDir, const QString &destDir);
     static int fuzzyMatchScore(const QString &query, const QString &target);
@@ -102,6 +103,11 @@ private:
     void invalidateCachesLight() const;
     Snippet loadMetaFromDir(const QString &dirPath) const;
     void loadCodeForSnippet(const QString &dirPath, Snippet &s) const;
+
+    QString categoryListFile() const;
+    QStringList loadAllPersistedCategories() const;
+    void savePersistedCategories(const QStringList &cats);
+    void removeCategoryFromPersisted(const QString &category);
     mutable QMap<QString, int> m_cachedCategoryCounts;
     mutable bool m_countsCached = false;
     struct SearchIndex {

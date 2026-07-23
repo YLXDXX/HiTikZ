@@ -211,19 +211,34 @@ QList<SearchResult> SnippetManager::searchSnippets(const QString &query, bool in
 
 QStringList SnippetManager::getAllCategories(bool includePresets) const
 {
+    QSet<QString> catSet;
+
+    QStringList persisted = loadAllPersistedCategories();
+    for (const QString &cat : persisted)
+        catSet.insert(cat);
+
     QStringList raw;
     if (!includePresets) {
-        QSet<QString> cats;
         QList<Snippet> all = getAllSnippets();
         for (const Snippet &s : all) {
-            if (!s.category.isEmpty()) cats.insert(s.category);
+            if (!s.category.isEmpty()) catSet.insert(s.category);
         }
-        raw = cats.values();
     } else {
         ensureCountsCached();
-        raw = m_cachedCategoryCounts.keys();
+        for (auto it = m_cachedCategoryCounts.constBegin(); it != m_cachedCategoryCounts.constEnd(); ++it)
+            catSet.insert(it.key());
     }
 
+    for (const QString &cat : catSet) {
+        QString path = cat;
+        int slash = path.lastIndexOf('/');
+        while (slash > 0) {
+            catSet.insert(path.left(slash));
+            slash = path.lastIndexOf('/', slash - 1);
+        }
+    }
+
+    raw = catSet.values();
     QStringList savedOrder = loadCategoryOrder();
     QStringList sorted;
     for (const QString &cat : savedOrder) {
