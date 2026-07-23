@@ -390,11 +390,53 @@ int SnippetManager::batchDeleteSnippets(const QStringList &ids)
 
 void SnippetManager::reorderSnippets(const QStringList &orderedIds)
 {
-    for (int i = 0; i < orderedIds.size(); ++i) {
-        Snippet s = loadSnippet(orderedIds[i]);
+    if (orderedIds.size() <= 1) return;
+
+    QSet<QString> orderedSet(orderedIds.begin(), orderedIds.end());
+
+    QList<Snippet> all = getAllSnippets();
+    all.append(getAllPresets());
+
+    std::sort(all.begin(), all.end(), [](const Snippet &a, const Snippet &b) {
+        return a.sortOrder < b.sortOrder;
+    });
+
+    int insertPos = -1;
+    for (int i = 0; i < all.size(); ++i) {
+        if (orderedSet.contains(all[i].id)) {
+            insertPos = i;
+            break;
+        }
+    }
+    if (insertPos < 0) return;
+
+    QStringList finalOrder;
+    QSet<QString> placedSet;
+
+    for (int i = 0; i < insertPos; ++i) {
+        if (!orderedSet.contains(all[i].id)) {
+            finalOrder.append(all[i].id);
+            placedSet.insert(all[i].id);
+        }
+    }
+
+    for (const QString &id : orderedIds) {
+        finalOrder.append(id);
+        placedSet.insert(id);
+    }
+
+    for (int i = insertPos; i < all.size(); ++i) {
+        if (!placedSet.contains(all[i].id)) {
+            finalOrder.append(all[i].id);
+            placedSet.insert(all[i].id);
+        }
+    }
+
+    for (int i = 0; i < finalOrder.size(); ++i) {
+        Snippet s = loadSnippet(finalOrder[i]);
         if (s.id.isEmpty()) continue;
-        if (s.sortOrder == i) continue;
-        s.sortOrder = i;
+        if (s.sortOrder == static_cast<double>(i)) continue;
+        s.sortOrder = static_cast<double>(i);
         saveSnippet(s);
     }
 }

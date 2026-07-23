@@ -366,6 +366,123 @@ static void test_reject_self_drop()
 }
 
 // ---------------------------------------------------------------------------
+// Test 7: reorderSnippets preserves order of non-reordered snippets
+// (global sort is not destroyed when only a subset is reordered)
+// ---------------------------------------------------------------------------
+static void test_reorder_global_preservation()
+{
+    SnippetManager mgr;
+
+    // Create 5 snippets in a known order
+    QString idA = mgr.createSnippet("Reorder-A", "test/reorder_global");
+    QString idB = mgr.createSnippet("Reorder-B", "test/reorder_global");
+    QString idC = mgr.createSnippet("Reorder-C", "test/reorder_global");
+    QString idD = mgr.createSnippet("Reorder-D", "test/reorder_global");
+    QString idE = mgr.createSnippet("Reorder-E", "test/reorder_global");
+
+    // Newest snippets get smallest sortOrder, so current order is E, D, C, B, A
+    // Set explicit sortOrders to ensure a known state
+    {
+        Snippet s;
+        s = mgr.loadSnippet(idA); s.sortOrder = 0; mgr.saveSnippet(s);
+        s = mgr.loadSnippet(idB); s.sortOrder = 1; mgr.saveSnippet(s);
+        s = mgr.loadSnippet(idC); s.sortOrder = 2; mgr.saveSnippet(s);
+        s = mgr.loadSnippet(idD); s.sortOrder = 3; mgr.saveSnippet(s);
+        s = mgr.loadSnippet(idE); s.sortOrder = 4; mgr.saveSnippet(s);
+    }
+
+    // Global order: A(0), B(1), C(2), D(3), E(4)
+
+    // Simulate: filter shows only A, C, E; user drags to reorder as E, A, C
+    mgr.reorderSnippets({idE, idA, idC});
+
+    // Check the new order:
+    // The reordered group's first item (E) was at global position 4
+    // Non-reordered before E: A(0), B(1), C(2), D(3)... wait, A and C are in the
+    // reordered group. So non-reordered before first reordered item (original E at
+    // pos 4): B(1), D(3)... wait, original position: A(0), B(1), C(2), D(3), E(4)
+    // Reordered set: {E, A, C}
+    // First occurrence in global list: A at position 0
+    // Before pos 0: none
+    // Insert ordered: E, A, C
+    // After pos 0, non-ordered: B(1), D(3)
+    // Result: E(0), A(1), C(2), B(3), D(4)
+
+    Snippet sE = mgr.loadSnippet(idE);
+    Snippet sA = mgr.loadSnippet(idA);
+    Snippet sC = mgr.loadSnippet(idC);
+    Snippet sB = mgr.loadSnippet(idB);
+    Snippet sD = mgr.loadSnippet(idD);
+
+    CHECK(sE.sortOrder == 0, "T7.1: E should be first (sortOrder 0)");
+    CHECK(sA.sortOrder == 1, "T7.2: A should be second (sortOrder 1)");
+    CHECK(sC.sortOrder == 2, "T7.3: C should be third (sortOrder 2)");
+    CHECK(sB.sortOrder == 3, "T7.4: B should be fourth (sortOrder 3)");
+    CHECK(sD.sortOrder == 4, "T7.5: D should be fifth (sortOrder 4)");
+
+    // Verify relative order of non-reordered items B and D is preserved
+    CHECK(sB.sortOrder < sD.sortOrder, "T7.6: B should come before D (relative order preserved)");
+
+    mgr.deleteSnippet(idA);
+    mgr.deleteSnippet(idB);
+    mgr.deleteSnippet(idC);
+    mgr.deleteSnippet(idD);
+    mgr.deleteSnippet(idE);
+
+    fprintf(stderr, "PASS: Test 7 - reorderSnippets global preservation\n");
+}
+
+// ---------------------------------------------------------------------------
+// Test 8: reorderSnippets with single item is a no-op
+// ---------------------------------------------------------------------------
+static void test_reorder_single_noop()
+{
+    SnippetManager mgr;
+
+    QString id = mgr.createSnippet("SingleReorder", "test/single_reorder");
+    {
+        Snippet s = mgr.loadSnippet(id);
+        s.sortOrder = 5.0;
+        mgr.saveSnippet(s);
+    }
+
+    mgr.reorderSnippets({id});
+
+    Snippet s = mgr.loadSnippet(id);
+    CHECK(s.sortOrder == 5.0, "T8.1: sortOrder should not change for single-item reorder");
+
+    mgr.deleteSnippet(id);
+    fprintf(stderr, "PASS: Test 8 - reorderSnippets single item no-op\n");
+}
+
+// ---------------------------------------------------------------------------
+// Test 9: reorderSnippets with non-existent IDs handled gracefully
+// ---------------------------------------------------------------------------
+static void test_reorder_with_nonexistent()
+{
+    SnippetManager mgr;
+
+    QString id1 = mgr.createSnippet("Reorder-Exist1", "test/reorder_nonexist");
+    QString id2 = mgr.createSnippet("Reorder-Exist2", "test/reorder_nonexist");
+    {
+        Snippet s;
+        s = mgr.loadSnippet(id1); s.sortOrder = 0; mgr.saveSnippet(s);
+        s = mgr.loadSnippet(id2); s.sortOrder = 1; mgr.saveSnippet(s);
+    }
+
+    mgr.reorderSnippets({id2, "nonexistent-id", id1});
+
+    Snippet s1 = mgr.loadSnippet(id1);
+    Snippet s2 = mgr.loadSnippet(id2);
+    CHECK(s2.sortOrder == 0, "T9.1: id2 should be first after reorder");
+    CHECK(s1.sortOrder == 2, "T9.2: id1 should be third after reorder (nonexistent occupies position 1)");
+
+    mgr.deleteSnippet(id1);
+    mgr.deleteSnippet(id2);
+    fprintf(stderr, "PASS: Test 9 - reorderSnippets with non-existent IDs\n");
+}
+
+// ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 int main(int argc, char *argv[])
@@ -378,6 +495,9 @@ int main(int argc, char *argv[])
     test_search_panel_selection_restore(app);
     test_category_order_with_children();
     test_reject_self_drop();
+    test_reorder_global_preservation();
+    test_reorder_single_noop();
+    test_reorder_with_nonexistent();
 
     if (g_failed > 0) {
         fprintf(stderr, "\n%d test(s) FAILED!\n", g_failed);
