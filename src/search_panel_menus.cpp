@@ -328,6 +328,9 @@ bool SearchPanel::eventFilter(QObject *obj, QEvent *event)
 {
     if (obj == thumbnailList->viewport() && event->type() == QEvent::Drop) {
         QDropEvent *de = static_cast<QDropEvent *>(event);
+        if (de->source() != thumbnailList->viewport()
+            && de->source() != thumbnailList)
+            return false;
         const QMimeData *mime = de->mimeData();
         if (!mime->hasFormat("application/x-qabstractitemmodeldatalist"))
             return false;
