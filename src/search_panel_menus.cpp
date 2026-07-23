@@ -43,7 +43,8 @@ void SearchPanel::showCategoryContextMenu(const QPoint &pos)
             act->setVisible(isAll);
         else if (act->text() == QStringLiteral("重命名分类")
               || act->text() == QStringLiteral("删除分类")
-              || act->text() == QStringLiteral("新建子分类"))
+              || act->text() == QStringLiteral("新建子分类")
+              || act->text() == QStringLiteral("添加片段"))
             act->setVisible(!isAll);
     }
 

@@ -114,6 +114,8 @@ void SearchPanel::setupUI()
     QAction *renameCatAct = categoryCtxMenu->addAction(QStringLiteral("重命名分类"));
     QAction *deleteCatAct = categoryCtxMenu->addAction(QStringLiteral("删除分类"));
     QAction *newSubCatAct = categoryCtxMenu->addAction(QStringLiteral("新建子分类"));
+    categoryCtxMenu->addSeparator();
+    QAction *addSnippetCatAct = categoryCtxMenu->addAction(QStringLiteral("添加片段"));
     QAction *newTopCatAct = categoryCtxMenu->addAction(QStringLiteral("新建大类"));
     newTopCatAct->setVisible(false);
 
@@ -151,6 +153,13 @@ void SearchPanel::setupUI()
             refreshCategoryTree();
             refreshSearch();
         }
+    });
+
+    connect(addSnippetCatAct, &QAction::triggered, this, [this, getEffectiveCatItem]() {
+        QStandardItem *item = getEffectiveCatItem();
+        if (!item) return;
+        QString parentCat = item->data(Qt::UserRole).toString();
+        emit addSnippetRequested(parentCat);
     });
 
     thumbnailCtxMenu = new QMenu(this);
