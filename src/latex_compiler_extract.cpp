@@ -298,8 +298,17 @@ QString LatexCompiler::extractCustomCommands(const QString &texCode, QString &ou
                 while (pos < remaining.length() && remaining.at(pos).isLetter())
                     pos++;
             }
-            while (pos < remaining.length() && remaining.at(pos) != '{')
+            while (pos < remaining.length() && remaining.at(pos) != '{') {
+                QChar ch = remaining.at(pos);
+                if (ch == QLatin1Char('\\')
+                    && pos + 1 < remaining.length()
+                    && remaining.at(pos + 1).isLetter()) {
+                    break;
+                }
+                if (ch == QLatin1Char('%'))
+                    break;
                 pos++;
+            }
             if (pos < remaining.length() && remaining.at(pos) == '{') {
                 defStart = pos;
                 readBalancedBraces(remaining, pos);

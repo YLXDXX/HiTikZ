@@ -980,6 +980,94 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    // Test 55: Incomplete \def without body followed by \begin{tikzpicture}
+    // must NOT consume the \begin{tikzpicture} as the definition body
+    {
+        QString code =
+            "\\def\\foo\n"
+            "\\begin{tikzpicture}\n"
+            "\\draw (0,0) -- (1,1);\n"
+            "\\end{tikzpicture}";
+        QString outCode;
+        QString cmds = LatexCompiler::extractCustomCommands(code, outCode);
+        if (cmds.contains("\\begin{tikzpicture}")) {
+            fprintf(stderr, "FAIL: Test 55 - incomplete \\def should not consume \\begin{tikzpicture}\n");
+            customTestsFailed++;
+        } else if (!outCode.contains("\\begin{tikzpicture}")) {
+            fprintf(stderr, "FAIL: Test 55 - outCode should still contain \\begin{tikzpicture}\n");
+            customTestsFailed++;
+        } else if (!outCode.contains("\\draw")) {
+            fprintf(stderr, "FAIL: Test 55 - outCode should still contain \\draw command\n");
+            customTestsFailed++;
+        } else {
+            fprintf(stderr, "PASS: Test 55 - incomplete \\def does not consume tikzpicture\n");
+        }
+    }
+
+    // Test 56: \def with simple parameter text followed by {body} works normally
+    {
+        QString code =
+            "\\def\\myred{red}\n"
+            "\\begin{tikzpicture}\n"
+            "\\draw[\\myred] (0,0) -- (1,1);\n"
+            "\\end{tikzpicture}";
+        QString outCode;
+        QString cmds = LatexCompiler::extractCustomCommands(code, outCode);
+        if (!cmds.contains("\\def\\myred{red}")) {
+            fprintf(stderr, "FAIL: Test 56 - simple \\def should be extracted\n");
+            customTestsFailed++;
+        } else if (outCode.contains("\\def")) {
+            fprintf(stderr, "FAIL: Test 56 - \\def should be removed from outCode\n");
+            customTestsFailed++;
+        } else {
+            fprintf(stderr, "PASS: Test 56 - simple \\def extracted correctly\n");
+        }
+    }
+
+    // Test 57: \def with #1 parameter and newline before body still works
+    {
+        QString code =
+            "\\def\\mydraw#1{\\draw #1;}\n"
+            "\\begin{tikzpicture}\n"
+            "\\mydraw{(0,0) -- (1,1)}\n"
+            "\\end{tikzpicture}";
+        QString outCode;
+        QString cmds = LatexCompiler::extractCustomCommands(code, outCode);
+        if (!cmds.contains("\\def\\mydraw#1{\\draw #1;}")) {
+            fprintf(stderr, "FAIL: Test 57 - \\def with parameter should be extracted\n");
+            customTestsFailed++;
+        } else if (outCode.contains("\\def")) {
+            fprintf(stderr, "FAIL: Test 57 - \\def should be removed from outCode\n");
+            customTestsFailed++;
+        } else {
+            fprintf(stderr, "PASS: Test 57 - \\def with parameter extracted correctly\n");
+        }
+    }
+
+    // Test 58: Incomplete \def after a valid definition still compiles correctly
+    {
+        QString code =
+            "\\newcommand{\\CMD}{test}\n"
+            "\\def\\incomplete\n"
+            "\\begin{tikzpicture}\n"
+            "\\draw (0,0) -- (1,1);\n"
+            "\\end{tikzpicture}";
+        QString outCode;
+        QString cmds = LatexCompiler::extractCustomCommands(code, outCode);
+        if (!cmds.contains("\\CMD")) {
+            fprintf(stderr, "FAIL: Test 58 - valid newcommand before incomplete def should be extracted\n");
+            customTestsFailed++;
+        } else if (cmds.contains("\\incomplete")) {
+            fprintf(stderr, "FAIL: Test 58 - incomplete def should not be extracted\n");
+            customTestsFailed++;
+        } else if (!outCode.contains("\\begin{tikzpicture}")) {
+            fprintf(stderr, "FAIL: Test 58 - outCode should contain \\begin{tikzpicture}\n");
+            customTestsFailed++;
+        } else {
+            fprintf(stderr, "PASS: Test 58 - valid command before incomplete \\def extracted\n");
+        }
+    }
+
     fprintf(stderr, "Custom command tests: %d failed\n", customTestsFailed);
     failed += customTestsFailed;
 
