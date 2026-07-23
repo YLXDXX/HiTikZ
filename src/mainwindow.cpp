@@ -1228,6 +1228,26 @@ void MainWindow::setupConnections()
             loadSnippetIntoEditor(id);
         });
 
+    connect(searchPanel, &SearchPanel::copySnippetRequested,
+        this, [this](const QString &id) {
+            Snippet orig = snippetMgr->loadSnippet(id);
+            if (orig.id.isEmpty()) return;
+            QString baseName = orig.name;
+            QString newId = snippetMgr->createSnippet(baseName, orig.category);
+            Snippet dup = snippetMgr->loadSnippet(newId);
+            dup.code = orig.code;
+            dup.description = orig.description;
+            dup.tags = orig.tags;
+            dup.templateId = orig.templateId;
+            dup.packages = orig.packages;
+            dup.tikzLibraries = orig.tikzLibraries;
+            dup.compileCommand = orig.compileCommand;
+            snippetMgr->saveSnippet(dup);
+            refreshSearch();
+            refreshCategoryTree();
+            statusBar()->showMessage(QStringLiteral("片段已复制"), kStatusBarShortMs);
+        });
+
     connect(snippetMgr, &SnippetManager::categoriesChanged,
         this, &MainWindow::refreshCategoryTree);
 

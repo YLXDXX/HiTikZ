@@ -48,6 +48,7 @@ signals:
     void batchCategoryChangeRequested(const QStringList &ids);
     void batchDeleteRequested(const QStringList &ids);
     void exportAllRequested();
+    void copySnippetRequested(const QString &id);
 
 protected:
     bool eventFilter(QObject *obj, QEvent *event) override;

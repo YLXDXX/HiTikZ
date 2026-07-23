@@ -89,59 +89,72 @@ void SearchPanel::showThumbnailContextMenu(const QPoint &pos)
     QModelIndex idx = thumbnailList->indexAt(pos);
     QStringList selectedIds = getSelectedSnippetIds();
 
-    if (selectedIds.size() > 1) {
-        QList<QAction*> actions = thumbnailCtxMenu->actions();
-        for (QAction *act : actions) {
-            act->setVisible(true);
-        }
-        thumbnailCtxMenu->popup(thumbnailList->viewport()->mapToGlobal(pos));
-    } else if (idx.isValid()) {
-        QString id = idx.data(Qt::UserRole).toString();
-        if (!id.isEmpty()) {
-            SnippetPropertiesDialog dlg(id, snippetMgr, this);
-            if (dlg.exec() == QDialog::Accepted) {
-                // Save the current category before refreshing the tree,
-                // so we can feed it into refreshSearch directly.
-                QString savedCategory;
-                QModelIndex savedCatIdx = categoryTree->currentIndex();
-                if (savedCatIdx.isValid())
-                    savedCategory = savedCatIdx.data(Qt::UserRole).toString();
+    if (selectedIds.isEmpty()) return;
 
-                // Block signals during tree rebuild to avoid spurious
-                // category-change events that would reset the thumbnail list.
-                {
-                    const QSignalBlocker thumbBlocker(thumbnailList->selectionModel());
-                    const QSignalBlocker catBlocker(categoryTree->selectionModel());
-                    refreshCategoryTree();
-                }
+    if (!thumbnailList->selectionModel()->isSelected(idx) && idx.isValid()) {
+        thumbnailList->selectionModel()->setCurrentIndex(idx, QItemSelectionModel::ClearAndSelect);
+        selectedIds = getSelectedSnippetIds();
+    }
 
-                // Defer tree selection restore — expandAll() triggers internal
-                // layout updates that can overwrite a synchronous setCurrentIndex.
-                //
-                // NOTE: findItems(text, flags, column) treats its 3rd parameter
-                // as column number, not role. Passing Qt::UserRole (256) means
-                // searching column 256 of a 1-column model, always returning
-                // empty. Use match() instead to search by Qt::UserRole.
-                QTimer::singleShot(0, this, [this, savedCategory]() {
-                    m_suppressSelectEmit = true;
-                    QModelIndexList found = categoryModel->match(
-                        categoryModel->index(0, 0),
-                        Qt::UserRole,
-                        savedCategory,
-                        1,
-                        Qt::MatchExactly | Qt::MatchRecursive);
-                    if (!found.isEmpty()) {
-                        categoryTree->setCurrentIndex(found.first());
-                        categoryTree->scrollTo(found.first());
-                    }
-                    m_suppressSelectEmit = false;
-                });
+    QMenu menu(this);
 
-                // Supply the category directly to bypass any tree selection timing issues
-                m_pendingCatFilter = savedCategory;
-                m_hasPendingCatFilter = true;
-                refreshSearch();
+    QAction *openAct = nullptr;
+    QAction *propAct = nullptr;
+
+    if (selectedIds.size() == 1) {
+        openAct = menu.addAction(QStringLiteral("打开"));
+        menu.addSeparator();
+    }
+
+    QAction *copyAct = menu.addAction(QStringLiteral("复制"));
+    QAction *delAct = menu.addAction(QStringLiteral("删除"));
+
+    if (selectedIds.size() == 1) {
+        menu.addSeparator();
+        propAct = menu.addAction(QStringLiteral("属性"));
+    }
+
+    QAction *chosen = menu.exec(thumbnailList->viewport()->mapToGlobal(pos));
+    if (!chosen) return;
+
+    if (chosen == openAct) {
+        emit snippetSelected(selectedIds.first());
+    } else if (chosen == copyAct) {
+        for (const QString &id : selectedIds)
+            emit copySnippetRequested(id);
+    } else if (chosen == delAct) {
+        emit batchDeleteRequested(selectedIds);
+    } else if (chosen == propAct) {
+        QString id = selectedIds.first();
+        SnippetPropertiesDialog dlg(id, snippetMgr, this);
+        if (dlg.exec() == QDialog::Accepted) {
+            QString savedCategory;
+            QModelIndex savedCatIdx = categoryTree->currentIndex();
+            if (savedCatIdx.isValid()) {
+                savedCategory = savedCatIdx.data(Qt::UserRole).toString();
             }
+            {
+                const QSignalBlocker thumbBlocker(thumbnailList->selectionModel());
+                const QSignalBlocker catBlocker(categoryTree->selectionModel());
+                refreshCategoryTree();
+            }
+            QTimer::singleShot(0, this, [this, savedCategory]() {
+                m_suppressSelectEmit = true;
+                QModelIndexList found = categoryModel->match(
+                    categoryModel->index(0, 0),
+                    Qt::UserRole,
+                    savedCategory,
+                    1,
+                    Qt::MatchExactly | Qt::MatchRecursive);
+                if (!found.isEmpty()) {
+                    categoryTree->setCurrentIndex(found.first());
+                    categoryTree->scrollTo(found.first());
+                }
+                m_suppressSelectEmit = false;
+            });
+            m_pendingCatFilter = savedCategory;
+            m_hasPendingCatFilter = true;
+            refreshSearch();
         }
     }
 }
