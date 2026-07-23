@@ -109,6 +109,7 @@ void SearchPanel::setupUI()
     categoryTree->setHeaderHidden(true);
     categoryTree->setRootIsDecorated(true);
     categoryTree->setContextMenuPolicy(Qt::CustomContextMenu);
+    categoryTree->setSelectionMode(QAbstractItemView::ExtendedSelection);
     categoryTree->setAcceptDrops(true);
     categoryTree->setDropIndicatorShown(true);
     categoryTree->setDragEnabled(true);
@@ -128,6 +129,7 @@ void SearchPanel::setupUI()
     thumbnailList->setDragDropMode(QAbstractItemView::DragDrop);
     thumbnailList->setContextMenuPolicy(Qt::CustomContextMenu);
     thumbnailList->setSelectionMode(QAbstractItemView::ExtendedSelection);
+    thumbnailList->setEditTriggers(QAbstractItemView::NoEditTriggers);
     thumbnailModel = new QStandardItemModel(this);
     thumbnailList->setModel(thumbnailModel);
     thumbnailList->viewport()->installEventFilter(this);

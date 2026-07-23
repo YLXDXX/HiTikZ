@@ -31,6 +31,73 @@ void SearchPanel::showCategoryContextMenu(const QPoint &pos)
 {
     QModelIndex idx = categoryTree->indexAt(pos);
     if (!idx.isValid()) return;
+
+    QModelIndexList sel = categoryTree->selectionModel()->selectedIndexes();
+    if (!categoryTree->selectionModel()->isSelected(idx)) {
+        categoryTree->selectionModel()->setCurrentIndex(idx, QItemSelectionModel::ClearAndSelect);
+        sel.clear();
+        sel.append(idx);
+    }
+
+    if (sel.size() >= 2) {
+        QStringList allSnippetIds;
+        QStringList catsToDelete;
+        QStringList directSnippetIds;
+        QSet<QString> catSnippetIds;
+        QSet<QString> seen;
+
+        for (const QModelIndex &si : sel) {
+            int nodeType = si.data(Qt::UserRole + 1).toInt();
+            if (nodeType == 1) {
+                QString sid = si.data(Qt::UserRole).toString();
+                if (!sid.isEmpty() && !seen.contains(sid)) {
+                    seen.insert(sid);
+                    directSnippetIds.append(sid);
+                }
+            } else {
+                QString cat = si.data(Qt::UserRole).toString();
+                if (cat.isEmpty() || cat == QLatin1String("__uncategorized__"))
+                    continue;
+                catsToDelete.append(cat);
+                QList<Snippet> all = snippetMgr->getAllSnippets(true);
+                all.append(snippetMgr->getAllPresets(true));
+                for (const Snippet &s : all) {
+                    if (s.category == cat || s.category.startsWith(cat + "/")) {
+                        if (!seen.contains(s.id)) {
+                            seen.insert(s.id);
+                            catSnippetIds.insert(s.id);
+                            allSnippetIds.append(s.id);
+                        }
+                    }
+                }
+            }
+        }
+        for (const QString &sid : directSnippetIds) {
+            if (!catSnippetIds.contains(sid))
+                allSnippetIds.append(sid);
+        }
+
+        QMenu menu(this);
+        QAction *delAct = menu.addAction(QStringLiteral("删除"));
+        QAction *exportAct = menu.addAction(QStringLiteral("批量导出分类"));
+
+        QAction *chosen = menu.exec(categoryTree->viewport()->mapToGlobal(pos));
+        if (!chosen) return;
+
+        if (chosen == delAct) {
+            if (!directSnippetIds.isEmpty())
+                emit batchDeleteRequested(directSnippetIds);
+            for (const QString &cat : catsToDelete)
+                snippetMgr->deleteCategory(cat);
+            refreshCategoryTree();
+            refreshSearch();
+        } else if (chosen == exportAct) {
+            if (!allSnippetIds.isEmpty())
+                emit batchExportRequested(allSnippetIds);
+        }
+        return;
+    }
+
     QStandardItem *item = categoryModel->itemFromIndex(idx);
     if (!item) return;
 
@@ -38,10 +105,6 @@ void SearchPanel::showCategoryContextMenu(const QPoint &pos)
     if (nodeType == 1) {
         QString snippetId = item->data(Qt::UserRole).toString();
         if (snippetId.isEmpty()) return;
-
-        if (!categoryTree->selectionModel()->isSelected(idx)) {
-            categoryTree->selectionModel()->setCurrentIndex(idx, QItemSelectionModel::ClearAndSelect);
-        }
 
         QMenu menu(this);
         QAction *openAct = menu.addAction(QStringLiteral("打开"));
