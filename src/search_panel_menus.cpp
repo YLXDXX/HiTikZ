@@ -428,12 +428,12 @@ bool SearchPanel::eventFilter(QObject *obj, QEvent *event)
             QString targetCat;
             if (targetIdx.isValid()) {
                 targetCat = targetIdx.data(Qt::UserRole).toString();
-                if (targetCat == QLatin1String("__uncategorized__"))
-                    targetCat.clear();
-                if (targetCat.isEmpty() && targetIdx.isValid()) {
+                if (targetCat.isEmpty()) {
                     de->accept();
                     return true;
                 }
+                if (targetCat == QLatin1String("__uncategorized__"))
+                    targetCat.clear();
             }
             for (const QString &snippetId : draggedIds)
                 snippetMgr->updateSnippetCategory(snippetId, targetCat);
