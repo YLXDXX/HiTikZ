@@ -191,6 +191,9 @@ bool SnippetManager::deleteSnippet(const QString &id)
     if (id.isEmpty())
         return false;
 
+    Snippet snip = loadSnippet(id);
+    QString category = snip.category;
+
     QString path;
     if (isPresetId(id))
         path = getPresetSnippetPath(id);
@@ -205,6 +208,22 @@ bool SnippetManager::deleteSnippet(const QString &id)
     removeSnippetFromSearchIndex(id);
     invalidateCachesLight();
     emit snippetDeleted(id);
+
+    if (!category.isEmpty()) {
+        QList<Snippet> all = getAllSnippets();
+        all.append(getAllPresets());
+        bool hasMore = false;
+        for (const Snippet &s : all) {
+            if (s.category == category || s.category.startsWith(category + "/")) {
+                hasMore = true;
+                break;
+            }
+        }
+        if (!hasMore) {
+            addCategory(category);
+        }
+    }
+
     return true;
 }
 

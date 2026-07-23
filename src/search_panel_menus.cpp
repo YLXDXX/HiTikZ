@@ -44,6 +44,7 @@ void SearchPanel::showCategoryContextMenu(const QPoint &pos)
         else if (act->text() == QStringLiteral("重命名分类")
               || act->text() == QStringLiteral("删除分类")
               || act->text() == QStringLiteral("新建子分类")
+              || act->text() == QStringLiteral("导出分类")
               || act->text() == QStringLiteral("添加片段"))
             act->setVisible(!isAll);
     }
@@ -100,6 +101,8 @@ void SearchPanel::showThumbnailContextMenu(const QPoint &pos)
     QMenu menu(this);
 
     QAction *openAct = nullptr;
+    QAction *exportAct = nullptr;
+    QAction *batchExportAct = nullptr;
     QAction *propAct = nullptr;
 
     if (selectedIds.size() == 1) {
@@ -109,6 +112,12 @@ void SearchPanel::showThumbnailContextMenu(const QPoint &pos)
 
     QAction *copyAct = menu.addAction(QStringLiteral("复制"));
     QAction *delAct = menu.addAction(QStringLiteral("删除"));
+
+    if (selectedIds.size() == 1) {
+        exportAct = menu.addAction(QStringLiteral("导出"));
+    } else {
+        batchExportAct = menu.addAction(QStringLiteral("批量导出"));
+    }
 
     if (selectedIds.size() == 1) {
         menu.addSeparator();
@@ -125,6 +134,10 @@ void SearchPanel::showThumbnailContextMenu(const QPoint &pos)
             emit copySnippetRequested(id);
     } else if (chosen == delAct) {
         emit batchDeleteRequested(selectedIds);
+    } else if (chosen == exportAct) {
+        emit batchExportRequested(selectedIds);
+    } else if (chosen == batchExportAct) {
+        emit batchExportRequested(selectedIds);
     } else if (chosen == propAct) {
         QString id = selectedIds.first();
         SnippetPropertiesDialog dlg(id, snippetMgr, this);

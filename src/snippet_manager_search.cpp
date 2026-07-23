@@ -146,10 +146,19 @@ QList<SearchResult> SnippetManager::searchSnippets(const QString &query, bool in
                 }
             }
         }
-        std::sort(results.begin(), results.end(),
-            [](const SearchResult &a, const SearchResult &b) {
-                return a.score > b.score;
-            });
+        if (query.isEmpty()) {
+            std::sort(results.begin(), results.end(),
+                [](const SearchResult &a, const SearchResult &b) {
+                    if (a.snippet.sortOrder != b.snippet.sortOrder)
+                        return a.snippet.sortOrder < b.snippet.sortOrder;
+                    return a.snippet.name.localeAwareCompare(b.snippet.name) < 0;
+                });
+        } else {
+            std::sort(results.begin(), results.end(),
+                [](const SearchResult &a, const SearchResult &b) {
+                    return a.score > b.score;
+                });
+        }
         return results;
     }
 
@@ -229,14 +238,17 @@ QStringList SnippetManager::getAllCategories(bool includePresets) const
             catSet.insert(it.key());
     }
 
+    QSet<QString> parentCats;
     for (const QString &cat : catSet) {
         QString path = cat;
         int slash = path.lastIndexOf('/');
         while (slash > 0) {
-            catSet.insert(path.left(slash));
+            parentCats.insert(path.left(slash));
             slash = path.lastIndexOf('/', slash - 1);
         }
     }
+    for (const QString &pc : parentCats)
+        catSet.insert(pc);
 
     raw = catSet.values();
     QStringList savedOrder = loadCategoryOrder();

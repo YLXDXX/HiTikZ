@@ -130,6 +130,7 @@ void SearchPanel::setupUI()
     QAction *renameCatAct = categoryCtxMenu->addAction(QStringLiteral("重命名分类"));
     QAction *deleteCatAct = categoryCtxMenu->addAction(QStringLiteral("删除分类"));
     QAction *newSubCatAct = categoryCtxMenu->addAction(QStringLiteral("新建子分类"));
+    QAction *exportCatAct = categoryCtxMenu->addAction(QStringLiteral("导出分类"));
     categoryCtxMenu->addSeparator();
     QAction *addSnippetCatAct = categoryCtxMenu->addAction(QStringLiteral("添加片段"));
     QAction *newTopCatAct = categoryCtxMenu->addAction(QStringLiteral("新建大类"));
@@ -176,6 +177,22 @@ void SearchPanel::setupUI()
         if (!item) return;
         QString parentCat = item->data(Qt::UserRole).toString();
         emit addSnippetRequested(parentCat);
+    });
+
+    connect(exportCatAct, &QAction::triggered, this, [this, getEffectiveCatItem]() {
+        QStandardItem *item = getEffectiveCatItem();
+        if (!item) return;
+        QString cat = item->data(Qt::UserRole).toString();
+        if (cat.isEmpty()) return;
+        QList<Snippet> all = snippetMgr->getAllSnippets(true);
+        all.append(snippetMgr->getAllPresets(true));
+        QStringList ids;
+        for (const Snippet &s : all) {
+            if (s.category == cat || s.category.startsWith(cat + "/"))
+                ids.append(s.id);
+        }
+        if (!ids.isEmpty())
+            emit batchExportRequested(ids);
     });
 
     thumbnailCtxMenu = new QMenu(this);
