@@ -581,10 +581,10 @@ static int test_template_content_activates_libs()
 
     // Real default_circuit template shape (options + PreviewEnvironment).
     const QString circuitTemplate = QStringLiteral(
-        "\\documentclass[tikz, border=5pt]{standalone}\n"
-        "\\usepackage{tikz}\n"
+        "\\documentclass[border=1pt]{standalone}\n"
         "\\usepackage{xcolor}\n"
-        "\\usepackage[europeanvoltages,betterproportions]{circuitikz}\n"
+        "\\usepackage{tikz}\n"
+        "\\usepackage{circuitikz}\n"
         "\\usepackage[active,tightpage]{preview}\n"
         "\\PreviewEnvironment{circuitikz}\n"
         "\\begin{document}\n"
