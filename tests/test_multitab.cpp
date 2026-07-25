@@ -26,6 +26,7 @@
 #include <QSaveFile>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QUrl>
 
 static int g_testsPassed = 0;
 static int g_testsFailed = 0;
@@ -963,6 +964,96 @@ static void test_autosave_only_dirty(MainWindow *mw, SnippetManager *snippetMgr,
     snippetMgr->deleteSnippet(id);
 }
 
+// Verifies the "复制文件" (Copy Files) action copies 000.tex and 000.pdf
+// to the clipboard. The .tex file must be a complete compilable document using
+// the snippet's template/packages/libraries, and the PDF must be the compiled
+// preview output.
+static void test_copy_files_action(MainWindow *mw, SnippetManager *snippetMgr,
+                                   SearchPanel *searchPanel, QTabWidget *tabWidget)
+{
+    QAction *copyFilesAct = findActionByText(mw, QStringLiteral("复制文件"));
+    TEST_ASSERT(copyFilesAct != nullptr, "copy files action should exist in toolbar");
+
+    QString id = snippetMgr->createSnippet("CopyFilesTest", "test/copyfiles");
+    Snippet s = snippetMgr->loadSnippet(id);
+    s.code = QStringLiteral("\\begin{tikzpicture}\n"
+                            "  \\draw[red] (0,0) -- (1,1);\n"
+                            "\\end{tikzpicture}");
+    snippetMgr->saveSnippet(s);
+
+    // Place a dummy PDF at the expected preview location so the action
+    // can find and copy it.
+    QString previewDir = snippetMgr->getBasePath() + id + "/";
+    QDir().mkpath(previewDir);
+    QString previewPdf = previewDir + "preview.pdf";
+    {
+        QFile dummy(previewPdf);
+        if (dummy.open(QIODevice::WriteOnly)) {
+            dummy.write("dummy-pdf-content");
+            dummy.close();
+        }
+    }
+
+    // Open the snippet so it becomes the active document.
+    emit searchPanel->snippetSelected(id);
+    QApplication::processEvents();
+
+    // Clean the copy_files directory.
+    QString copyDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/copy_files/";
+    {
+        QDir dir(copyDir);
+        if (dir.exists()) {
+            for (const QString &f : dir.entryList(QDir::Files))
+                QFile::remove(copyDir + f);
+        }
+    }
+
+    // Trigger the action.
+    copyFilesAct->trigger();
+    QApplication::processEvents();
+
+    // Verify output files exist.
+    QString texPath = copyDir + "000.tex";
+    QString pdfDest = copyDir + "000.pdf";
+    TEST_ASSERT(QFile::exists(texPath), "000.tex must be created by copy files");
+    TEST_ASSERT(QFile::exists(pdfDest), "000.pdf must be created by copy files");
+
+    // Verify .tex content is a complete document including the snippet code.
+    if (QFile::exists(texPath)) {
+        QFile texFile(texPath);
+        if (texFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            QString texContent = QString::fromUtf8(texFile.readAll());
+            texFile.close();
+            TEST_ASSERT(texContent.contains("\\documentclass"),
+                        "000.tex must be a complete LaTeX document");
+            TEST_ASSERT(texContent.contains("\\draw[red] (0,0) -- (1,1);"),
+                        "000.tex must contain the snippet code");
+        }
+    }
+
+    // Verify the PDF copy matches the source.
+    if (QFile::exists(pdfDest)) {
+        QFile src(previewPdf);
+        if (src.open(QIODevice::ReadOnly)) {
+            QByteArray srcData = src.readAll();
+            src.close();
+            QFile dst(pdfDest);
+            if (dst.open(QIODevice::ReadOnly)) {
+                QByteArray dstData = dst.readAll();
+                dst.close();
+                TEST_ASSERT(srcData == dstData,
+                            "000.pdf must match the preview pdf");
+            }
+        }
+    }
+
+    // Clean up.
+    QFile::remove(texPath);
+    QFile::remove(pdfDest);
+    QFile::remove(previewPdf);
+    snippetMgr->deleteSnippet(id);
+}
+
 static void test_tag_filter_prune(SnippetManager *snippetMgr, SearchPanel *searchPanel)
 {
     if (!snippetMgr || !searchPanel) return;
@@ -1102,6 +1193,8 @@ int main(int argc, char *argv[])
         test_tag_filter_prune(snippetMgr, searchPanel);
 
         test_autosave_only_dirty(&mw, snippetMgr, searchPanel, tabWidget);
+
+        test_copy_files_action(&mw, snippetMgr, searchPanel, tabWidget);
 
         test_template_packages_activate_completion(snippetMgr, searchPanel, tabWidget);
 

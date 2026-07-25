@@ -34,6 +34,8 @@
 #include <QMenu>
 #include <QCloseEvent>
 #include <QStandardPaths>
+#include <QDir>
+#include <QUrl>
 #include <QEventLoop>
 #include <QTimer>
 #include <QMimeData>
@@ -379,6 +381,7 @@ void MainWindow::setupUI()
     QAction *copyFullAct = toolBar->addAction(QStringLiteral("复制文档"));
     QAction *copyPngAct = toolBar->addAction(QStringLiteral("复制PNG"));
     QAction *copySvgAct = toolBar->addAction(QStringLiteral("复制SVG"));
+    QAction *copyFilesAct = toolBar->addAction(QStringLiteral("复制文件"));
     openPdfExternalAct = toolBar->addAction(QStringLiteral("外部PDF"));
 
     toolBar->addSeparator();
@@ -957,6 +960,72 @@ void MainWindow::setupUI()
         statusBar()->showMessage(QStringLiteral("完整文档已复制到剪贴板"), 2000);
     };
 
+    auto copyFiles = [this]() {
+        // Build the full .tex document (same logic as copyFullDocument).
+        QString fullDoc;
+        if (currentSnippetId.isEmpty()) {
+            CodeEditor *ed = currentEditor();
+            if (!ed) return;
+            QString code = applyParams(ed->toPlainText());
+            static QRegularExpression paramLine("^%\\s*@param:.*(\n|\r\n?)?", QRegularExpression::MultilineOption);
+            code.remove(paramLine);
+            QString cleanedCode;
+            QString customCmds = LatexCompiler::extractCustomCommands(code, cleanedCode);
+            fullDoc = compiler->wrapCode(cleanedCode, QString(), QString(), QString(), customCmds);
+        } else {
+            Snippet s = snippetMgr->loadSnippet(currentSnippetId);
+            QString code = applyParams(s.code);
+            code.remove(paramLineRe);
+            QString cleanedCode;
+            QString customCmds = LatexCompiler::extractCustomCommands(code, cleanedCode);
+            fullDoc = compiler->wrapCode(cleanedCode, s.templateId, s.packages, s.tikzLibraries, customCmds);
+        }
+
+        // Find the preview PDF file.
+        QString pdfPath;
+        if (!currentSnippetId.isEmpty()) {
+            pdfPath = snippetDataPath(currentSnippetId) + "/preview.pdf";
+        }
+        if (pdfPath.isEmpty() || !QFile::exists(pdfPath)) {
+            pdfPath = compiler->pdfPath();
+        }
+        if (pdfPath.isEmpty() || !QFile::exists(pdfPath)) {
+            statusBar()->showMessage(QStringLiteral("请先编译生成PDF预览"), kStatusBarShortMs);
+            return;
+        }
+
+        // Write the .tex and .pdf files into a dedicated temp directory so
+        // they show up as 000.tex / 000.pdf when pasted in Dolphin.
+        QString copyDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/copy_files/";
+        QDir().mkpath(copyDir);
+
+        QString texPath = copyDir + "000.tex";
+        QFile texFile(texPath);
+        if (!texFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
+            statusBar()->showMessage(QStringLiteral("无法写入复制文件"), kStatusBarShortMs);
+            return;
+        }
+        texFile.write(fullDoc.toUtf8());
+        texFile.close();
+
+        QString pdfDest = copyDir + "000.pdf";
+        QFile::remove(pdfDest);
+        if (!QFile::copy(pdfPath, pdfDest)) {
+            QFile::remove(texPath);
+            statusBar()->showMessage(QStringLiteral("无法复制PDF文件"), kStatusBarShortMs);
+            return;
+        }
+
+        QMimeData *mimeData = new QMimeData;
+        QList<QUrl> urls;
+        urls.append(QUrl::fromLocalFile(texPath));
+        urls.append(QUrl::fromLocalFile(pdfDest));
+        mimeData->setUrls(urls);
+        QApplication::clipboard()->setMimeData(mimeData);
+
+        statusBar()->showMessage(QStringLiteral("文件已复制到剪贴板 (000.tex, 000.pdf)"), 2000);
+    };
+
     connect(undoAct, &QAction::triggered, this, [this]() {
         CodeEditor *ed = currentEditor();
         if (ed) ed->undo();
@@ -1143,6 +1212,7 @@ void MainWindow::setupUI()
 
     connect(copyPngAct, &QAction::triggered, this, copyPngFromCurrentPreview);
     connect(copySvgAct, &QAction::triggered, this, copySvgFromCurrentPreview);
+    connect(copyFilesAct, &QAction::triggered, this, copyFiles);
 
     connect(openPdfExternalAct, &QAction::triggered, this, [this]() {
         QString pdfPath;
