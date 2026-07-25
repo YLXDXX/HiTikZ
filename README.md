@@ -87,7 +87,7 @@ PDF 预览支持适应整页、适应宽度、适应高度三种缩放模式，�
 
 片段以 tar.gz 格式打包，支持单个、多个或全部片段的导出与导入。支持导入 .tex 文件，自动提取 TikZ 代码（三段式回退）并解析导言区宏包、库与自定义命令，按内容自动选择模板。支持从剪贴板直接粘贴 .tex 源码导入，解析流程同上。
 
-可将预览导出为 .tex、.pdf、.png、.svg 文件，或将 PNG、SVG 复制到剪贴板。工具栏提供「复制代码」「复制文档」「复制 PNG」「复制 SVG」快捷按钮。
+可将预览导出为 .tex、.pdf、.png、.svg 文件，或将 PNG、SVG 复制到剪贴板。工具栏提供「复制代码」「复制文档」「复制 PNG」「复制 SVG」快捷按钮。新增「复制文件」功能，将完整可编译的 .tex 文档与编译 PDF 一同放入剪贴板（命名为 `000.tex` / `000.pdf`），在 Dolphin 文件管理器中直接 Ctrl+V 即可粘贴分享。
 
 ### 数据安全与恢复
 
@@ -265,6 +265,7 @@ PDF 预览依赖 `Qt6::PdfWidgets`，已在构建依赖中包含，无需额外�
 | 复制文档 | 复制含模板头部的完整 LaTeX 文档 |
 | 复制PNG | 复制 300 DPI PNG 到剪贴板 |
 | 复制SVG | 复制 SVG 到剪贴板 |
+| 复制文件 | 复制完整可编译 .tex 文档与 PDF 到剪贴板（000.tex / 000.pdf），可在文件管理器中直接粘贴 |
 | 外部PDF | 用设置中配置的外部查看器打开当前片段的编译 PDF（系统需先编译预览） |
 | 适应整页/宽度/高度 | PDF 显示模式（可选中态） |
 | − / + | PDF 缩小/放大 |
@@ -543,7 +544,7 @@ PDF 预览依赖 `Qt6::PdfWidgets`，已在构建依赖中包含，无需额外�
 
 ### 自动保存与草稿恢复
 
-- **定时保存**：每 3 分钟自动保存所有打开标签页的完整状态（代码 + 名称 + 简介 + 标签 + 额外宏包 + TikZ 库 + 模板 ID）为 JSON 草稿文件。每个未保存的草稿标签页使用独立编号文件名（如 `scratch_0.json`、`scratch_1.json`），防止多个草稿标签页相互覆盖
+- **定时保存**：每 3 分钟自动保存所有打开标签页的完整状态（代码 + 名称 + 简介 + 标签 + 额外宏包 + TikZ 库 + 模板 ID）为 JSON 草稿文件。仅对存在未保存更改（编辑器中以 `*` 标记）的标签页写入草稿，未修改的标签页不生成草稿，避免异常退出后的虚假恢复提示。每个未保存的草稿标签页使用独立编号文件名（如 `scratch_0.json`、`scratch_1.json`），防止多个草稿标签页相互覆盖
 - **草稿恢复**：程序异常退出后下次启动时，自动弹出恢复对话框，列出所有未保存草稿的具体名称和简介，可勾选需要的草稿、全选、全部丢弃或稍后处理
   - "恢复所选"后未勾选的草稿视为放弃并清理，"稍后处理"（或直接关闭对话框）保留草稿留待下次启动
   - 以 `--hidden` 自启动时恢复对话框推迟到首次打开主窗口时再弹出，登录时不打扰
@@ -561,11 +562,11 @@ PDF 预览依赖 `Qt6::PdfWidgets`，已在构建依赖中包含，无需额外�
 
 | 模板 | 用途 | 内置宏包 |
 |------|------|---------|
-| `default_math` | 数学图形 | `tikz`, `amsmath`, `xcolor` |
-| `default_physics` | 物理示意图 | `tikz`, `xcolor` |
-| `default_circuit` | 电路图 | `tikz`, `xcolor`, `circuitikz`（europeanvoltages, betterproportions）, `preview`（active, tightpage） |
+| `default_math` | 数学图形 | `xcolor`, `amsmath`, `tikz` |
+| `default_physics` | 物理示意图 | `xcolor`, `tikz` |
+| `default_circuit` | 电路图 | `xcolor`, `tikz`, `circuitikz`, `preview`（active, tightpage） |
 
-所有模板均使用 `standalone` 文档类，生成紧凑的独立 PDF。
+所有模板均使用 `standalone` 文档类（`border=1pt`），生成紧凑的独立 PDF。
 
 模板文件位于 `~/.local/share/HiTikZ/TikzManager/templates/`，可通过设置面板的模板管理界面创建、编辑、删除。
 
@@ -685,6 +686,7 @@ calc,er,angles,patterns,decorations.pathmorphing,shadows.blur,pgfplots.fillbetwe
 | 复制文档 | 复制含模板头部的完整 LaTeX 文档 |
 | 复制 PNG | 从 PDF 转换 300 DPI PNG 后复制到剪贴板（与复制SVG互斥，防止并发冲突） |
 | 复制 SVG | 从 PDF 转换 SVG 后复制（附带 `image/svg+xml` MIME 类型），转换工具可在设置中切换（与复制PNG互斥，防止并发冲突） |
+| 复制文件 | 生成完整可编译 .tex 文档并复制编译 PDF，以 `000.tex` / `000.pdf` 文件名通过剪贴板 `text/uri-list` 提供，在 Dolphin 中 Ctrl+V 即可粘贴 |
 
 ### 导入与导出
 
