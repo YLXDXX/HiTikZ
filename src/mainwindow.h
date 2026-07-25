@@ -63,6 +63,10 @@ public:
     // active tab, metadata). Exposed for tests.
     bool tabHasUnsavedChanges(int index) const;
 
+    // Trigger auto-save: writes draft files only for tabs that have unsaved
+    // changes (code or metadata). Exposed for tests.
+    void performAutoSave();
+
 signals:
     void batchPreviewFinished();
 
@@ -111,7 +115,6 @@ private:
     void checkSystemDependencies();
     void updateFitActionStates();
     void startAutoSave();
-    void performAutoSave();
     void recoverDrafts();
     void clearDraft(int tabIndex = -1);
     void clearAllDrafts();

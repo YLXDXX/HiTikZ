@@ -90,6 +90,9 @@ void MainWindow::performAutoSave()
         if (!sid.isEmpty() && !snippetMgr->snippetExists(sid))
             sid.clear();
 
+        if (!isSnippetDirty(sid, ed))
+            continue;
+
         QString draftPath = draftDir + (sid.isEmpty()
             ? QStringLiteral("scratch_%1").arg(i) : sid) + ".json";
 
