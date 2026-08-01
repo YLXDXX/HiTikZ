@@ -29,6 +29,12 @@ void registerGeneralOptions(Vec &db)
     addBuiltin(db, "rotate",          C::Option, {}, {},
                {"90","180","270","45","60","30","15"});
     addBuiltin(db, "rotate around",   C::Option, {});
+    addBuiltin(db, "rotate around x", C::Option, {}, {},
+               {"90","180","270","45","60","30","15"});
+    addBuiltin(db, "rotate around y", C::Option, {}, {},
+               {"90","180","270","45","60","30","15"});
+    addBuiltin(db, "rotate around z", C::Option, {}, {},
+               {"90","180","270","45","60","30","15"});
     addBuiltin(db, "scale",           C::Option, {}, {},
                {"0.5","0.8","1.0","1.2","1.5","2.0","3.0"});
     addBuiltin(db, "scale around",    C::Option, {});

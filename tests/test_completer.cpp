@@ -90,6 +90,9 @@ static int test_options_contain_new_entries()
         {"angle eccentricity", "angles library eccentricity"},
         {"right angle", "angles library right angle pic"},
         {"pic text", "angles library pic text"},
+        {"rotate around x", "rotate around x axis 3D transform"},
+        {"rotate around y", "rotate around y axis 3D transform"},
+        {"rotate around z", "rotate around z axis 3D transform"},
     };
 
     for (const auto &e : entries) {
@@ -3538,6 +3541,46 @@ static int test_let_command_completion()
     return failed;
 }
 
+static int test_3d_transform_keys()
+{
+    int failed = 0;
+    const QStringList opts = TikzWords::tikzOptions();
+
+    const char *keys[] = {"rotate around x", "rotate around y", "rotate around z"};
+    for (int i = 0; i < 3; i++) {
+        if (!opts.contains(QString::fromLatin1(keys[i]))) {
+            fprintf(stderr, "FAIL: D3-1 - tikzOptions() should contain '%s'\n", keys[i]);
+            failed++;
+        }
+    }
+
+    const QVector<QPair<QString, QStringList>> hints = TikzWords::tikzValueHints();
+    for (int i = 0; i < 3; i++) {
+        bool found = false;
+        for (const auto &pair : hints) {
+            if (pair.first == QString::fromLatin1(keys[i])) {
+                found = true;
+                if (!pair.second.contains(QStringLiteral("90")) ||
+                    !pair.second.contains(QStringLiteral("180")) ||
+                    !pair.second.contains(QStringLiteral("270")) ||
+                    !pair.second.contains(QStringLiteral("45"))) {
+                    fprintf(stderr, "FAIL: D3-2 - '%s' hints missing expected angle values\n", keys[i]);
+                    failed++;
+                }
+                break;
+            }
+        }
+        if (!found) {
+            fprintf(stderr, "FAIL: D3-3 - '%s' not found in tikzValueHints()\n", keys[i]);
+            failed++;
+        }
+    }
+
+    if (failed == 0)
+        fprintf(stderr, "PASS: 3D transform keys (rotate around x/y/z)\n");
+    return failed;
+}
+
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
@@ -3595,6 +3638,7 @@ int main(int argc, char *argv[])
     failed += test_coordinate_system_completion();
     failed += test_path_op_node_name_completion();
     failed += test_let_command_completion();
+    failed += test_3d_transform_keys();
 
     if (failed > 0) {
         fprintf(stderr, "\n%d test(s) failed!\n", failed);
