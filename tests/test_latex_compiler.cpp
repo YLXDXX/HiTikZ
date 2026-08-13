@@ -1068,6 +1068,82 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    // Test 59: Inkscape conversion produces a "plain" SVG (no Inkscape/sodipodi
+    // namespaces) so it can be pasted directly into Inkscape via image/svg+xml.
+    {
+        LatexCompiler avail;
+        if (!avail.checkXelatexAvailable() || !avail.checkInkscapeAvailable()) {
+            fprintf(stderr, "SKIP: Test 59 - xelatex/inkscape not available\n");
+        } else {
+            LatexCompiler compiler;
+            compiler.setXelatexPath("xelatex");
+            compiler.setSvgTool("inkscape");
+
+            bool compiled = false;
+            QString pdfPath;
+            QObject::connect(&compiler, &LatexCompiler::compilationFinished,
+                [&](bool ok, const QString &pdf, const QString &) {
+                    compiled = ok;
+                    pdfPath = pdf;
+                });
+
+            compiler.compile("\\begin{tikzpicture}\n\\draw (0,0) -- (1,1) node[right] {Hello};\n\\end{tikzpicture}",
+                             "", "test_inkscape_svg");
+
+            QEventLoop loop;
+            QTimer::singleShot(15000, &loop, &QEventLoop::quit);
+            QObject::connect(&compiler, &LatexCompiler::compilationFinished, &loop, &QEventLoop::quit);
+            loop.exec();
+
+            if (!compiled || !QFile::exists(pdfPath)) {
+                fprintf(stderr, "SKIP: Test 59 - could not produce a PDF\n");
+            } else {
+                bool convFinished = false;
+                bool convSuccess = false;
+                QString svgPath;
+                QObject::connect(&compiler, &LatexCompiler::conversionFinished,
+                    [&](bool ok, const QString &path) {
+                        convFinished = true;
+                        convSuccess = ok;
+                        svgPath = path;
+                    });
+
+                compiler.convertToSvg(pdfPath);
+
+                QEventLoop loop2;
+                QTimer::singleShot(15000, &loop2, &QEventLoop::quit);
+                QObject::connect(&compiler, &LatexCompiler::conversionFinished, &loop2, &QEventLoop::quit);
+                loop2.exec();
+
+                if (!convFinished || !convSuccess) {
+                    fprintf(stderr, "FAIL: Test 59a - Inkscape SVG conversion failed\n");
+                    failed++;
+                } else if (!QFile::exists(svgPath)) {
+                    fprintf(stderr, "FAIL: Test 59b - Inkscape SVG file does not exist\n");
+                    failed++;
+                } else {
+                    QFile f(svgPath);
+                    if (!f.open(QIODevice::ReadOnly)) {
+                        fprintf(stderr, "FAIL: Test 59c - cannot read Inkscape SVG\n");
+                        failed++;
+                    } else {
+                        const QByteArray svg = f.readAll();
+                        f.close();
+                        if (!svg.contains("<svg")) {
+                            fprintf(stderr, "FAIL: Test 59d - SVG root element missing\n");
+                            failed++;
+                        } else if (svg.contains("sodipodi") || svg.contains("inkscape:")) {
+                            fprintf(stderr, "FAIL: Test 59e - Inkscape SVG is not plain (contains Inkscape namespaces)\n");
+                            failed++;
+                        } else {
+                            fprintf(stderr, "PASS: Test 59 - Inkscape plain SVG conversion\n");
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     fprintf(stderr, "Custom command tests: %d failed\n", customTestsFailed);
     failed += customTestsFailed;
 

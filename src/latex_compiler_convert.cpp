@@ -109,6 +109,7 @@ void LatexCompiler::convertToSvg(const QString &pdfPath)
     if (svgTool_ == "inkscape") {
         QStringList args;
         args << "--export-type=svg"
+             << "--export-plain-svg"
              << "--pdf-poppler"
              << "--export-text-to-path"
              << "--pages=1"
@@ -132,6 +133,7 @@ bool LatexCompiler::convertToSvgBlocking(const QString &pdfPath, const QString &
     if (svgTool_ == "inkscape") {
         QStringList args;
         args << "--export-type=svg"
+             << "--export-plain-svg"
              << "--pdf-poppler"
              << "--export-text-to-path"
              << "--pages=1"
