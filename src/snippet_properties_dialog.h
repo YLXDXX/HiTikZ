@@ -34,6 +34,7 @@ private slots:
 private:
     void loadSnippet();
     void refreshImageList();
+    void updateImageButtonStates();
     QString selectedImageName() const;
     void showImageStatus(const QString &text, bool error = false);
 

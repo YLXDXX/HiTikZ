@@ -321,10 +321,33 @@ static void testPropertiesDialogImages(SnippetManager &mgr)
     QPushButton *copyNameBtn = findBtn(QStringLiteral("复制文件名"));
     CHECK(findBtn(QStringLiteral("导入图片...")) != nullptr, "import button exists");
     CHECK(findBtn(QStringLiteral("粘贴图片 (Ctrl+V)")) != nullptr, "paste button exists");
-    CHECK(viewBtn != nullptr && viewBtn->isEnabled(), "view button enabled with images");
-    CHECK(removeBtn != nullptr && removeBtn->isEnabled(), "remove button enabled with images");
-    CHECK(replaceBtn != nullptr && replaceBtn->isEnabled(), "replace button enabled with images");
-    CHECK(copyNameBtn != nullptr && copyNameBtn->isEnabled(), "copy-name button enabled with images");
+
+    // On opening the dialog the selection-dependent buttons are disabled even
+    // though images exist — they activate only once an image is selected.
+    CHECK(viewBtn != nullptr && !viewBtn->isEnabled(),
+          "view button disabled before any image is selected");
+    CHECK(removeBtn != nullptr && !removeBtn->isEnabled(),
+          "remove button disabled before any image is selected");
+    CHECK(replaceBtn != nullptr && !replaceBtn->isEnabled(),
+          "replace button disabled before any image is selected");
+    CHECK(copyNameBtn != nullptr && !copyNameBtn->isEnabled(),
+          "copy-name button disabled before any image is selected");
+
+    if (list) {
+        list->setCurrentRow(0);
+        QApplication::processEvents();
+    }
+    CHECK(viewBtn->isEnabled(), "view button enabled after selecting an image");
+    CHECK(removeBtn->isEnabled(), "remove button enabled after selecting an image");
+    CHECK(replaceBtn->isEnabled(), "replace button enabled after selecting an image");
+    CHECK(copyNameBtn->isEnabled(), "copy-name button enabled after selecting an image");
+
+    // Switching the selection away disables the buttons again.
+    if (list) {
+        list->setCurrentRow(-1);
+        QApplication::processEvents();
+    }
+    CHECK(!viewBtn->isEnabled(), "view button disabled when selection cleared");
 
     // Paste an image from the clipboard via the "onPasteImage" slot.
     QImage clipImage(4, 4, QImage::Format_RGB32);
@@ -336,6 +359,9 @@ static void testPropertiesDialogImages(SnippetManager &mgr)
         if (list->count() == 3)
             CHECK(list->item(2)->text() == "c.png", "pasted image named c.png");
     }
+    // The list is rebuilt after pasting, so the selection (and the
+    // selection-dependent buttons) reset to disabled.
+    CHECK(!viewBtn->isEnabled(), "view button disabled after list refresh");
 
     // Ctrl+V is routed to image paste when no text widget has focus.
     clipImage.fill(Qt::blue);
@@ -347,6 +373,13 @@ static void testPropertiesDialogImages(SnippetManager &mgr)
         if (list->count() == 4)
             CHECK(list->item(3)->text() == "d.png", "second pasted image named d.png");
     }
+
+    // Selecting one of the new images re-enables the buttons.
+    if (list) {
+        list->setCurrentRow(2);
+        QApplication::processEvents();
+    }
+    CHECK(viewBtn->isEnabled(), "view button enabled after selecting pasted image");
 
     Snippet s = mgr.loadSnippet(id);
     CHECK(s.images.size() == 4, "meta.json lists all four images");

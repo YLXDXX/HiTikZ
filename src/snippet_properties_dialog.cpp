@@ -133,6 +133,11 @@ SnippetPropertiesDialog::SnippetPropertiesDialog(const QString &snippetId,
     connect(m_imageList, &QListWidget::itemDoubleClicked, this, [this](QListWidgetItem *) {
         onViewImage();
     });
+    // 查看/替换/删除/复制文件名 only make sense with a selected image.
+    connect(m_imageList, &QListWidget::currentItemChanged, this,
+        [this](QListWidgetItem *, QListWidgetItem *) { updateImageButtonStates(); });
+    connect(m_imageList, &QListWidget::itemSelectionChanged, this,
+        [this]() { updateImageButtonStates(); });
     connect(cancelBtn, &QPushButton::clicked, this, &QDialog::reject);
 
     loadSnippet();
@@ -178,7 +183,12 @@ void SnippetPropertiesDialog::refreshImageList()
         QListWidgetItem *item = new QListWidgetItem(name, m_imageList);
         item->setToolTip(name);
     }
-    const bool hasSelection = !s.images.isEmpty();
+    updateImageButtonStates();
+}
+
+void SnippetPropertiesDialog::updateImageButtonStates()
+{
+    const bool hasSelection = m_imageList->currentItem() != nullptr;
     m_viewImageBtn->setEnabled(hasSelection);
     m_replaceImageBtn->setEnabled(hasSelection);
     m_removeImageBtn->setEnabled(hasSelection);

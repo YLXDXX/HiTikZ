@@ -730,6 +730,8 @@ TikZ 片段可以附带图片文件（位图如 PNG/JPG/TIF，以及 PDF），�
 - **删除**：移除所选图片（代码中的引用需同步清理）
 - **复制文件名**：将文件名（如 `a.png`）复制到剪贴板，便于粘贴进 `\includegraphics{...}`
 
+「查看 / 替换... / 删除 / 复制文件名」在刚打开对话框时呈灰色禁用状态，选中列表中的某张图片后才可点击。
+
 **存储与命名**：图片存放在片段自身目录内（与 `snippet.tex`、`meta.json` 同级），统一按字母序号命名——`a.png`、`b.png`、`c.pdf`、`d.tif`…… 超过 `z` 后为 `aa`、`ab`…… 命名自动跳过已占用序号。文件名记录在 `meta.json` 的 `images` 字段（JSON 数组）。读取旧版没有该字段的 `meta.json` 时自动视为无图片，不受影响。
 
 **全流程联动**：
@@ -1077,7 +1079,7 @@ MainWindow
 | 测试 | 内容 |
 |------|------|
 | `test_snippet_manager` | 片段创建/读取/更新/删除，loadCode，renameCategory，compileCommand/sortOrder JSON 序列化，ZIP 导入/导出，reorderSnippets，categoryOrder 保存/加载 |
-| `test_snippet_images` | 图片管理：字母序号命名（a–z、aa–zz）、受支持扩展名检测、图片添加/替换/删除（含序号复用与跳过占用、替换扩展名更新、缺失源文件回退）、meta.json `images` 字段往返与旧版无字段容错、存档导出/导入携带图片、片段间图片文件复制、编译临时目录图片拷贝、属性对话框图片列表/按钮状态/剪贴板图像粘贴与 Ctrl+V 快捷键（9 组测试） |
+| `test_snippet_images` | 图片管理：字母序号命名（a–z、aa–zz）、受支持扩展名检测、图片添加/替换/删除（含序号复用与跳过占用、替换扩展名更新、缺失源文件回退）、meta.json `images` 字段往返与旧版无字段容错、存档导出/导入携带图片、片段间图片文件复制、编译临时目录图片拷贝、属性对话框图片列表/按钮状态（无选中时灰色禁用、选中后启用）/剪贴板图像粘贴与 Ctrl+V 快捷键（9 组测试） |
 | `test_latex_compiler` | xelatex 可用性检测，基本编译，PDF 生成，PNG 转换，SVG 转换，编译日志验证，自定义命令抽取（覆盖 14 类定义命令）、含分隔符参数的 `\def` 与参数后换行的 `\newcommand` 抽取、不完整定义的安全跳过、析构回收转换子进程、compileCommand 自定义引擎编译与 lastFullCommand 验证（53+ 项测试） |
 | `test_search` | 精确匹配、子序列匹配、连续加分、中文搜索、标签过滤、分类统计 |
 | `test_packages_libraries` | 宏包字符串解析（含嵌套括号选项），TikZ 库解析，模板注入正确性，往返序列化 |
