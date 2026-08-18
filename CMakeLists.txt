@@ -183,6 +183,16 @@ target_include_directories(test_snippet_manager PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_snippet_manager PRIVATE Qt6::Core)
 add_test(NAME SnippetManager COMMAND test_snippet_manager)
 
+add_executable(test_snippet_images
+    tests/test_snippet_images.cpp
+    ${SNIPPET_MANAGER_SOURCES}
+    ${LATEX_COMPILER_SOURCES}
+    src/snippet_properties_dialog.cpp
+)
+target_include_directories(test_snippet_images PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_snippet_images PRIVATE Qt6::Widgets)
+add_test(NAME SnippetImages COMMAND test_snippet_images)
+
 add_executable(test_latex_compiler
     tests/test_latex_compiler.cpp
     ${LATEX_COMPILER_SOURCES}

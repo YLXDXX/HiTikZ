@@ -274,6 +274,10 @@ QJsonObject SnippetManager::snippetToJson(const Snippet &s) const
     for (const QString &tag : s.tags)
         tagsArr.append(tag);
     obj["tags"] = tagsArr;
+    QJsonArray imagesArr;
+    for (const QString &img : s.images)
+        imagesArr.append(img);
+    obj["images"] = imagesArr;
     return obj;
 }
 
@@ -292,6 +296,10 @@ Snippet SnippetManager::jsonToSnippet(const QJsonObject &obj) const
     QJsonArray tagsArr = obj.value("tags").toArray();
     for (const QJsonValue &v : tagsArr)
         s.tags.append(v.toString());
+    // Tolerate archives/meta.json written before the images field existed.
+    QJsonArray imagesArr = obj.value("images").toArray();
+    for (const QJsonValue &v : imagesArr)
+        s.images.append(v.toString());
     return s;
 }
 
@@ -576,4 +584,178 @@ void SnippetManager::invalidateCachesLight() const
     m_cachedCategoryCounts.clear();
     presetIdsCached = false;
     presetIdsCache.clear();
+}
+
+QStringList SnippetManager::supportedImageExtensions()
+{
+    return {QStringLiteral("png"),  QStringLiteral("jpg"), QStringLiteral("jpeg"),
+            QStringLiteral("tif"),  QStringLiteral("tiff"), QStringLiteral("bmp"),
+            QStringLiteral("gif"),  QStringLiteral("webp"), QStringLiteral("pdf")};
+}
+
+bool SnippetManager::isSupportedImageFile(const QString &fileName)
+{
+    const QString ext = QFileInfo(fileName).suffix().toLower();
+    if (ext.isEmpty())
+        return false;
+    return supportedImageExtensions().contains(ext);
+}
+
+QString SnippetManager::imageStemForIndex(int index)
+{
+    if (index < 0)
+        index = 0;
+    QString stem;
+    do {
+        stem.prepend(QChar('a' + (index % 26)));
+        index = index / 26 - 1;
+    } while (index >= 0);
+    return stem;
+}
+
+QString SnippetManager::getSnippetImageDir(const QString &id) const
+{
+    return isPresetId(id) ? getPresetSnippetPath(id) : getSnippetPath(id);
+}
+
+QStringList SnippetManager::getSnippetImagePaths(const QString &id)
+{
+    QStringList paths;
+    if (id.isEmpty())
+        return paths;
+
+    const Snippet s = loadSnippet(id);
+    if (s.id.isEmpty())
+        return paths;
+
+    const QString dir = getSnippetImageDir(id);
+    for (const QString &name : s.images) {
+        const QString path = dir + name;
+        if (QFile::exists(path))
+            paths.append(path);
+    }
+    return paths;
+}
+
+QString SnippetManager::addImageToSnippet(const QString &id, const QString &srcFilePath)
+{
+    Snippet s = loadSnippet(id);
+    if (s.id.isEmpty())
+        return QString();
+
+    const QFileInfo srcInfo(srcFilePath);
+    if (!srcInfo.exists() || !srcInfo.isFile())
+        return QString();
+    const QString ext = srcInfo.suffix().toLower();
+    if (ext.isEmpty())
+        return QString();
+
+    const QString dir = getSnippetImageDir(id);
+
+    // Collect stems that are already in use: those recorded in meta.json plus
+    // any image files actually present in the directory (covers stale/unlisted
+    // files so we never overwrite an existing image).
+    QSet<QString> usedStems;
+    for (const QString &name : s.images)
+        usedStems.insert(QFileInfo(name).completeBaseName());
+    const QStringList existingFiles = QDir(dir).entryList(QDir::Files);
+    for (const QString &file : existingFiles) {
+        if (isSupportedImageFile(file))
+            usedStems.insert(QFileInfo(file).completeBaseName());
+    }
+
+    int index = 0;
+    while (usedStems.contains(imageStemForIndex(index)))
+        index++;
+    const QString name = imageStemForIndex(index) + QStringLiteral(".") + ext;
+
+    if (!QFile::copy(srcFilePath, dir + name))
+        return QString();
+
+    s.images.append(name);
+    if (!saveSnippet(s)) {
+        QFile::remove(dir + name);
+        return QString();
+    }
+    return name;
+}
+
+QString SnippetManager::replaceSnippetImage(const QString &id, const QString &imageName,
+                                            const QString &srcFilePath)
+{
+    Snippet s = loadSnippet(id);
+    if (s.id.isEmpty() || imageName.isEmpty())
+        return QString();
+
+    const QFileInfo srcInfo(srcFilePath);
+    if (!srcInfo.exists() || !srcInfo.isFile())
+        return QString();
+    const QString ext = srcInfo.suffix().toLower();
+    if (ext.isEmpty())
+        return QString();
+
+    const QString dir = getSnippetImageDir(id);
+    const QString stem = QFileInfo(imageName).completeBaseName();
+    if (stem.isEmpty())
+        return QString();
+    const QString newName = stem + QStringLiteral(".") + ext;
+
+    QFile::remove(dir + imageName);
+    if (!QFile::copy(srcFilePath, dir + newName))
+        return QString();
+
+    int idx = s.images.indexOf(imageName);
+    if (idx >= 0)
+        s.images[idx] = newName;
+    else
+        s.images.append(newName);
+
+    if (!saveSnippet(s)) {
+        QFile::remove(dir + newName);
+        return QString();
+    }
+    return newName;
+}
+
+bool SnippetManager::removeSnippetImage(const QString &id, const QString &imageName)
+{
+    if (id.isEmpty() || imageName.isEmpty())
+        return false;
+
+    Snippet s = loadSnippet(id);
+    if (s.id.isEmpty())
+        return false;
+
+    const QString dir = getSnippetImageDir(id);
+    QFile::remove(dir + imageName);
+
+    const bool listed = s.images.removeAll(imageName) > 0;
+    if (listed)
+        saveSnippet(s);
+    return true;
+}
+
+bool SnippetManager::copySnippetImageFiles(const QString &srcId, const QString &dstId)
+{
+    const Snippet src = loadSnippet(srcId);
+    if (src.id.isEmpty())
+        return false;
+
+    const QString srcDir = getSnippetImageDir(srcId);
+    const QString dstDir = getSnippetImageDir(dstId);
+
+    bool ok = true;
+    for (const QString &name : src.images) {
+        const QString srcFile = srcDir + name;
+        if (!QFile::exists(srcFile))
+            continue;
+        const QString dstFile = dstDir + name;
+        if (QFile::exists(dstFile))
+            QFile::remove(dstFile);
+        if (!QFile::copy(srcFile, dstFile)) {
+            qWarning() << "Failed to copy image file:" << srcFile << "→" << dstFile;
+            ok = false;
+        }
+    }
+    return ok;
 }

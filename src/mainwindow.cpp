@@ -1016,14 +1016,33 @@ void MainWindow::setupUI()
             return;
         }
 
+        // Copy the snippet's images next to 000.tex so a pasted document still
+        // compiles (the .tex references them as e.g. \includegraphics{a.png}).
+        QStringList extraNames;
+        if (!currentSnippetId.isEmpty()) {
+            const QStringList images = snippetMgr->getSnippetImagePaths(currentSnippetId);
+            for (const QString &img : images) {
+                const QString dest = copyDir + QFileInfo(img).fileName();
+                QFile::remove(dest);
+                if (QFile::copy(img, dest))
+                    extraNames << QFileInfo(img).fileName();
+            }
+        }
+
         QMimeData *mimeData = new QMimeData;
         QList<QUrl> urls;
         urls.append(QUrl::fromLocalFile(texPath));
         urls.append(QUrl::fromLocalFile(pdfDest));
+        for (const QString &name : extraNames)
+            urls.append(QUrl::fromLocalFile(copyDir + name));
         mimeData->setUrls(urls);
         QApplication::clipboard()->setMimeData(mimeData);
 
-        statusBar()->showMessage(QStringLiteral("文件已复制到剪贴板 (000.tex, 000.pdf)"), 2000);
+        QString msg = QStringLiteral("文件已复制到剪贴板 (000.tex, 000.pdf");
+        if (!extraNames.isEmpty())
+            msg += QStringLiteral(", ") + extraNames.join(QStringLiteral(", "));
+        msg += QStringLiteral(")");
+        statusBar()->showMessage(msg, 2000);
     };
 
     connect(undoAct, &QAction::triggered, this, [this]() {
@@ -1053,6 +1072,16 @@ void MainWindow::setupUI()
             if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
                 file.write(fullDoc.toUtf8());
                 file.close();
+                // Copy the snippet's images next to the .tex file so the
+                // exported document compiles standalone.
+                const QString targetDir = QFileInfo(filePath).absolutePath();
+                const QStringList images = snippetMgr->getSnippetImagePaths(currentSnippetId);
+                for (const QString &img : images) {
+                    const QString dest = targetDir + "/" + QFileInfo(img).fileName();
+                    if (QFile::exists(dest))
+                        QFile::remove(dest);
+                    QFile::copy(img, dest);
+                }
                 statusBar()->showMessage(QStringLiteral(".tex 文档导出成功"), kStatusBarShortMs);
             } else {
                 QMessageBox::warning(this, QStringLiteral("导出失败"),
@@ -1312,7 +1341,11 @@ void MainWindow::setupConnections()
             dup.packages = orig.packages;
             dup.tikzLibraries = orig.tikzLibraries;
             dup.compileCommand = orig.compileCommand;
+            dup.images = orig.images;
             snippetMgr->saveSnippet(dup);
+            if (!dup.images.isEmpty() && !snippetMgr->copySnippetImageFiles(id, newId)) {
+                statusBar()->showMessage(QStringLiteral("片段已复制（部分图片复制失败）"), kStatusBarLongMs);
+            }
             refreshSearch();
             refreshCategoryTree();
             statusBar()->showMessage(QStringLiteral("片段已复制"), kStatusBarShortMs);
@@ -1523,8 +1556,11 @@ void MainWindow::setupConnections()
             return;
         }
 
+        const QStringList images = currentSnippetId.isEmpty()
+            ? QStringList() : snippetMgr->getSnippetImagePaths(currentSnippetId);
+
         logPanel->clear();
-        compiler->compile(code, templateId, snippetId, packages, tikzLibraries, compileCommand);
+        compiler->compile(code, templateId, snippetId, packages, tikzLibraries, compileCommand, images);
     });
 
     connect(applyParamsAct, &QAction::triggered, this, [this, startCompile, endCompile]() {
@@ -1537,8 +1573,9 @@ void MainWindow::setupConnections()
 
         Snippet s = snippetMgr->loadSnippet(currentSnippetId);
         QString code = applyParams(s.code);
+        const QStringList images = snippetMgr->getSnippetImagePaths(currentSnippetId);
         logPanel->clear();
-        compiler->compile(code, s.templateId, currentSnippetId, s.packages, s.tikzLibraries, s.compileCommand);
+        compiler->compile(code, s.templateId, currentSnippetId, s.packages, s.tikzLibraries, s.compileCommand, images);
     });
 
     connect(saveAct, &QAction::triggered, this, [this]() {
@@ -1586,7 +1623,13 @@ void MainWindow::setupConnections()
         dup.packages = orig.packages;
         dup.tikzLibraries = orig.tikzLibraries;
         dup.compileCommand = orig.compileCommand;
+        dup.images = orig.images;
         snippetMgr->saveSnippet(dup);
+        // Copy the referenced image files so the duplicated snippet keeps
+        // compiling without "file not found" errors.
+        if (!dup.images.isEmpty() && !snippetMgr->copySnippetImageFiles(currentSnippetId, newId)) {
+            statusBar()->showMessage(QStringLiteral("片段已复制（部分图片复制失败）"), kStatusBarLongMs);
+        }
 
         refreshSearch();
         refreshCategoryTree();

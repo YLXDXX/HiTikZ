@@ -13,11 +13,13 @@ public:
 
     void compile(const QString &texCode, const QString &templateId, const QString &snippetId,
                  const QString &packages = QString(), const QString &tikzLibraries = QString(),
-                 const QString &compileCommand = QString());
+                 const QString &compileCommand = QString(),
+                 const QStringList &imageFiles = QStringList());
     bool compileBlocking(const QString &texCode, const QString &templateId, const QString &snippetId,
                          const QString &packages, const QString &tikzLibraries,
                          int timeoutMs, QString &outPdfPath, QString &outLog,
-                         const QString &compileCommand = QString());
+                         const QString &compileCommand = QString(),
+                         const QStringList &imageFiles = QStringList());
     void cancelCompile();
     void setTemplateDir(const QString &dir);
     void setXelatexPath(const QString &path);

@@ -176,7 +176,8 @@ void LatexCompiler::cancelCompile()
 bool LatexCompiler::compileBlocking(const QString &texCode, const QString &templateId, const QString &snippetId,
                                      const QString &packages, const QString &tikzLibraries,
                                      int timeoutMs, QString &outPdfPath, QString &outLog,
-                                     const QString &compileCommand)
+                                     const QString &compileCommand,
+                                     const QStringList &imageFiles)
 {
     QEventLoop loop;
     QTimer timer;
@@ -194,7 +195,7 @@ bool LatexCompiler::compileBlocking(const QString &texCode, const QString &templ
         });
     connect(&timer, &QTimer::timeout, &loop, &QEventLoop::quit);
 
-    compile(texCode, templateId, snippetId, packages, tikzLibraries, compileCommand);
+    compile(texCode, templateId, snippetId, packages, tikzLibraries, compileCommand, imageFiles);
     timer.start(timeoutMs);
     loop.exec();
 
@@ -220,7 +221,8 @@ int LatexCompiler::userCodeStartLine() const
 
 void LatexCompiler::compile(const QString &texCode, const QString &templateId, const QString &snippetId,
                             const QString &packages, const QString &tikzLibraries,
-                            const QString &compileCommand)
+                            const QString &compileCommand,
+                            const QStringList &imageFiles)
 {
     if (!process) {
         process = new QProcess(this);
@@ -234,6 +236,20 @@ void LatexCompiler::compile(const QString &texCode, const QString &templateId, c
 
     currentCompileDir = tempDir + snippetId;
     QDir().mkpath(currentCompileDir);
+
+    // Snippet images (referenced by \includegraphics with bare file names)
+    // must sit next to output.tex for xelatex to find them.
+    for (const QString &img : imageFiles) {
+        const QFileInfo fi(img);
+        if (!fi.exists() || !fi.isFile())
+            continue;
+        const QString dest = currentCompileDir + "/" + fi.fileName();
+        if (QFile::exists(dest))
+            QFile::remove(dest);
+        if (!QFile::copy(img, dest)) {
+            qWarning() << "Failed to copy image into compile dir:" << img;
+        }
+    }
 
     QString cleanedCode;
     QString customCmds = extractCustomCommands(texCode, cleanedCode);

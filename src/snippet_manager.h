@@ -20,6 +20,8 @@ struct Snippet {
     QString tikzLibraries;
     QString compileCommand;
     QString code;
+    // Image files stored alongside the snippet (e.g. "a.png", "b.pdf").
+    QStringList images;
     bool isPreset = false;
     double sortOrder = 0.0;
 };
@@ -74,6 +76,36 @@ public:
 
     bool batchUpdateCategory(const QStringList &ids, const QString &newCategory);
     int batchDeleteSnippets(const QStringList &ids);
+
+    // ── Image management ──────────────────────────────────────────────────
+    // Images are stored inside the snippet's own directory with letter
+    // sequence names (a.png, b.png, ..., z.png, aa.png, ...). The `images`
+    // field of meta.json records the file names.
+
+    // File-name extensions accepted as snippet images.
+    static QStringList supportedImageExtensions();
+    static bool isSupportedImageFile(const QString &fileName);
+    // 0 → "a", 1 → "b", ..., 25 → "z", 26 → "aa", 27 → "ab", ...
+    static QString imageStemForIndex(int index);
+    // Directory where a snippet's images live (preset-aware).
+    QString getSnippetImageDir(const QString &id) const;
+    // Full paths of the images listed in the snippet's meta.json that still
+    // exist on disk.
+    QStringList getSnippetImagePaths(const QString &id);
+
+    // Copy `srcFilePath` into the snippet's directory using the next free
+    // letter name (keeping the source's extension). Returns the new file name
+    // ("a.png", ...) or an empty string on failure.
+    QString addImageToSnippet(const QString &id, const QString &srcFilePath);
+    // Replace an existing image, keeping its letter stem but adopting the
+    // source file's extension. Returns the new file name or empty on failure.
+    QString replaceSnippetImage(const QString &id, const QString &imageName,
+                                const QString &srcFilePath);
+    bool removeSnippetImage(const QString &id, const QString &imageName);
+    // Copy the image files listed in `srcId`'s meta.json into `dstId`'s
+    // directory (used when duplicating a snippet so code references keep
+    // working). Returns false if any file copy failed.
+    bool copySnippetImageFiles(const QString &srcId, const QString &dstId);
 
     void reorderSnippets(const QStringList &orderedIds);
     static QString categoryOrderFile();

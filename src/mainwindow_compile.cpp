@@ -167,7 +167,10 @@ void MainWindow::generateAllPreviews()
     for (const Snippet &s : all) {
         m_batchSubmitted.fetchAndAddRelaxed(1);
         QString basePath = snippetDataPath(s.id);
-        QThreadPool::globalInstance()->start([this, s, basePath] {
+        // Image paths are computed on the main thread so the worker threads
+        // only perform copies / process launches.
+        const QStringList images = snippetMgr->getSnippetImagePaths(s.id);
+        QThreadPool::globalInstance()->start([this, s, basePath, images] {
             if (m_batchCancelFlag.loadRelaxed()) {
                 QMetaObject::invokeMethod(this, "onBatchTaskFinished", Qt::QueuedConnection,
                     Q_ARG(Snippet, s), Q_ARG(bool, false), Q_ARG(QString, QString()),
@@ -182,7 +185,8 @@ void MainWindow::generateAllPreviews()
 
             QString pdfPath, log;
             bool ok = localCompiler.compileBlocking(code, s.templateId, s.id,
-                s.packages, s.tikzLibraries, kBatchCompileTimeoutMs, pdfPath, log, s.compileCommand);
+                s.packages, s.tikzLibraries, kBatchCompileTimeoutMs, pdfPath, log,
+                s.compileCommand, images);
 
             if (ok && !pdfPath.isEmpty()) {
                 QString previewPdf = basePath + "/preview.pdf";
