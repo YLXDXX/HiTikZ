@@ -116,6 +116,7 @@ add_executable(TikzManager
     ${SEARCH_PANEL_SOURCES}
     src/snippet_properties_dialog.cpp
     src/link_manager.cpp
+    src/project_packager.cpp
     src/kde_global_shortcut.cpp
     src/pdf_preview_widget.cpp
     src/flow_layout.cpp
@@ -192,6 +193,17 @@ add_executable(test_link_manager
 target_include_directories(test_link_manager PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_link_manager PRIVATE Qt6::Core)
 add_test(NAME LinkManager COMMAND test_link_manager)
+
+add_executable(test_project_packager
+    tests/test_project_packager.cpp
+    src/project_packager.cpp
+    src/link_manager.cpp
+    ${SNIPPET_MANAGER_SOURCES}
+    ${LATEX_COMPILER_SOURCES}
+)
+target_include_directories(test_project_packager PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_project_packager PRIVATE Qt6::Core)
+add_test(NAME ProjectPackager COMMAND test_project_packager)
 
 add_executable(test_snippet_images
     tests/test_snippet_images.cpp

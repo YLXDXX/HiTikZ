@@ -3,6 +3,7 @@
 #include <QStandardPaths>
 #include "autostart_manager.h"
 #include "mainwindow.h"
+#include "project_packager.h"
 #include "snippet_manager.h"
 
 #ifndef APP_VERSION
@@ -10,6 +11,16 @@
 #endif
 
 int main(int argc, char *argv[]) {
+    // CLI mode: "hitikz pack ..." — packs the 「复制链接」 pictures into a
+    // LaTeX project directory and rewrites \includegraphics references.
+    // Runs without a GUI (QCoreApplication only), so it works over SSH too.
+    if (argc > 1 && QString::fromLocal8Bit(argv[1]) == QStringLiteral("pack")) {
+        QStringList args;
+        for (int i = 2; i < argc; ++i)
+            args.append(QString::fromLocal8Bit(argv[i]));
+        return ProjectPackager::runCli(args);
+    }
+
     QApplication app(argc, argv);
 
     qRegisterMetaType<Snippet>("Snippet");
