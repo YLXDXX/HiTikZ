@@ -419,16 +419,79 @@ QString LatexCompiler::extractCustomCommands(const QString &texCode, QString &ou
         }
 
         if (defEnd > defStart) {
-            QString fullCmd = remaining.mid(cmdStart, defEnd - cmdStart);
+            // Comments belong to the code they annotate. When a definition is
+            // moved into the preamble, the comment lines directly above it and
+            // the trailing '%' comment on its own line must move with it —
+            // otherwise they are stranded in the document body, detached from
+            // the code they describe.
+            int removeStart = cmdStart;
+            {
+                int lineStart = removeStart;
+                while (lineStart > 0
+                       && remaining.at(lineStart - 1) != '\n'
+                       && remaining.at(lineStart - 1) != '\r') {
+                    lineStart--;
+                }
+                // A '%' comment swallows the rest of its line, so the command
+                // can only be preceded on its own line by whitespace. Anything
+                // else means another command sits in front of it and the
+                // comment lines above describe that code, not this command.
+                QString ownPrefix = remaining.mid(lineStart, removeStart - lineStart);
+                if (ownPrefix.trimmed().isEmpty()) {
+                    int pos = lineStart;
+                    while (pos > 0) {
+                        int prevEnd = pos;
+                        while (prevEnd > 0
+                               && (remaining.at(prevEnd - 1) == '\n'
+                                   || remaining.at(prevEnd - 1) == '\r')) {
+                            prevEnd--;
+                        }
+                        if (prevEnd == 0)
+                            break;
+                        int prevStart = prevEnd;
+                        while (prevStart > 0
+                               && remaining.at(prevStart - 1) != '\n'
+                               && remaining.at(prevStart - 1) != '\r') {
+                            prevStart--;
+                        }
+                        QString prevLine = remaining.mid(prevStart, prevEnd - prevStart);
+                        QString trimmedPrev = prevLine.trimmed();
+                        if (!trimmedPrev.isEmpty()
+                            && !trimmedPrev.startsWith(QLatin1Char('%')))
+                            break;
+                        pos = prevStart;
+                    }
+                    removeStart = pos;
+                }
+            }
+
+            int removeEnd = defEnd;
+            {
+                int p = removeEnd;
+                while (p < remaining.length()
+                       && (remaining.at(p) == ' ' || remaining.at(p) == '\t')) {
+                    p++;
+                }
+                if (p < remaining.length() && remaining.at(p) == QLatin1Char('%')) {
+                    while (p < remaining.length()
+                           && remaining.at(p) != '\n'
+                           && remaining.at(p) != '\r') {
+                        p++;
+                    }
+                    removeEnd = p;
+                }
+            }
+
+            QString fullCmd = remaining.mid(removeStart, removeEnd - removeStart);
             commands.append(fullCmd);
-            int cleanStart = defEnd;
+            int cleanStart = removeEnd;
             bool trimmedNewlineAfter = false;
             while (cleanStart < remaining.length() && (remaining.at(cleanStart) == ' ' || remaining.at(cleanStart) == '\t' || remaining.at(cleanStart) == '\n' || remaining.at(cleanStart) == '\r')) {
                 if (remaining.at(cleanStart) == '\n' || remaining.at(cleanStart) == '\r')
                     trimmedNewlineAfter = true;
                 cleanStart++;
             }
-            int cleanEnd = cmdStart;
+            int cleanEnd = removeStart;
             bool trimmedNewlineBefore = false;
             while (cleanEnd > 0 && (remaining.at(cleanEnd - 1) == ' ' || remaining.at(cleanEnd - 1) == '\t' || remaining.at(cleanEnd - 1) == '\n' || remaining.at(cleanEnd - 1) == '\r')) {
                 if (remaining.at(cleanEnd - 1) == '\n' || remaining.at(cleanEnd - 1) == '\r')

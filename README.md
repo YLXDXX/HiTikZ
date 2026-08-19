@@ -656,11 +656,12 @@ calc,er,angles,patterns,decorations.pathmorphing,shadows.blur,pgfplots.fillbetwe
 - 遇到不完整/无法解析的定义（如 `\newcommand{\foo}` 无 `{body}`）时安全跳过，不中断后续命令的提取
 - 编译时：先注入宏包和 TikZ 库，再注入自定义命令，确保依赖顺序正确
 - 清理时保留换行分隔符，防止 LaTeX 注释行与后续命令合并
+- 命令上方紧邻的注释行（含多行注释块）与命令行尾的 `%` 注释随命令一同抽取，保持注释与代码的位置关系；图片内部的注释原样保留
 - 复制文档/导出 .tex 时：抽取 → 注入完整文档导言区
 
 ### 完整文档复制
 
-工具栏"复制文档"按钮将当前片段的模板头部 + 额外宏包 + TikZ 库 + 自定义命令 + 参数替换后的 TikZ 代码组合成**完整可编译的 LaTeX 文档**复制到剪贴板。
+工具栏"复制文档"按钮将当前片段的模板头部 + 额外宏包 + TikZ 库 + 自定义命令 + 参数替换后的 TikZ 代码组合成**完整可编译的 LaTeX 文档**复制到剪贴板。导言区中的自定义命令连同其上方注释行与行尾注释一并迁移，图片内部的注释原样保留，注释与代码的位置关系保持不变。
 
 ### 多选与批量操作
 
@@ -1080,7 +1081,7 @@ MainWindow
 |------|------|
 | `test_snippet_manager` | 片段创建/读取/更新/删除，loadCode，renameCategory，compileCommand/sortOrder JSON 序列化，ZIP 导入/导出，reorderSnippets，categoryOrder 保存/加载 |
 | `test_snippet_images` | 图片管理：字母序号命名（a–z、aa–zz）、受支持扩展名检测、图片添加/替换/删除（含序号复用与跳过占用、替换扩展名更新、缺失源文件回退）、meta.json `images` 字段往返与旧版无字段容错、存档导出/导入携带图片、片段间图片文件复制、编译临时目录图片拷贝、属性对话框图片列表/按钮状态（无选中时灰色禁用、选中后启用）/剪贴板图像粘贴与 Ctrl+V 快捷键（9 组测试） |
-| `test_latex_compiler` | xelatex 可用性检测，基本编译，PDF 生成，PNG 转换，SVG 转换，编译日志验证，自定义命令抽取（覆盖 14 类定义命令）、含分隔符参数的 `\def` 与参数后换行的 `\newcommand` 抽取、不完整定义的安全跳过、析构回收转换子进程、compileCommand 自定义引擎编译与 lastFullCommand 验证（53+ 项测试） |
+| `test_latex_compiler` | xelatex 可用性检测，基本编译，PDF 生成，PNG 转换，SVG 转换，编译日志验证，自定义命令抽取（覆盖 14 类定义命令）、含分隔符参数的 `\def` 与参数后换行的 `\newcommand` 抽取、不完整定义的安全跳过、注释随命令迁移（前置注释块、行尾注释、图内注释保留）、析构回收转换子进程、compileCommand 自定义引擎编译与 lastFullCommand 验证（64+ 项测试） |
 | `test_search` | 精确匹配、子序列匹配、连续加分、中文搜索、标签过滤、分类统计 |
 | `test_packages_libraries` | 宏包字符串解析（含嵌套括号选项），TikZ 库解析，模板注入正确性，往返序列化 |
 | `test_highlighter_regex` | 数学模式 `$...$`、`\(...\)`、`\[...\]` 正则表达式匹配验正 |

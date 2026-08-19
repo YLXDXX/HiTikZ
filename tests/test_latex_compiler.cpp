@@ -1144,6 +1144,148 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    // Test 60: comment lines directly above a definition must move with the
+    // command into the preamble (not be stranded in the body).
+    {
+        QString code =
+            "%斜面相关参数\n"
+            "\\def\\Theta{30}\\def\\length{3}\n"
+            "%相机视角控制\n"
+            "\\tdplotsetmaincoords{75}{45} % 第一个参数绕x旋转，第二个绕z轴旋转\n"
+            "\\begin{tikzpicture}\n"
+            "\\draw (0,0) -- (1,1);\n"
+            "\\end{tikzpicture}";
+        QString outCode;
+        QString cmds = LatexCompiler::extractCustomCommands(code, outCode);
+        if (!cmds.contains("%斜面相关参数"))
+            { fprintf(stderr, "FAIL: Test 60a - comment line above def not extracted with it\n"); customTestsFailed++; }
+        else if (!cmds.contains("%相机视角控制"))
+            { fprintf(stderr, "FAIL: Test 60b - comment line above tdplotsetmaincoords not extracted\n"); customTestsFailed++; }
+        else if (!cmds.contains("% 第一个参数绕x旋转，第二个绕z轴旋转"))
+            { fprintf(stderr, "FAIL: Test 60c - trailing comment on command line not extracted\n"); customTestsFailed++; }
+        else if (!cmds.contains("\\def\\Theta{30}") || !cmds.contains("\\tdplotsetmaincoords{75}{45}"))
+            { fprintf(stderr, "FAIL: Test 60d - commands themselves not extracted\n"); customTestsFailed++; }
+        else if (outCode.contains("斜面相关参数") || outCode.contains("相机视角控制")
+                 || outCode.contains("第一个参数"))
+            { fprintf(stderr, "FAIL: Test 60e - comments left behind in body\n"); customTestsFailed++; }
+        else if (!outCode.contains("\\draw (0,0) -- (1,1);"))
+            { fprintf(stderr, "FAIL: Test 60f - tikz body altered\n"); customTestsFailed++; }
+        else fprintf(stderr, "PASS: Test 60 - comments move with extracted commands\n");
+    }
+
+    // Test 61: multi-line comment blocks above a command keep their order and
+    // stay with the command.
+    {
+        QString code =
+            "% --- 构造立方体的正交基向量 ---\n"
+            "% 1. 沿交线 MN 方向的单位向量 u\n"
+            "\\pgfmathsetmacro{\\ux}{-sin(\\Theta)}\n"
+            "\\pgfmathsetmacro{\\uy}{cos(\\Theta)}\n"
+            "\\begin{tikzpicture}\\end{tikzpicture}";
+        QString outCode;
+        QString cmds = LatexCompiler::extractCustomCommands(code, outCode);
+        int i0 = cmds.indexOf("% --- 构造立方体的正交基向量 ---");
+        int i1 = cmds.indexOf("% 1. 沿交线 MN 方向的单位向量 u");
+        int i2 = cmds.indexOf("\\pgfmathsetmacro{\\ux}");
+        if (i0 < 0 || i1 < 0 || i2 < 0)
+            { fprintf(stderr, "FAIL: Test 61a - comment block or command missing from extraction\n"); customTestsFailed++; }
+        else if (!(i0 < i1 && i1 < i2))
+            { fprintf(stderr, "FAIL: Test 61b - comment block order relative to command wrong\n"); customTestsFailed++; }
+        else if (outCode.contains("构造立方体"))
+            { fprintf(stderr, "FAIL: Test 61c - comment block left behind in body\n"); customTestsFailed++; }
+        else fprintf(stderr, "PASS: Test 61 - multi-line comment block moves with command\n");
+    }
+
+    // Test 62: comments belonging to the picture (inside tikzpicture or right
+    // before it) must stay in the body.
+    {
+        QString code =
+            "\\def\\a{1}\n"
+            "% 这张图说明斜面\n"
+            "\\begin{tikzpicture}\n"
+            "% 斜面\n"
+            "\\draw (0,0) -- (1,1);\n"
+            "\\end{tikzpicture}";
+        QString outCode;
+        QString cmds = LatexCompiler::extractCustomCommands(code, outCode);
+        if (!cmds.contains("\\def\\a{1}"))
+            { fprintf(stderr, "FAIL: Test 62a - def not extracted\n"); customTestsFailed++; }
+        else if (cmds.contains("这张图说明斜面"))
+            { fprintf(stderr, "FAIL: Test 62b - picture comment wrongly extracted\n"); customTestsFailed++; }
+        else if (!outCode.contains("% 这张图说明斜面") || !outCode.contains("% 斜面"))
+            { fprintf(stderr, "FAIL: Test 62c - picture comments missing from body\n"); customTestsFailed++; }
+        else fprintf(stderr, "PASS: Test 62 - picture comments stay in body\n");
+    }
+
+    // Test 63: a comment between two definitions belongs to the following one.
+    {
+        QString code =
+            "\\def\\a{1}\n"
+            "% comment for b\n"
+            "\\def\\b{2}\n"
+            "\\begin{tikzpicture}\\end{tikzpicture}";
+        QString outCode;
+        QString cmds = LatexCompiler::extractCustomCommands(code, outCode);
+        int ia = cmds.indexOf("\\def\\a{1}");
+        int ic = cmds.indexOf("% comment for b");
+        int ib = cmds.indexOf("\\def\\b{2}");
+        if (ia < 0 || ic < 0 || ib < 0)
+            { fprintf(stderr, "FAIL: Test 63a - commands/comment missing from extraction\n"); customTestsFailed++; }
+        else if (!(ia < ic && ic < ib))
+            { fprintf(stderr, "FAIL: Test 63b - comment must sit between the two defs\n"); customTestsFailed++; }
+        else if (outCode.contains("comment for b"))
+            { fprintf(stderr, "FAIL: Test 63c - comment left behind in body\n"); customTestsFailed++; }
+        else fprintf(stderr, "PASS: Test 63 - comment attaches to the following definition\n");
+    }
+
+    // Test 64: end-to-end wrapCode regression for the reported bug — preamble
+    // commands keep their comments, body comments stay with the picture.
+    {
+        QString code =
+            "%斜面相关参数\n"
+            "\\def\\Theta{30}\\def\\length{3}\\def\\width{2.1}\n"
+            "%相机视角控制\n"
+            "\\tdplotsetmaincoords{75}{45} % 第一个参数绕x旋转，第二个绕z轴旋转\n"
+            "\\pgfmathsetmacro{\\a}{\\length*cos(\\Theta)}\n"
+            "% --- 立方体尺寸与位置控制 ---\n"
+            "\\pgfmathsetmacro{\\tval}{0.45} % 起点A在MN上的位置比例 (0.5表示MN中点)\n"
+            "%重力及其分力\n"
+            "\\def\\G{1.45}\n"
+            "\\begin{tikzpicture}\n"
+            "% 斜面\n"
+            "\\draw (0,0,0) -- (\\width,0,0);\n"
+            "\\end{tikzpicture}";
+        QString cleanedCode;
+        QString customCmds = LatexCompiler::extractCustomCommands(code, cleanedCode);
+        LatexCompiler compiler;
+        QString fullDoc = compiler.wrapCode(cleanedCode, QString(), QString(), QString(), customCmds);
+        int docIdx = fullDoc.indexOf("\\begin{document}");
+        int picIdx = fullDoc.indexOf("\\begin{tikzpicture}");
+        int slopeIdx = fullDoc.indexOf("%斜面相关参数");
+        int camIdx = fullDoc.indexOf("%相机视角控制");
+        int trailtrail = fullDoc.indexOf("% 第一个参数绕x旋转，第二个绕z轴旋转");
+        int tvalIdx = fullDoc.indexOf("% 起点A在MN上的位置比例");
+        int gravIdx = fullDoc.indexOf("%重力及其分力");
+        int bodySlope = fullDoc.indexOf("% 斜面");
+        int defTheta = fullDoc.indexOf("\\def\\Theta{30}");
+        int defG = fullDoc.indexOf("\\def\\G{1.45}");
+        if (docIdx < 0 || picIdx < 0)
+            { fprintf(stderr, "FAIL: Test 64a - document structure broken\n"); customTestsFailed++; }
+        else if (slopeIdx < 0 || camIdx < 0 || trailtrail < 0 || tvalIdx < 0 || gravIdx < 0)
+            { fprintf(stderr, "FAIL: Test 64b - preamble comments missing\n"); customTestsFailed++; }
+        else if (!(slopeIdx < defTheta && defTheta < docIdx))
+            { fprintf(stderr, "FAIL: Test 64c - 斜面相关参数 comment not above its def in preamble\n"); customTestsFailed++; }
+        else if (!(camIdx < docIdx && trailtrail < docIdx))
+            { fprintf(stderr, "FAIL: Test 64d - 相机视角控制 comments not in preamble\n"); customTestsFailed++; }
+        else if (!(gravIdx < defG && defG < docIdx))
+            { fprintf(stderr, "FAIL: Test 64e - 重力及其分力 comment not above \\def\\G in preamble\n"); customTestsFailed++; }
+        else if (bodySlope <= picIdx)
+            { fprintf(stderr, "FAIL: Test 64f - body comment 斜面 not inside the picture\n"); customTestsFailed++; }
+        else if (cleanedCode.contains("斜面相关参数") || cleanedCode.contains("相机视角控制"))
+            { fprintf(stderr, "FAIL: Test 64g - preamble comments leaked into body\n"); customTestsFailed++; }
+        else fprintf(stderr, "PASS: Test 64 - full document keeps comments with their code\n");
+    }
+
     fprintf(stderr, "Custom command tests: %d failed\n", customTestsFailed);
     failed += customTestsFailed;
 
