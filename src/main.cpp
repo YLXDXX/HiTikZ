@@ -38,7 +38,11 @@ int main(int argc, char *argv[]) {
     app.setQuitOnLastWindowClosed(false);
 
     QCommandLineParser parser;
-    parser.setApplicationDescription(QStringLiteral("HiTikZ - TikZ 代码合集管理器"));
+    parser.setApplicationDescription(
+        QStringLiteral("HiTikZ - TikZ 代码合集管理器\n\n"
+                       "子命令:\n"
+                       "  pack  读取 .tex 文档引用，将「复制链接」的图片按需复制进 LaTeX 文档项目\n"
+                       "        并改写 \\includegraphics 引用（用法: hitikz pack --help）"));
     parser.addHelpOption();
     parser.addVersionOption();
     QCommandLineOption hiddenOpt(

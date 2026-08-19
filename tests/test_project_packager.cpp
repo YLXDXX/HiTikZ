@@ -8,10 +8,13 @@
 //  - numbering with gap filling + skip messages when not overwriting
 //  - sequential numbering + prominent overwrite messages when overwriting
 //  - the three name formats end to end
+//  - on-demand copying: only referenced pictures are copied (unreferenced
+//    link files stay untouched), extensionless references (0001) resolved
 //  - one image referenced by several .tex files is updated everywhere
 //  - source copying (full .tex + related pictures with stem prefixes)
 //  - source lookup via symlink target and via meta.json linkedPdf fallback
-//  - error paths (missing files/dirs, dangling links, usage errors)
+//  - error paths (missing files/dirs, dangling links, missing referenced
+//    pictures, nothing referenced, usage errors)
 //  - default link directory read from the program settings
 #include "project_packager.h"
 #include "link_manager.h"
@@ -402,6 +405,8 @@ static void testPackOverwrite()
     CHECK(writeFile(dest + "/05.pdf", QByteArray("keep-5")), "dest 05.pdf created");
 
     const QString texPath = tmp.path() + "/doc.tex";
+    // Only 0001.pdf is referenced: 0002.pdf must stay untouched even with
+    // --overwrite (on-demand copying).
     CHECK(writeFile(texPath, QStringLiteral("\\includegraphics{%1/0001.pdf}\n").arg(linkDir).toUtf8()),
           "doc.tex created");
 
@@ -416,16 +421,18 @@ static void testPackOverwrite()
     CHECK(res.ok, "pack succeeds");
     CHECK(res.renamed.value(QStringLiteral("0001.pdf")) == QStringLiteral("01.pdf"),
           "0001.pdf -> 01.pdf (sequential)");
-    CHECK(res.renamed.value(QStringLiteral("0002.pdf")) == QStringLiteral("02.pdf"),
-          "0002.pdf -> 02.pdf (sequential)");
+    CHECK(!res.renamed.contains(QStringLiteral("0002.pdf")),
+          "unreferenced 0002.pdf not copied");
     CHECK(joinLines(res.messages).contains(QStringLiteral("覆盖已存在的文件: 01.pdf")),
           "overwriting 01.pdf prominently reported");
-    CHECK(joinLines(res.messages).contains(QStringLiteral("覆盖已存在的文件: 02.pdf")),
-          "overwriting 02.pdf prominently reported");
+    CHECK(!joinLines(res.messages).contains(QStringLiteral("覆盖已存在的文件: 02.pdf")),
+          "unreferenced 02.pdf not overwritten");
+    CHECK(!joinLines(res.messages).contains(QStringLiteral("0002.pdf ->")),
+          "no copy message for unreferenced 0002.pdf");
     CHECK(!joinLines(res.messages).contains(QStringLiteral("跳过")), "no skip messages in overwrite mode");
 
     CHECK(readFile(dest + "/01.pdf") == QByteArray("new-a"), "01.pdf overwritten with new content");
-    CHECK(readFile(dest + "/02.pdf") == QByteArray("new-b"), "02.pdf overwritten with new content");
+    CHECK(readFile(dest + "/02.pdf") == QByteArray("old-b"), "unreferenced 02.pdf untouched");
     CHECK(readFile(dest + "/05.pdf") == QByteArray("keep-5"), "05.pdf untouched");
 
     const QString rewritten = QString::fromUtf8(readFile(texPath));
@@ -446,18 +453,17 @@ static void testPackNameFormats()
     CHECK(writeFile(linkDir + "/0003.pdf", "3"), "link 0003.pdf created");
 
     const QString texPath = tmp.path() + "/doc.tex";
+    // Only 0001.pdf is referenced; the other link files stay uncopied.
     CHECK(writeFile(texPath, QStringLiteral("\\includegraphics{%1/0001.pdf}\n").arg(linkDir).toUtf8()),
           "doc.tex created");
 
     const struct {
         int width;
         const char *first;
-        const char *second;
-        const char *third;
     } cases[] = {
-        { 2, "01.pdf", "02.pdf", "03.pdf" },
-        { 3, "001.pdf", "002.pdf", "003.pdf" },
-        { 4, "0001.pdf", "0002.pdf", "0003.pdf" },
+        { 2, "01.pdf" },
+        { 3, "001.pdf" },
+        { 4, "0001.pdf" },
     };
     for (const auto &c : cases) {
         const QString dest = tmp.path() + QStringLiteral("/out%1").arg(c.width);
@@ -470,16 +476,13 @@ static void testPackNameFormats()
         CHECK(res.ok, "pack succeeds for width");
         CHECK(res.renamed.value(QStringLiteral("0001.pdf")) == QString::fromLatin1(c.first),
               QStringLiteral("width %1 -> %2").arg(c.width).arg(QString::fromLatin1(c.first)));
-        CHECK(res.renamed.value(QStringLiteral("0002.pdf")) == QString::fromLatin1(c.second),
-              "second file numbered sequentially");
-        CHECK(res.renamed.value(QStringLiteral("0003.pdf")) == QString::fromLatin1(c.third),
-              "third file numbered sequentially");
+        CHECK(res.renamed.size() == 1, "only the referenced picture is copied");
         CHECK(fileExists(dest + QStringLiteral("/") + QString::fromLatin1(c.first)),
-              "first pdf file written");
-        CHECK(fileExists(dest + QStringLiteral("/") + QString::fromLatin1(c.second)),
-              "second pdf file written");
-        CHECK(fileExists(dest + QStringLiteral("/") + QString::fromLatin1(c.third)),
-              "third pdf file written");
+              "referenced pdf file written");
+        CHECK(!fileExists(dest + QStringLiteral("/") + QString::fromLatin1("0002.pdf")),
+              "unreferenced 0002.pdf not written");
+        CHECK(!fileExists(dest + QStringLiteral("/") + QString::fromLatin1("0003.pdf")),
+              "unreferenced 0003.pdf not written");
         // The .tex reference must use the width of this run.
         const QString rewritten = QString::fromUtf8(readFile(texPath));
         CHECK(rewritten.contains(
@@ -530,6 +533,111 @@ static void testPackMultipleTexFiles()
           "b.tex rewritten with options preserved");
     CHECK(res.referenceReplacements == 2, "two total replacements");
     qDebug() << "PASS: Test 9 - multiple tex files";
+}
+
+// ── 9b. On-demand copying: only referenced pictures are copied ──────────
+static void testPackCopiesOnlyReferenced()
+{
+    QTemporaryDir tmp;
+    CHECK(tmp.isValid(), "temp dir valid");
+    const QString linkDir = tmp.path() + "/links";
+    QDir().mkdir(linkDir);
+    CHECK(writeFile(linkDir + "/0001.pdf", QByteArray("content-a")), "link 0001.pdf created");
+    CHECK(writeFile(linkDir + "/0002.pdf", QByteArray("content-b")), "link 0002.pdf created");
+    CHECK(writeFile(linkDir + "/0003.pdf", QByteArray("content-c")), "link 0003.pdf created");
+
+    const QString dest = tmp.path() + "/pics";
+    const QString texPath = tmp.path() + "/doc.tex";
+    const QString texContent = QStringLiteral(
+        "\\includegraphics{%1/0001.pdf}\n"
+        "\\includegraphics[width=2cm]{%1/0001.pdf}\n"
+        "\\includegraphics{%1/0003.pdf}\n"
+        "\\includegraphics{%2/local.png}\n")
+        .arg(linkDir, tmp.path());
+    CHECK(writeFile(texPath, texContent.toUtf8()), "doc.tex created");
+
+    ProjectPackager::PackOptions opts;
+    opts.texArg = texPath;
+    opts.destDir = dest;
+    opts.linkDir = linkDir;
+    const ProjectPackager::PackResult res = ProjectPackager::pack(opts);
+
+    CHECK(res.ok, "pack succeeds");
+    CHECK(res.renamed.value(QStringLiteral("0001.pdf")) == QStringLiteral("001.pdf"),
+          "referenced 0001.pdf -> 001.pdf");
+    CHECK(res.renamed.value(QStringLiteral("0003.pdf")) == QStringLiteral("002.pdf"),
+          "referenced 0003.pdf -> 002.pdf (numbering only counts copied pictures)");
+    CHECK(!res.renamed.contains(QStringLiteral("0002.pdf")),
+          "unreferenced 0002.pdf not copied");
+    CHECK(res.renamed.size() == 2, "exactly two pictures copied");
+
+    CHECK(readFile(dest + "/001.pdf") == QByteArray("content-a"), "001.pdf has 0001 content");
+    CHECK(readFile(dest + "/002.pdf") == QByteArray("content-c"), "002.pdf has 0003 content");
+    CHECK(!fileExists(dest + "/003.pdf"), "no extra pdf written");
+
+    CHECK(joinLines(res.messages).contains(QStringLiteral("复制: 0001.pdf -> 001.pdf")),
+          "copy of 0001.pdf reported");
+    CHECK(joinLines(res.messages).contains(QStringLiteral("复制: 0003.pdf -> 002.pdf")),
+          "copy of 0003.pdf reported");
+    CHECK(!joinLines(res.messages).contains(QStringLiteral("0002.pdf")),
+          "unreferenced 0002.pdf never mentioned");
+
+    const QString rewritten = QString::fromUtf8(readFile(texPath));
+    CHECK(rewritten.count(QStringLiteral("%1/001.pdf").arg(dest)) == 2,
+          "both 0001.pdf references rewritten");
+    CHECK(rewritten.contains(QStringLiteral("\\includegraphics[width=2cm]{%1/001.pdf}").arg(dest)),
+          "options preserved");
+    CHECK(rewritten.contains(QStringLiteral("\\includegraphics{%1/002.pdf}").arg(dest)),
+          "0003.pdf reference rewritten");
+    CHECK(rewritten.contains(QStringLiteral("\\includegraphics{%1/local.png}").arg(tmp.path())),
+          "non-link reference untouched");
+    CHECK(res.referenceReplacements == 3, "three references replaced");
+    qDebug() << "PASS: Test 9b - on-demand copying of referenced pictures only";
+}
+
+// ── 9c. Extensionless references (0001 instead of 0001.pdf) ─────────────
+static void testPackExtensionlessReference()
+{
+    QTemporaryDir tmp;
+    CHECK(tmp.isValid(), "temp dir valid");
+    const QString linkDir = tmp.path() + "/links";
+    QDir().mkdir(linkDir);
+    CHECK(writeFile(linkDir + "/0001.pdf", QByteArray("content")), "link 0001.pdf created");
+
+    const QString dest = tmp.path() + "/pics";
+    const QString texPath = tmp.path() + "/doc.tex";
+    CHECK(writeFile(texPath, QStringLiteral("\\includegraphics{%1/0001}\n").arg(linkDir).toUtf8()),
+          "doc.tex with extensionless reference created");
+
+    ProjectPackager::PackOptions opts;
+    opts.texArg = texPath;
+    opts.destDir = dest;
+    opts.linkDir = linkDir;
+    const ProjectPackager::PackResult res = ProjectPackager::pack(opts);
+
+    CHECK(res.ok, "pack succeeds");
+    CHECK(res.renamed.value(QStringLiteral("0001.pdf")) == QStringLiteral("001.pdf"),
+          "extensionless reference resolved to 0001.pdf");
+    CHECK(readFile(dest + "/001.pdf") == QByteArray("content"), "pdf copied");
+    const QString rewritten = QString::fromUtf8(readFile(texPath));
+    CHECK(rewritten.contains(QStringLiteral("\\includegraphics{%1/001.pdf}").arg(dest)),
+          "extensionless reference rewritten with .pdf extension");
+    CHECK(!rewritten.contains(QStringLiteral("0001")), "no stale reference left");
+
+    // An extensionless reference whose pdf is missing is left alone.
+    const QString texPath2 = tmp.path() + "/doc2.tex";
+    CHECK(writeFile(texPath2, QStringLiteral("\\includegraphics{%1/9999}\n").arg(linkDir).toUtf8()),
+          "doc2.tex created");
+    ProjectPackager::PackOptions opts2;
+    opts2.texArg = texPath2;
+    opts2.destDir = tmp.path() + "/pics2";
+    opts2.linkDir = linkDir;
+    const ProjectPackager::PackResult res2 = ProjectPackager::pack(opts2);
+    CHECK(res2.ok, "missing extensionless pdf is not an error");
+    CHECK(QString::fromUtf8(readFile(texPath2)).contains(QStringLiteral("%1/9999").arg(linkDir)),
+          "unresolvable extensionless reference untouched");
+    CHECK(!fileExists(tmp.path() + "/pics2/001.pdf"), "nothing copied");
+    qDebug() << "PASS: Test 9c - extensionless references";
 }
 
 // ── 10. Source copying via symlink target ───────────────────────────────
@@ -702,7 +810,7 @@ static void testPackErrors()
               "reference to failed copy untouched");
     }
 
-    // Link dir exists but contains no numbered pdfs: success with info.
+    // Referenced link picture is missing from the link directory.
     {
         const QString emptyDir = tmp.path() + "/empty-links";
         QDir().mkdir(emptyDir);
@@ -715,11 +823,29 @@ static void testPackErrors()
         opts.destDir = tmp.path() + "/pics";
         opts.linkDir = emptyDir;
         const ProjectPackager::PackResult res = ProjectPackager::pack(opts);
-        CHECK(res.ok, "no link files is not a failure");
-        CHECK(joinLines(res.messages).contains(QStringLiteral("没有找到可复制的图片")),
-              "info message about empty link dir");
+        CHECK(!res.ok, "missing referenced picture fails the run");
+        CHECK(joinLines(res.messages).contains(QStringLiteral("引用的链接图片不存在: 0001.pdf")),
+              "missing reference reported");
         CHECK(QString::fromUtf8(readFile(texPath)).contains(QStringLiteral("%1/0001.pdf").arg(emptyDir)),
-              "tex file untouched when nothing copied");
+              "reference to missing picture untouched");
+    }
+
+    // Documents reference nothing from the link directory: success, no copy.
+    {
+        const QString texPath = tmp.path() + "/norefs.tex";
+        CHECK(writeFile(texPath, QStringLiteral("\\includegraphics{%1/local.png}\n").arg(tmp.path()).toUtf8()),
+              "norefs.tex created");
+        ProjectPackager::PackOptions opts;
+        opts.texArg = texPath;
+        opts.destDir = tmp.path() + "/pics-norefs";
+        opts.linkDir = linkDir;
+        const ProjectPackager::PackResult res = ProjectPackager::pack(opts);
+        CHECK(res.ok, "no referenced pictures is not a failure");
+        CHECK(joinLines(res.messages).contains(QStringLiteral("没有引用链接目录中的图片")),
+              "info message about nothing referenced");
+        CHECK(res.renamed.isEmpty(), "nothing copied");
+        CHECK(QString::fromUtf8(readFile(texPath)).contains(QStringLiteral("%1/local.png").arg(tmp.path())),
+              "tex file untouched when nothing referenced");
     }
     qDebug() << "PASS: Test 12 - error paths";
 }
@@ -848,6 +974,8 @@ int main(int argc, char *argv[])
     testPackOverwrite();
     testPackNameFormats();
     testPackMultipleTexFiles();
+    testPackCopiesOnlyReferenced();
+    testPackExtensionlessReference();
     testPackCopySources();
     testPackCopySourcesFallback();
     testPackErrors();

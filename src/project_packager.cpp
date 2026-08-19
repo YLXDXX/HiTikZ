@@ -9,6 +9,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QRegularExpression>
+#include <QSet>
 #include <QSettings>
 #include <QStandardPaths>
 #include <QTextStream>
@@ -74,6 +75,65 @@ QString stripTrailingSlashes(QString path)
     while (path.size() > 1 && path.endsWith(QLatin1Char('/')))
         path.chop(1);
     return path;
+}
+
+// Leading digits of a numbered file name, e.g. "0010.pdf" -> 10.
+int numericPrefix(const QString &name)
+{
+    int n = 0;
+    for (const QChar &ch : name) {
+        if (!ch.isDigit())
+            break;
+        n = n * 10 + ch.digitValue();
+    }
+    return n;
+}
+
+// True when a directory entry with that name exists (regular file or
+// symlink, dangling included).
+bool dirEntryExists(const QString &dirAbs, const QString &name)
+{
+    const QFileInfo info(dirAbs + QLatin1Char('/') + name);
+    return info.exists() || info.isSymLink();
+}
+
+// The link file name ("0001.pdf") when the \includegraphics path points into
+// the link directory (reached directly, relatively or through a symlinked
+// path), or an empty string otherwise. A reference may omit the ".pdf"
+// extension ("0001" -> "0001.pdf"), but only when that link file exists.
+QString resolveReferenceLinkName(const QString &rawPath, const QString &texDir,
+                                 const QString &linkDirAbs)
+{
+    const QString p = expandHome(rawPath);
+    const QFileInfo fi(p);
+    const QString abs = QDir::cleanPath(
+        fi.isAbsolute() ? p : texDir + QLatin1Char('/') + p);
+    const QString refName = QFileInfo(abs).fileName();
+    if (refName.isEmpty())
+        return QString();
+
+    static const QRegularExpression pdfRe(QStringLiteral("^\\d+\\.pdf$"));
+    static const QRegularExpression bareRe(QStringLiteral("^\\d+$"));
+    QString linkName;
+    if (pdfRe.match(refName).hasMatch()) {
+        linkName = refName;
+    } else if (bareRe.match(refName).hasMatch()) {
+        const QString candidate = refName + QStringLiteral(".pdf");
+        if (!dirEntryExists(linkDirAbs, candidate))
+            return QString();
+        linkName = candidate;
+    } else {
+        return QString();
+    }
+
+    const QString refDir = QFileInfo(abs).absolutePath();
+    if (refDir != linkDirAbs) {
+        const QString canonRefDir = QFileInfo(refDir).canonicalFilePath();
+        const QString canonLinkDir = QFileInfo(linkDirAbs).canonicalFilePath();
+        if (canonRefDir.isEmpty() || canonRefDir != canonLinkDir)
+            return QString();
+    }
+    return linkName;
 }
 
 // Replace @@var@@ placeholders with the defaults declared by
@@ -267,8 +327,9 @@ bool ProjectPackager::parsePackArgs(const QStringList &args, PackOptions &opts,
     usage = QStringLiteral(
         "用法: hitikz pack [选项] <TeX文件或目录> <目标目录>\n"
         "\n"
-        "将「复制链接」生成的图片从链接图片目录复制到 LaTeX 文档项目，\n"
-        "并把相关 .tex 文件中的 \\includegraphics 引用改为新路径。\n"
+        "读取 .tex 文档中对链接图片目录的 \\includegraphics 引用，把被引用的\n"
+        "「复制链接」图片按需复制进 LaTeX 文档项目，并把相关引用改为新路径\n"
+        "（未引用的图片不复制，可继续供其它文档项目使用）。\n"
         "\n"
         "必选参数:\n"
         "  <TeX文件或目录>  需要处理的 TeX 文件名（支持 * 通配符）或目录名\n"
@@ -357,6 +418,7 @@ bool ProjectPackager::parsePackArgs(const QStringList &args, PackOptions &opts,
 ProjectPackager::PackResult ProjectPackager::pack(const PackOptions &opts)
 {
     PackResult res;
+    bool anyError = false;
 
     // ── Link directory ─────────────────────────────────────────────────
     QString configuredLinkDir = opts.linkDir.trimmed();
@@ -395,18 +457,67 @@ ProjectPackager::PackResult ProjectPackager::pack(const PackOptions &opts)
         }
     }
 
-    // ── Link files to copy ─────────────────────────────────────────────
-    res.linkFiles = collectLinkFiles(linkDirAbs);
-    if (res.linkFiles.isEmpty()) {
-        res.messages.append(QStringLiteral("链接目录中没有找到可复制的图片: %1").arg(linkDirAbs));
-        res.ok = true;
-        return res;
+    // Read all documents up front: their \includegraphics references decide
+    // which pictures are copied, and the same content is rewritten later.
+    QMap<QString, QString> texContents; // tex file path -> content
+    for (const QString &texPath : res.texFiles) {
+        QFile file(texPath);
+        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            res.messages.append(QStringLiteral("无法读取: %1").arg(texPath));
+            anyError = true;
+            continue;
+        }
+        texContents.insert(texPath, QString::fromUtf8(file.readAll()));
+        file.close();
     }
 
     res.messages.append(QStringLiteral("链接图片目录: %1").arg(configuredLinkDir));
     res.messages.append(QStringLiteral("目标目录: %1").arg(destConfigured));
 
-    bool anyError = false;
+    // ── Pictures actually referenced by the documents ──────────────────
+    // Only referenced link files are copied: the link directory is shared by
+    // several LaTeX projects and most of its pictures do not belong here.
+    QSet<QString> referenced;
+    QSet<QString> missing;
+    for (auto it = texContents.constBegin(); it != texContents.constEnd(); ++it) {
+        const QString texDir = QFileInfo(it.key()).absolutePath();
+        rewriteIncludes(it.value(), [&](const QString &rawPath) -> QString {
+            const QString linkName = resolveReferenceLinkName(rawPath, texDir, linkDirAbs);
+            if (linkName.isEmpty())
+                return QString();
+            if (dirEntryExists(linkDirAbs, linkName))
+                referenced.insert(linkName);
+            else
+                missing.insert(linkName);
+            return QString();
+        });
+    }
+
+    // Referenced pictures, in numeric order.
+    const QStringList allLinks = collectLinkFiles(linkDirAbs);
+    for (const QString &linkName : allLinks) {
+        if (referenced.contains(linkName))
+            res.linkFiles.append(linkName);
+    }
+
+    // References to pictures that are gone from the link directory.
+    QStringList missingList = missing.values();
+    std::sort(missingList.begin(), missingList.end(),
+              [](const QString &a, const QString &b) { return numericPrefix(a) < numericPrefix(b); });
+    for (const QString &linkName : missingList) {
+        res.messages.append(QStringLiteral("引用的链接图片不存在: %1").arg(linkName));
+        anyError = true;
+    }
+
+    if (res.linkFiles.isEmpty()) {
+        if (missingList.isEmpty())
+            res.messages.append(QStringLiteral("处理的文档中没有引用链接目录中的图片: %1").arg(linkDirAbs));
+        else
+            res.messages.append(QStringLiteral("没有可复制的链接图片"));
+        res.ok = !anyError;
+        return res;
+    }
+
     QMap<QString, QString> newNameOf; // link name -> new name (successful copies only)
     int number = 1;
 
@@ -539,40 +650,20 @@ ProjectPackager::PackResult ProjectPackager::pack(const PackOptions &opts)
     }
 
     // ── Rewrite \includegraphics references in the .tex files ──────────
-    // Only references pointing into the link directory are rewritten: the
-    // basename must be one of the successfully copied link files and the
-    // directory must resolve to the link directory (the reference may reach
-    // it through a symlinked path — canonical comparison covers that).
-    for (const QString &texPath : res.texFiles) {
-        QFile file(texPath);
-        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-            res.messages.append(QStringLiteral("无法读取: %1").arg(texPath));
-            anyError = true;
-            continue;
-        }
-        const QString content = QString::fromUtf8(file.readAll());
-        file.close();
-
+    // Only references pointing into the link directory are rewritten, and
+    // only for pictures that were actually copied (missing ones keep their
+    // old reference so the user can fix them).
+    for (auto it = texContents.constBegin(); it != texContents.constEnd(); ++it) {
+        const QString texPath = it.key();
         const QString texDir = QFileInfo(texPath).absolutePath();
         int replacements = 0;
         const QString newContent = rewriteIncludes(
-            content,
+            it.value(),
             [&](const QString &rawPath) -> QString {
-                QString p = expandHome(rawPath);
-                const QFileInfo fi(p);
-                const QString abs = QDir::cleanPath(
-                    fi.isAbsolute() ? p : texDir + QLatin1Char('/') + p);
-                const QString refName = QFileInfo(abs).fileName();
-                if (!newNameOf.contains(refName))
+                const QString linkName = resolveReferenceLinkName(rawPath, texDir, linkDirAbs);
+                if (linkName.isEmpty() || !newNameOf.contains(linkName))
                     return QString();
-                const QString refDir = QFileInfo(abs).absolutePath();
-                if (refDir != linkDirAbs) {
-                    const QString canonRefDir = QFileInfo(refDir).canonicalFilePath();
-                    const QString canonLinkDir = QFileInfo(linkDirAbs).canonicalFilePath();
-                    if (canonRefDir.isEmpty() || canonRefDir != canonLinkDir)
-                        return QString();
-                }
-                return destConfigured + QLatin1Char('/') + newNameOf.value(refName);
+                return destConfigured + QLatin1Char('/') + newNameOf.value(linkName);
             },
             &replacements);
 
