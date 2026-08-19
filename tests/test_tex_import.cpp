@@ -1,3 +1,4 @@
+#include "latex_compiler.h"
 #include <QCoreApplication>
 #include <QFile>
 #include <QDir>
@@ -260,6 +261,141 @@ int main(int argc, char *argv[]) {
         qDebug() << "PASS: Test 6 - Full .tex file with packages and libraries";
 
         QFile::remove(fpath);
+    }
+
+    // Test 7: metadataHeader builds the leading comment block
+    {
+        const QString header = LatexCompiler::metadataHeader(
+            QStringLiteral("空间几何作图"), QStringLiteral("几何简介"), QStringLiteral("几何, 空间"));
+        CHECK(header == QStringLiteral("%% name: 空间几何作图\n"
+                                       "%% description: 几何简介\n"
+                                       "%% tags: 几何, 空间\n"),
+              "header carries all three fields in order");
+
+        // Empty fields emit no line.
+        const QString noName = LatexCompiler::metadataHeader(
+            QString(), QStringLiteral("只有简介"), QString());
+        CHECK(!noName.contains(QStringLiteral("%% name:")), "empty name emits no name line");
+        CHECK(!noName.contains(QStringLiteral("%% tags:")), "empty tags emit no tags line");
+        CHECK(noName.contains(QStringLiteral("%% description: 只有简介")),
+              "description line still emitted");
+
+        CHECK(LatexCompiler::metadataHeader(QString(), QString(), QString()).isEmpty(),
+              "all-empty metadata yields an empty header");
+
+        // Multi-line descriptions become consecutive comment lines.
+        const QString multi = LatexCompiler::metadataHeader(
+            QStringLiteral("n"), QStringLiteral("第一行\n\n第三行"), QString());
+        CHECK(multi == QStringLiteral("%% name: n\n"
+                                      "%% description: 第一行\n"
+                                      "%% description: \n"
+                                      "%% description: 第三行\n"),
+              "multi-line description emits one comment line per line");
+        qDebug() << "PASS: Test 7 - metadataHeader generation";
+    }
+
+    // Test 8: extractMetadataHeader parses and strips the block
+    {
+        const QString doc = QStringLiteral(
+            "%% name: 空间几何作图\n"
+            "%% description: 第一行\n"
+            "%% description: 第二行\n"
+            "%% tags: 几何, 空间\n"
+            "\\documentclass[tikz]{standalone}\n"
+            "\\begin{document}\n"
+            "\\begin{tikzpicture}\\end{tikzpicture}\n"
+            "\\end{document}\n");
+        QString name, desc, tags;
+        const QString rest = LatexCompiler::extractMetadataHeader(doc, name, desc, tags);
+        CHECK(name == QStringLiteral("空间几何作图"), "name parsed");
+        CHECK(desc == QStringLiteral("第一行\n第二行"), "multi-line description joined");
+        CHECK(tags == QStringLiteral("几何, 空间"), "tags parsed");
+        CHECK(!rest.contains(QStringLiteral("%% name:")), "metadata lines stripped");
+        CHECK(!rest.contains(QStringLiteral("%% description:")), "description lines stripped");
+        CHECK(rest.startsWith(QStringLiteral("\\documentclass")), "rest starts at documentclass");
+        qDebug() << "PASS: Test 8 - extractMetadataHeader parsing and stripping";
+    }
+
+    // Test 9: header round trip
+    {
+        const QString name = QStringLiteral("名字");
+        const QString desc = QStringLiteral("第一行\n第二行\n\n第四行");
+        const QString tags = QStringLiteral("标签A, 标签B");
+        const QString doc = LatexCompiler::metadataHeader(name, desc, tags)
+            + QStringLiteral("\\documentclass{standalone}\n");
+
+        QString n2, d2, t2;
+        const QString rest = LatexCompiler::extractMetadataHeader(doc, n2, d2, t2);
+        CHECK(n2 == name, "round-trip name");
+        CHECK(d2 == desc, "round-trip multi-line description");
+        CHECK(t2 == tags, "round-trip tags");
+        CHECK(rest == QStringLiteral("\\documentclass{standalone}\n"),
+              "round-trip keeps the document intact");
+        qDebug() << "PASS: Test 9 - metadata round trip";
+    }
+
+    // Test 10: no metadata — content unchanged, out-params untouched
+    {
+        const QString doc = QStringLiteral(
+            "% 普通注释\n"
+            "\\documentclass[tikz]{standalone}\n"
+            "\\begin{document}\n"
+            "\\begin{tikzpicture}\\end{tikzpicture}\n"
+            "\\end{document}\n");
+        QString name(QStringLiteral("pre")), desc, tags;
+        const QString rest = LatexCompiler::extractMetadataHeader(doc, name, desc, tags);
+        CHECK(name == QStringLiteral("pre"), "absent name keeps previous value");
+        CHECK(desc.isEmpty(), "description empty when absent");
+        CHECK(tags.isEmpty(), "tags empty when absent");
+        CHECK(rest == doc, "content unchanged without metadata");
+        qDebug() << "PASS: Test 10 - documents without metadata are untouched";
+    }
+
+    // Test 11: lookalike comments inside the body are not parsed
+    {
+        const QString doc = QStringLiteral(
+            "\\documentclass[tikz]{standalone}\n"
+            "\\begin{document}\n"
+            "%% name: 不要解析\n"
+            "\\begin{tikzpicture}\\end{tikzpicture}\n"
+            "\\end{document}\n");
+        QString name, desc, tags;
+        LatexCompiler::extractMetadataHeader(doc, name, desc, tags);
+        CHECK(name.isEmpty(), "body comment is not metadata");
+        CHECK(desc.isEmpty(), "body description comment ignored");
+        qDebug() << "PASS: Test 11 - lookalike comments in the body are ignored";
+    }
+
+    // Test 12: metadata in a tikzpicture-only file (leading block)
+    {
+        const QString doc = QStringLiteral(
+            "%% name: 只有图\n"
+            "%% tags: 单图\n"
+            "\\begin{tikzpicture}\n"
+            "\\draw (0,0) -- (1,1);\n"
+            "\\end{tikzpicture}\n");
+        QString name, desc, tags;
+        const QString rest = LatexCompiler::extractMetadataHeader(doc, name, desc, tags);
+        CHECK(name == QStringLiteral("只有图"), "name parsed before tikzpicture");
+        CHECK(tags == QStringLiteral("单图"), "tags parsed before tikzpicture");
+        CHECK(rest.startsWith(QStringLiteral("\\begin{tikzpicture}")),
+              "rest starts at tikzpicture");
+        qDebug() << "PASS: Test 12 - metadata in tikzpicture-only files";
+    }
+
+    // Test 13: single '%' accepted, first occurrence wins
+    {
+        const QString doc = QStringLiteral(
+            "% name: 甲\n"
+            "%% name: 乙\n"
+            "% tags: t1\n"
+            "%% tags: t2\n"
+            "\\documentclass{standalone}\n");
+        QString name, desc, tags;
+        LatexCompiler::extractMetadataHeader(doc, name, desc, tags);
+        CHECK(name == QStringLiteral("甲"), "first name line wins");
+        CHECK(tags == QStringLiteral("t1"), "first tags line wins");
+        qDebug() << "PASS: Test 13 - single % and first-occurrence semantics";
     }
 
     QDir(testDir).removeRecursively();

@@ -668,6 +668,12 @@ void MainWindow::setupUI()
         QString content = QString::fromUtf8(file.readAll());
         file.close();
 
+        // Parse the leading metadata comment block (%% name: / %% description:
+        // / %% tags:), if any, and remove it from the content.
+        QString metaName, metaDescription, metaTags;
+        content = LatexCompiler::extractMetadataHeader(content, metaName,
+                                                       metaDescription, metaTags);
+
         // Split into preamble and body
         QString preamble;
         QString code;
@@ -753,10 +759,23 @@ void MainWindow::setupUI()
         }
 
         QString baseName = QFileInfo(filePath).completeBaseName();
-        QString id = snippetMgr->createSnippet(baseName, QString());
+        // Name preference: metadata comment > file name > "导入文件".
+        QString snippetName = !metaName.isEmpty() ? metaName
+                            : (!baseName.isEmpty() ? baseName
+                                                   : QStringLiteral("导入文件"));
+        QStringList tagList;
+        for (const QString &tag : metaTags.split(',')) {
+            QString trimmedTag = tag.trimmed();
+            if (!trimmedTag.isEmpty())
+                tagList.append(trimmedTag);
+        }
+
+        QString id = snippetMgr->createSnippet(snippetName, QString());
         Snippet s = snippetMgr->loadSnippet(id);
         s.code = code;
-        s.name = baseName;
+        s.name = snippetName;
+        s.description = metaDescription;
+        s.tags = tagList;
         s.packages = packages.join(", ");
         s.tikzLibraries = libraries.join(", ");
         {
@@ -771,7 +790,7 @@ void MainWindow::setupUI()
         refreshCategoryTree();
         refreshSearch();
         loadSnippetIntoEditor(id);
-        statusBar()->showMessage(QStringLiteral("已导入: %1").arg(baseName), kStatusBarShortMs);
+        statusBar()->showMessage(QStringLiteral("已导入: %1").arg(snippetName), kStatusBarShortMs);
     });
 
     connect(importClipAct, &QAction::triggered, this, [this]() {
@@ -782,19 +801,14 @@ void MainWindow::setupUI()
             return;
         }
 
-        QString trimmed = content.trimmed();
-        QString clipName;
-        int firstLineEnd = trimmed.indexOf('\n');
-        if (firstLineEnd > 0) {
-            clipName = trimmed.left(firstLineEnd).trimmed();
-            if (clipName.startsWith('%'))
-                clipName = clipName.mid(1).trimmed();
-            if (clipName.length() > 40)
-                clipName = clipName.left(40);
-        }
-        if (clipName.isEmpty()) {
-            clipName = QStringLiteral("来自剪贴板");
-        }
+        // Parse the leading metadata comment block (%% name: / %% description:
+        // / %% tags:), if any, and remove it from the content. Without a name
+        // the snippet falls back to "导入文件".
+        QString metaName, metaDescription, metaTags;
+        content = LatexCompiler::extractMetadataHeader(content, metaName,
+                                                       metaDescription, metaTags);
+        QString clipName = !metaName.isEmpty() ? metaName
+                                               : QStringLiteral("导入文件");
 
         QString preamble;
         QString code;
@@ -873,6 +887,16 @@ void MainWindow::setupUI()
         Snippet s = snippetMgr->loadSnippet(id);
         s.code = code;
         s.name = clipName;
+        s.description = metaDescription;
+        {
+            QStringList tagList;
+            for (const QString &tag : metaTags.split(',')) {
+                QString trimmedTag = tag.trimmed();
+                if (!trimmedTag.isEmpty())
+                    tagList.append(trimmedTag);
+            }
+            s.tags = tagList;
+        }
         s.packages = packages.join(", ");
         s.tikzLibraries = libraries.join(", ");
         {
@@ -957,6 +981,8 @@ void MainWindow::setupUI()
         QString cleanedCode;
         QString customCmds = LatexCompiler::extractCustomCommands(code, cleanedCode);
         QString fullDoc = compiler->wrapCode(cleanedCode, s.templateId, s.packages, s.tikzLibraries, customCmds);
+        fullDoc = LatexCompiler::metadataHeader(s.name, s.description,
+                                                s.tags.join(QStringLiteral(", "))) + fullDoc;
         QApplication::clipboard()->setText(fullDoc);
         statusBar()->showMessage(QStringLiteral("完整文档已复制到剪贴板"), 2000);
     };
@@ -980,6 +1006,8 @@ void MainWindow::setupUI()
             QString cleanedCode;
             QString customCmds = LatexCompiler::extractCustomCommands(code, cleanedCode);
             fullDoc = compiler->wrapCode(cleanedCode, s.templateId, s.packages, s.tikzLibraries, customCmds);
+            fullDoc = LatexCompiler::metadataHeader(s.name, s.description,
+                                                    s.tags.join(QStringLiteral(", "))) + fullDoc;
         }
 
         // Find the preview PDF file.
@@ -1065,6 +1093,8 @@ void MainWindow::setupUI()
         QString cleanedCode;
         QString customCmds = LatexCompiler::extractCustomCommands(code, cleanedCode);
         QString fullDoc = compiler->wrapCode(cleanedCode, s.templateId, s.packages, s.tikzLibraries, customCmds);
+        fullDoc = LatexCompiler::metadataHeader(s.name, s.description,
+                                                s.tags.join(QStringLiteral(", "))) + fullDoc;
         QString filePath = QFileDialog::getSaveFileName(this,
             QStringLiteral("导出为 .tex 文档"), s.name + ".tex",
             "LaTeX 文档 (*.tex)");

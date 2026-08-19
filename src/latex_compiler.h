@@ -55,6 +55,24 @@ public:
 
     static QString extractCustomCommands(const QString &texCode, QString &outCode);
 
+    // ── Document metadata comment header ────────────────────────────────
+    // A complete document may carry the snippet's name / description / tags
+    // as human-readable comment lines at its very beginning:
+    //
+    //   %% name: 空间几何作图
+    //   %% description: 简介内容
+    //   %% tags: 几何, 空间
+    //
+    // metadataHeader() builds that block (empty fields emit no line; returns
+    // an empty string when everything is empty). extractMetadataHeader()
+    // parses the block and returns the content with those lines removed —
+    // only lines inside the leading comment block are considered, so
+    // lookalike comments inside the document body are left untouched.
+    static QString metadataHeader(const QString &name, const QString &description,
+                                  const QString &tags);
+    static QString extractMetadataHeader(const QString &content, QString &name,
+                                         QString &description, QString &tags);
+
     int userCodeStartLine() const;
 
 signals:

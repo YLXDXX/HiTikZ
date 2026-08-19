@@ -1032,6 +1032,38 @@ static void test_copy_files_action(MainWindow *mw, SnippetManager *snippetMgr,
                         "000.tex must be a complete LaTeX document");
             TEST_ASSERT(texContent.contains("\\draw[red] (0,0) -- (1,1);"),
                         "000.tex must contain the snippet code");
+            // Metadata comment header: the snippet has only a name, so just
+            // the name line is emitted (empty fields emit no line).
+            TEST_ASSERT(texContent.startsWith("%% name: CopyFilesTest\n"),
+                        "000.tex starts with the %% name: metadata line");
+            TEST_ASSERT(!texContent.contains("%% description:"),
+                        "empty description emits no metadata line");
+            TEST_ASSERT(!texContent.contains("%% tags:"),
+                        "empty tags emit no metadata line");
+        }
+    }
+
+    // With description and tags set, those lines appear too (multi-line
+    // description becomes consecutive comment lines).
+    {
+        Snippet s2 = snippetMgr->loadSnippet(id);
+        s2.description = QStringLiteral("测试简介\n第二行");
+        s2.tags = QStringList{ QStringLiteral("标签A"), QStringLiteral("标签B") };
+        snippetMgr->saveSnippet(s2);
+    }
+    copyFilesAct->trigger();
+    QApplication::processEvents();
+    if (QFile::exists(texPath)) {
+        QFile texFile(texPath);
+        if (texFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            QString texContent = QString::fromUtf8(texFile.readAll());
+            texFile.close();
+            TEST_ASSERT(texContent.startsWith(
+                            "%% name: CopyFilesTest\n"
+                            "%% description: 测试简介\n"
+                            "%% description: 第二行\n"
+                            "%% tags: 标签A, 标签B\n"),
+                        "000.tex carries name/description/tags metadata lines");
         }
     }
 
@@ -1180,6 +1212,134 @@ static void test_copy_link_action(MainWindow *mw, SnippetManager *snippetMgr,
     snippetMgr->deleteSnippet(id3);
 }
 
+// Verifies the "复制文档" (Copy Document) action prefixes the metadata
+// comment header (%% name: / %% description: / %% tags:) carrying the
+// snippet's name, description and tags; empty fields emit no line.
+static void test_copy_document_metadata(MainWindow *mw, SnippetManager *snippetMgr,
+                                        SearchPanel *searchPanel)
+{
+    QAction *copyFullAct = findActionByText(mw, QStringLiteral("复制文档"));
+    TEST_ASSERT(copyFullAct != nullptr, "copy document action should exist in toolbar");
+    if (!copyFullAct) return;
+
+    const QString id = snippetMgr->createSnippet("CopyDocMeta", "test/copydocmeta");
+    Snippet s = snippetMgr->loadSnippet(id);
+    s.code = QStringLiteral("\\begin{tikzpicture}\\draw (0,0) -- (1,1);\\end{tikzpicture}");
+    s.description = QStringLiteral("文档简介");
+    s.tags = QStringList{ QStringLiteral("标签1") };
+    snippetMgr->saveSnippet(s);
+
+    emit searchPanel->snippetSelected(id);
+    QApplication::processEvents();
+
+    copyFullAct->trigger();
+    QApplication::processEvents();
+
+    QString text = QApplication::clipboard()->text();
+    TEST_ASSERT(text.startsWith(QStringLiteral("%% name: CopyDocMeta\n"
+                                               "%% description: 文档简介\n"
+                                               "%% tags: 标签1\n")),
+                "copy document includes the metadata header");
+    TEST_ASSERT(text.contains(QStringLiteral("\\documentclass")),
+                "copy document is a complete LaTeX document");
+
+    // Snippet without description/tags: only the name line is emitted.
+    const QString id2 = snippetMgr->createSnippet("CopyDocMeta2", "test/copydocmeta");
+    Snippet s2 = snippetMgr->loadSnippet(id2);
+    s2.code = QStringLiteral("\\begin{tikzpicture}\\end{tikzpicture}");
+    snippetMgr->saveSnippet(s2);
+
+    emit searchPanel->snippetSelected(id2);
+    QApplication::processEvents();
+    copyFullAct->trigger();
+    QApplication::processEvents();
+
+    text = QApplication::clipboard()->text();
+    TEST_ASSERT(text.startsWith(QStringLiteral("%% name: CopyDocMeta2\n")),
+                "name-only metadata header when description/tags are empty");
+    TEST_ASSERT(!text.contains(QStringLiteral("%% description:")),
+                "no description line for an empty description");
+    TEST_ASSERT(!text.contains(QStringLiteral("%% tags:")),
+                "no tags line for empty tags");
+
+    snippetMgr->deleteSnippet(id);
+    snippetMgr->deleteSnippet(id2);
+}
+
+// Verifies the "从剪贴板导入" flow parses the metadata comment header:
+// name/description/tags are taken from it when present, and a document
+// without metadata falls back to the name "导入文件".
+static void test_clipboard_import_metadata(MainWindow *mw, SnippetManager *snippetMgr)
+{
+    QAction *importClipAct = findActionByText(mw, QStringLiteral("从剪贴板导入"));
+    TEST_ASSERT(importClipAct != nullptr, "clipboard import action should exist");
+    if (!importClipAct) return;
+
+    // ── With metadata: all three fields come from the comment block ──────
+    const QString docWithMeta = QStringLiteral(
+        "%% name: 剪贴板元数据\n"
+        "%% description: 来自剪贴板\n"
+        "%% tags: 标签X, 标签Y\n"
+        "\\documentclass[tikz, border=5pt]{standalone}\n"
+        "\\usepackage{tikz}\n"
+        "\\begin{document}\n"
+        "\\begin{tikzpicture}\n"
+        "\\draw (0,0) -- (1,1);\n"
+        "\\end{tikzpicture}\n"
+        "\\end{document}\n");
+    QApplication::clipboard()->setText(docWithMeta);
+    importClipAct->trigger();
+    QApplication::processEvents();
+
+    QString idWithMeta;
+    {
+        const QList<Snippet> all = snippetMgr->getAllSnippets(true);
+        for (const Snippet &sn : all) {
+            if (sn.name == QStringLiteral("剪贴板元数据")) {
+                idWithMeta = sn.id;
+                TEST_ASSERT(sn.description == QStringLiteral("来自剪贴板"),
+                            "imported description from metadata");
+                TEST_ASSERT(sn.tags == QStringList({ QStringLiteral("标签X"), QStringLiteral("标签Y") }),
+                            "imported tags from metadata");
+                break;
+            }
+        }
+    }
+    TEST_ASSERT(!idWithMeta.isEmpty(), "clipboard import uses the metadata name");
+
+    // ── Without metadata: default name 导入文件, empty description/tags ──
+    const QString docNoMeta = QStringLiteral(
+        "\\documentclass[tikz, border=5pt]{standalone}\n"
+        "\\usepackage{tikz}\n"
+        "\\begin{document}\n"
+        "\\begin{tikzpicture}\n"
+        "\\draw (0,0) -- (2,2);\n"
+        "\\end{tikzpicture}\n"
+        "\\end{document}\n");
+    QApplication::clipboard()->setText(docNoMeta);
+    importClipAct->trigger();
+    QApplication::processEvents();
+
+    QString idNoMeta;
+    {
+        const QList<Snippet> all = snippetMgr->getAllSnippets(true);
+        for (const Snippet &sn : all) {
+            if (sn.name == QStringLiteral("导入文件")
+                && sn.description.isEmpty() && sn.tags.isEmpty()) {
+                idNoMeta = sn.id;
+                break;
+            }
+        }
+    }
+    TEST_ASSERT(!idNoMeta.isEmpty(),
+                "clipboard import without metadata defaults to 导入文件 with empty description/tags");
+
+    if (!idWithMeta.isEmpty())
+        snippetMgr->deleteSnippet(idWithMeta);
+    if (!idNoMeta.isEmpty())
+        snippetMgr->deleteSnippet(idNoMeta);
+}
+
 static void test_tag_filter_prune(SnippetManager *snippetMgr, SearchPanel *searchPanel)
 {
     if (!snippetMgr || !searchPanel) return;
@@ -1323,6 +1483,10 @@ int main(int argc, char *argv[])
         test_copy_files_action(&mw, snippetMgr, searchPanel, tabWidget);
 
         test_copy_link_action(&mw, snippetMgr, searchPanel, tabWidget);
+
+        test_copy_document_metadata(&mw, snippetMgr, searchPanel);
+
+        test_clipboard_import_metadata(&mw, snippetMgr);
 
         test_template_packages_activate_completion(snippetMgr, searchPanel, tabWidget);
 

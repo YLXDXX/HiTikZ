@@ -156,3 +156,75 @@ QString LatexCompiler::wrapCode(const QString &texCode, const QString &templateI
 
     return tmpl;
 }
+
+QString LatexCompiler::metadataHeader(const QString &name, const QString &description,
+                                      const QString &tags)
+{
+    QStringList lines;
+    if (!name.trimmed().isEmpty())
+        lines.append(QStringLiteral("%% name: %1").arg(name.trimmed()));
+
+    if (!description.trimmed().isEmpty()) {
+        // Multi-line descriptions are emitted as consecutive comment lines so
+        // the round trip preserves the line breaks exactly.
+        const QStringList descLines = description.split(QLatin1Char('\n'));
+        for (QString line : descLines) {
+            if (line.endsWith(QLatin1Char('\r')))
+                line.chop(1);
+            lines.append(QStringLiteral("%% description: %1").arg(line));
+        }
+    }
+
+    if (!tags.trimmed().isEmpty())
+        lines.append(QStringLiteral("%% tags: %1").arg(tags.trimmed()));
+
+    if (lines.isEmpty())
+        return QString();
+    return lines.join(QLatin1Char('\n')) + QLatin1Char('\n');
+}
+
+QString LatexCompiler::extractMetadataHeader(const QString &content, QString &name,
+                                             QString &description, QString &tags)
+{
+    static const QRegularExpression metaRe(
+        QStringLiteral("^%+\\s*(name|description|tags)\\s*:\\s*(.*)$"));
+
+    QStringList descParts;
+    QStringList outLines;
+    bool inLeadingBlock = true;
+
+    const QStringList lines = content.split(QLatin1Char('\n'));
+    for (QString line : lines) {
+        if (line.endsWith(QLatin1Char('\r')))
+            line.chop(1);
+
+        const QString trimmed = line.trimmed();
+        if (inLeadingBlock && (trimmed.isEmpty() || trimmed.startsWith(QLatin1Char('%')))) {
+            const QRegularExpressionMatch match = metaRe.match(trimmed);
+            if (match.hasMatch()) {
+                const QString key = match.captured(1);
+                const QString value = match.captured(2);
+                if (key == QLatin1String("name")) {
+                    if (name.isEmpty())
+                        name = value.trimmed();
+                } else if (key == QLatin1String("description")) {
+                    descParts.append(value);
+                } else if (key == QLatin1String("tags")) {
+                    if (tags.isEmpty())
+                        tags = value.trimmed();
+                }
+                continue; // metadata lines are consumed, not kept
+            }
+            outLines.append(line);
+            continue;
+        }
+
+        inLeadingBlock = false;
+        outLines.append(line);
+    }
+
+    if (!descParts.isEmpty())
+        description = descParts.join(QLatin1Char('\n'));
+
+    return outLines.join(QLatin1Char('\n'));
+}

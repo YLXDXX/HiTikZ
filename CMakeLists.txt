@@ -286,7 +286,9 @@ add_test(NAME Autostart COMMAND test_autostart)
 
 add_executable(test_tex_import
     tests/test_tex_import.cpp
+    ${LATEX_COMPILER_SOURCES}
 )
+target_include_directories(test_tex_import PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_tex_import PRIVATE Qt6::Core)
 add_test(NAME TexImport COMMAND test_tex_import)
 
