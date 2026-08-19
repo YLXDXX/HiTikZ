@@ -27,6 +27,10 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QUrl>
+#include <QClipboard>
+#include <QSettings>
+#include <QTemporaryDir>
+#include <QFile>
 
 static int g_testsPassed = 0;
 static int g_testsFailed = 0;
@@ -1054,6 +1058,128 @@ static void test_copy_files_action(MainWindow *mw, SnippetManager *snippetMgr,
     snippetMgr->deleteSnippet(id);
 }
 
+// Verifies the "复制链接" (Copy Link) action: it symlinks the snippet's
+// preview PDF into the configured link directory under a sequence number
+// name, records the name in meta.json, and copies the matching
+// \includegraphics command to the clipboard. Repeated clicks reuse the
+// recorded name; deleted links are recreated; new snippets fill gaps.
+static void test_copy_link_action(MainWindow *mw, SnippetManager *snippetMgr,
+                                  SearchPanel *searchPanel, QTabWidget *tabWidget)
+{
+    QAction *copyLinkAct = findActionByText(mw, QStringLiteral("复制链接"));
+    TEST_ASSERT(copyLinkAct != nullptr, "copy link action should exist in toolbar");
+    if (!copyLinkAct) return;
+
+    QTemporaryDir linkTmp;
+    TEST_ASSERT(linkTmp.isValid(), "temporary link dir valid");
+    if (!linkTmp.isValid()) return;
+    const QString linkDir = linkTmp.path();
+
+    // Point the link-directory setting at the temp dir, restoring the user's
+    // value at the end.
+    QSettings settings(QStringLiteral("HiTikZ"), QStringLiteral("TikzManager"));
+    const bool hadOldLinkDir = settings.contains(QStringLiteral("link/dir"));
+    const QString oldLinkDir = settings.value(QStringLiteral("link/dir")).toString();
+    settings.setValue(QStringLiteral("link/dir"), linkDir);
+
+    auto makePreviewPdf = [&](const QString &id) {
+        const QString previewDir = snippetMgr->getBasePath() + id + "/";
+        QDir().mkpath(previewDir);
+        QFile dummy(previewDir + "preview.pdf");
+        if (dummy.open(QIODevice::WriteOnly)) {
+            dummy.write(QByteArray("dummy-pdf-for-link-test"));
+            dummy.close();
+        }
+    };
+
+    const QString id = snippetMgr->createSnippet("CopyLinkTest", "test/copylink");
+    Snippet s = snippetMgr->loadSnippet(id);
+    s.code = QStringLiteral("\\begin{tikzpicture}\\draw (0,0) -- (1,1);\\end{tikzpicture}");
+    snippetMgr->saveSnippet(s);
+    makePreviewPdf(id);
+
+    emit searchPanel->snippetSelected(id);
+    QApplication::processEvents();
+
+    // ── First click: allocates 0001.pdf, records it, copies the command ──
+    copyLinkAct->trigger();
+    QApplication::processEvents();
+
+    const QString cmd1 = QStringLiteral("\\includegraphics{%1/0001.pdf}").arg(linkDir);
+    TEST_ASSERT(QApplication::clipboard()->text() == cmd1,
+                "clipboard contains the \\includegraphics command for 0001.pdf");
+    TEST_ASSERT(QFile::exists(linkDir + "/0001.pdf"), "link file 0001.pdf created");
+    TEST_ASSERT(snippetMgr->loadSnippet(id).linkedPdf == QStringLiteral("0001.pdf"),
+                "linkedPdf recorded in meta.json");
+
+    // ── Second click: reuses the recorded link, allocates nothing new ────
+    copyLinkAct->trigger();
+    QApplication::processEvents();
+    TEST_ASSERT(QApplication::clipboard()->text() == cmd1,
+                "second click copies the same command");
+    TEST_ASSERT(!QFile::exists(linkDir + "/0002.pdf"),
+                "second click does not allocate a new number");
+    TEST_ASSERT(snippetMgr->loadSnippet(id).linkedPdf == QStringLiteral("0001.pdf"),
+                "linkedPdf unchanged after second click");
+
+    // ── Deleted link is recreated under the recorded name ────────────────
+    QFile::remove(linkDir + "/0001.pdf");
+    copyLinkAct->trigger();
+    QApplication::processEvents();
+    TEST_ASSERT(QFile::exists(linkDir + "/0001.pdf"),
+                "recorded link recreated after the file was deleted");
+    TEST_ASSERT(snippetMgr->loadSnippet(id).linkedPdf == QStringLiteral("0001.pdf"),
+                "linkedPdf still recorded after recreation");
+
+    // ── Gap filling: with 0003.pdf occupied, a new snippet gets 0002.pdf ─
+    {
+        QFile dummy(linkDir + "/0003.pdf");
+        if (dummy.open(QIODevice::WriteOnly)) {
+            dummy.write(QByteArray("occupied"));
+            dummy.close();
+        }
+    }
+    const QString id2 = snippetMgr->createSnippet("CopyLinkTest2", "test/copylink");
+    Snippet s2 = snippetMgr->loadSnippet(id2);
+    s2.code = QStringLiteral("\\begin{tikzpicture}\\draw (0,0) -- (2,2);\\end{tikzpicture}");
+    snippetMgr->saveSnippet(s2);
+    makePreviewPdf(id2);
+
+    emit searchPanel->snippetSelected(id2);
+    QApplication::processEvents();
+    copyLinkAct->trigger();
+    QApplication::processEvents();
+
+    const QString cmd2 = QStringLiteral("\\includegraphics{%1/0002.pdf}").arg(linkDir);
+    TEST_ASSERT(QApplication::clipboard()->text() == cmd2,
+                "gap 0002.pdf is filled for the new snippet");
+    TEST_ASSERT(QFile::exists(linkDir + "/0002.pdf"), "link file 0002.pdf created");
+    TEST_ASSERT(snippetMgr->loadSnippet(id2).linkedPdf == QStringLiteral("0002.pdf"),
+                "second snippet records 0002.pdf");
+
+    // ── Missing preview PDF: friendly refusal, nothing created ───────────
+    const QString id3 = snippetMgr->createSnippet("CopyLinkTest3", "test/copylink");
+    emit searchPanel->snippetSelected(id3);
+    QApplication::processEvents();
+    copyLinkAct->trigger();
+    QApplication::processEvents();
+    TEST_ASSERT(QApplication::clipboard()->text() == cmd2,
+                "clipboard unchanged when no preview PDF exists");
+    TEST_ASSERT(!QFile::exists(linkDir + "/0004.pdf"),
+                "no link file created without a preview PDF");
+    TEST_ASSERT(snippetMgr->loadSnippet(id3).linkedPdf.isEmpty(),
+                "no linkedPdf recorded without a preview PDF");
+
+    // Clean up.
+    if (hadOldLinkDir)
+        settings.setValue(QStringLiteral("link/dir"), oldLinkDir);
+    else
+        settings.remove(QStringLiteral("link/dir"));
+    snippetMgr->deleteSnippet(id);
+    snippetMgr->deleteSnippet(id2);
+    snippetMgr->deleteSnippet(id3);
+}
+
 static void test_tag_filter_prune(SnippetManager *snippetMgr, SearchPanel *searchPanel)
 {
     if (!snippetMgr || !searchPanel) return;
@@ -1195,6 +1321,8 @@ int main(int argc, char *argv[])
         test_autosave_only_dirty(&mw, snippetMgr, searchPanel, tabWidget);
 
         test_copy_files_action(&mw, snippetMgr, searchPanel, tabWidget);
+
+        test_copy_link_action(&mw, snippetMgr, searchPanel, tabWidget);
 
         test_template_packages_activate_completion(snippetMgr, searchPanel, tabWidget);
 

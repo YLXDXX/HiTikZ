@@ -9,6 +9,7 @@
 #include "snippet_manager.h"
 #include "latex_compiler.h"
 #include "snippet_properties_dialog.h"
+#include "link_manager.h"
 #include <QApplication>
 #include <QStandardPaths>
 #include <QDir>
@@ -21,6 +22,7 @@
 #include <QImage>
 #include <QPushButton>
 #include <QListWidget>
+#include <QLabel>
 #include <QKeyEvent>
 #include <QDebug>
 
@@ -219,6 +221,15 @@ static void testExportImportImages(SnippetManager &mgr)
     const QString name = mgr.addImageToSnippet(id, png);
     CHECK(name == "a.png", "image added for export test");
 
+    // Record a picture link name before exporting: it must NOT survive the
+    // import (the shared link directory is not part of the archive and the
+    // name could collide with another snippet's link on the target machine).
+    {
+        Snippet s = mgr.loadSnippet(id);
+        s.linkedPdf = QStringLiteral("0042.pdf");
+        mgr.saveSnippet(s);
+    }
+
     const QString zipPath = QDir::tempPath() + "/test_images_export.tar.gz";
     if (QFile::exists(zipPath))
         QFile::remove(zipPath);
@@ -233,6 +244,8 @@ static void testExportImportImages(SnippetManager &mgr)
         const QString newId = importedIds.first();
         Snippet imported = mgr.loadSnippet(newId);
         CHECK(imported.images == QStringList({"a.png"}), "images field survives export/import");
+        CHECK(imported.linkedPdf.isEmpty(),
+              "linkedPdf field cleared on import to avoid collisions");
         CHECK(QFile::exists(mgr.getBasePath() + newId + "/a.png"),
               "image file extracted next to imported snippet");
         mgr.deleteSnippet(newId);
@@ -388,6 +401,95 @@ static void testPropertiesDialogImages(SnippetManager &mgr)
     qDebug() << "PASS: Test 9 - properties dialog image management";
 }
 
+static void testPropertiesDialogLink(SnippetManager &mgr)
+{
+    QTemporaryDir linkDir;
+    CHECK(linkDir.isValid(), "temporary link dir valid");
+    LinkManager links(linkDir.path());
+
+    const QString id = mgr.createSnippet("LinkDialogTest", "test/images");
+    CHECK(!id.isEmpty(), "create snippet for link dialog test");
+
+    auto findBtn = [&](SnippetPropertiesDialog &dlg, const QString &text) -> QPushButton* {
+        const auto btns = dlg.findChildren<QPushButton*>();
+        for (QPushButton *b : btns)
+            if (b->text() == text)
+                return b;
+        return nullptr;
+    };
+    auto findLabelContaining = [&](SnippetPropertiesDialog &dlg, const QString &part) -> QLabel* {
+        const auto labels = dlg.findChildren<QLabel*>();
+        for (QLabel *l : labels)
+            if (l->text().contains(part))
+                return l;
+        return nullptr;
+    };
+
+    // ── No link yet: grey status, disabled delete button ─────────────────
+    {
+        SnippetPropertiesDialog dlg(id, &mgr, nullptr, &links);
+        QPushButton *removeBtn = findBtn(dlg, QStringLiteral("删除超链接文件"));
+        QLabel *status = findLabelContaining(dlg, QStringLiteral("未创建超链接"));
+        CHECK(removeBtn != nullptr, "remove-link button exists");
+        CHECK(status != nullptr, "status label shows 未创建超链接");
+        CHECK(removeBtn && !removeBtn->isEnabled(),
+              "remove-link button disabled without a link");
+    }
+
+    // ── Link recorded and file exists: green status, enabled button ──────
+    const QString srcPdf = linkDir.path() + "/src.pdf";
+    CHECK(makeDummyImage(linkDir.path(), "src.pdf", QByteArray(64, 'l')) == srcPdf,
+          "dummy source pdf created");
+    CHECK(links.createLink(srcPdf, QStringLiteral("0003.pdf")), "link 0003.pdf created");
+
+    {
+        Snippet s = mgr.loadSnippet(id);
+        s.linkedPdf = QStringLiteral("0003.pdf");
+        mgr.saveSnippet(s);
+    }
+
+    {
+        SnippetPropertiesDialog dlg(id, &mgr, nullptr, &links);
+        QPushButton *removeBtn = findBtn(dlg, QStringLiteral("删除超链接文件"));
+        QLabel *status = findLabelContaining(dlg, QStringLiteral("已创建超链接"));
+        CHECK(status != nullptr, "status label shows 已创建超链接");
+        if (status)
+            CHECK(status->text().contains(QStringLiteral("0003.pdf")),
+                  "status label names the link file");
+        CHECK(removeBtn && removeBtn->isEnabled(),
+              "remove-link button enabled with a link present");
+
+        // Deleting through the non-modal helper removes the file and clears
+        // the meta.json field.
+        CHECK(dlg.deleteLinkFileAndClearField(), "deleteLinkFileAndClearField succeeds");
+        CHECK(!links.linkEntryExists(QStringLiteral("0003.pdf")),
+              "link file removed from the link dir");
+        Snippet after = mgr.loadSnippet(id);
+        CHECK(after.linkedPdf.isEmpty(), "linkedPdf field cleared after deletion");
+        CHECK(!removeBtn->isEnabled(), "remove-link button disabled after deletion");
+    }
+
+    // ── Recorded but the file is gone: stale state is reported ───────────
+    {
+        Snippet s = mgr.loadSnippet(id);
+        s.linkedPdf = QStringLiteral("0007.pdf");
+        mgr.saveSnippet(s);
+    }
+    {
+        SnippetPropertiesDialog dlg(id, &mgr, nullptr, &links);
+        QLabel *status = findLabelContaining(dlg, QStringLiteral("超链接文件缺失"));
+        QPushButton *removeBtn = findBtn(dlg, QStringLiteral("删除超链接文件"));
+        CHECK(status != nullptr, "status label reports the missing file");
+        CHECK(removeBtn && removeBtn->isEnabled(),
+              "remove-link button enabled for a stale entry");
+        CHECK(dlg.deleteLinkFileAndClearField(), "stale entry can be cleared");
+        CHECK(mgr.loadSnippet(id).linkedPdf.isEmpty(), "stale linkedPdf field cleared");
+    }
+
+    mgr.deleteSnippet(id);
+    qDebug() << "PASS: Test 10 - properties dialog picture link management";
+}
+
 int main(int argc, char *argv[])
 {
     qputenv("QT_QPA_PLATFORM", "offscreen");
@@ -407,6 +509,7 @@ int main(int argc, char *argv[])
         testExportImportImages(mgr);
         testCopyImageFiles(mgr);
         testPropertiesDialogImages(mgr);
+        testPropertiesDialogLink(mgr);
     }
 
     {

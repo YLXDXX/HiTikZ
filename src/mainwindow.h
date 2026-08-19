@@ -114,6 +114,10 @@ private:
     void handleLogDoubleClick();
     void checkSystemDependencies();
     void updateFitActionStates();
+    // "复制链接": symlink the current snippet's preview PDF into the shared
+    // picture directory (default ~/PicTikZ) under a sequence number name and
+    // copy the matching \includegraphics command to the clipboard.
+    void copyLinkToPicTikZ();
     void startAutoSave();
     void recoverDrafts();
     void clearDraft(int tabIndex = -1);

@@ -59,6 +59,7 @@ set(MAINWINDOW_SOURCES
     src/mainwindow_params.cpp
     src/mainwindow_shortcuts.cpp
     src/mainwindow_drafts.cpp
+    src/mainwindow_links.cpp
 )
 
 # Search panel sources (split into modules for maintainability)
@@ -114,6 +115,7 @@ add_executable(TikzManager
     src/settings_dialog.cpp
     ${SEARCH_PANEL_SOURCES}
     src/snippet_properties_dialog.cpp
+    src/link_manager.cpp
     src/kde_global_shortcut.cpp
     src/pdf_preview_widget.cpp
     src/flow_layout.cpp
@@ -183,11 +185,20 @@ target_include_directories(test_snippet_manager PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_snippet_manager PRIVATE Qt6::Core)
 add_test(NAME SnippetManager COMMAND test_snippet_manager)
 
+add_executable(test_link_manager
+    tests/test_link_manager.cpp
+    src/link_manager.cpp
+)
+target_include_directories(test_link_manager PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_link_manager PRIVATE Qt6::Core)
+add_test(NAME LinkManager COMMAND test_link_manager)
+
 add_executable(test_snippet_images
     tests/test_snippet_images.cpp
     ${SNIPPET_MANAGER_SOURCES}
     ${LATEX_COMPILER_SOURCES}
     src/snippet_properties_dialog.cpp
+    src/link_manager.cpp
 )
 target_include_directories(test_snippet_images PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_snippet_images PRIVATE Qt6::Widgets)
@@ -233,6 +244,7 @@ add_executable(test_multitab
     src/settings_dialog.cpp
     ${SEARCH_PANEL_SOURCES}
     src/snippet_properties_dialog.cpp
+    src/link_manager.cpp
     src/kde_global_shortcut.cpp
     src/pdf_preview_widget.cpp
     src/flow_layout.cpp
@@ -323,6 +335,7 @@ add_executable(test_review_fixes
     ${SEARCH_PANEL_SOURCES}
     ${SNIPPET_MANAGER_SOURCES}
     src/snippet_properties_dialog.cpp
+    src/link_manager.cpp
     src/flow_layout.cpp
     src/tikz_highlighter.cpp
     ${TIKZ_COMPLETER_SOURCES}

@@ -178,6 +178,11 @@ QStringList SnippetManager::importSnippetsZip(const QString &zipPath)
                     QJsonObject obj = doc.object();
                     obj["id"] = newId;
                     obj.remove("isPreset");
+                    // The linked picture file lives in a shared directory that
+                    // is not part of the archive; a stale name could point at
+                    // another snippet's link on the importing machine. Drop it
+                    // so "复制链接" allocates a fresh sequence number.
+                    obj.remove("linkedPdf");
                     QJsonDocument newDoc(obj);
                     QSaveFile saveFile(destDir + "meta.json");
                     if (saveFile.open(QIODevice::WriteOnly)) {

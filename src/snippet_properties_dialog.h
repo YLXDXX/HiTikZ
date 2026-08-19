@@ -7,6 +7,7 @@
 #include <QPushButton>
 
 class SnippetManager;
+class LinkManager;
 class QLabel;
 
 class SnippetPropertiesDialog : public QDialog {
@@ -14,7 +15,13 @@ class SnippetPropertiesDialog : public QDialog {
 public:
     explicit SnippetPropertiesDialog(const QString &snippetId,
                                      SnippetManager *mgr,
-                                     QWidget *parent = nullptr);
+                                     QWidget *parent = nullptr,
+                                     LinkManager *links = nullptr);
+
+    // Remove the snippet's picture link (file + meta.json field) without any
+    // confirmation prompt. Public so tests can exercise the logic without
+    // modal dialogs. Returns true when the field was cleared.
+    bool deleteLinkFileAndClearField();
 
 protected:
     void keyPressEvent(QKeyEvent *event) override;
@@ -30,6 +37,7 @@ private slots:
     void onReplaceImage();
     void onRemoveImage();
     void onCopyImageName();
+    void onRemoveLink();
 
 private:
     void loadSnippet();
@@ -37,6 +45,7 @@ private:
     void updateImageButtonStates();
     QString selectedImageName() const;
     void showImageStatus(const QString &text, bool error = false);
+    void updateLinkUi();
 
     QString m_snippetId;
     SnippetManager *m_snippetMgr;
@@ -62,4 +71,8 @@ private:
     QPushButton *m_replaceImageBtn;
     QPushButton *m_removeImageBtn;
     QPushButton *m_copyImageNameBtn;
+
+    QLabel *m_linkStatusLabel;
+    QPushButton *m_removeLinkBtn;
+    LinkManager *m_linkMgr = nullptr;
 };

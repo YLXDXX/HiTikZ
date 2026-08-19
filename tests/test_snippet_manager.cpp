@@ -2,6 +2,8 @@
 #include <QCoreApplication>
 #include <QDebug>
 #include <QDir>
+#include <QFile>
+#include <QSaveFile>
 
 static int g_failed = 0;
 
@@ -214,6 +216,42 @@ int main(int argc, char *argv[]) {
         Snippet s2 = mgr.loadSnippet(id);
         CHECK(s2.sortOrder == 42, "sortOrder should survive JSON roundtrip");
         qDebug() << "PASS: Test 13 - sortOrder JSON serialization";
+
+        mgr.deleteSnippet(id);
+    }
+
+    // Test 13b: linkedPdf field serialization/deserialization + tolerance
+    {
+        QString id = mgr.createSnippet("LinkedPdf Test", "test");
+        CHECK(!id.isEmpty(), "Should create snippet for linkedPdf test");
+
+        Snippet s = mgr.loadSnippet(id);
+        CHECK(s.linkedPdf.isEmpty(), "Default linkedPdf should be empty");
+
+        s.linkedPdf = "0002.pdf";
+        bool saved = mgr.saveSnippet(s);
+        CHECK(saved, "Save with linkedPdf should succeed");
+
+        Snippet s2 = mgr.loadSnippet(id);
+        CHECK(s2.linkedPdf == "0002.pdf", "linkedPdf should survive JSON roundtrip");
+
+        // Simulate a meta.json written by an older version (no linkedPdf field).
+        const QString metaPath = mgr.getBasePath() + id + "/meta.json";
+        {
+            QFile f(metaPath);
+            CHECK(f.open(QIODevice::ReadOnly), "meta.json readable");
+            QJsonDocument doc = QJsonDocument::fromJson(f.readAll());
+            f.close();
+            QJsonObject obj = doc.object();
+            obj.remove("linkedPdf");
+            QSaveFile out(metaPath);
+            CHECK(out.open(QIODevice::WriteOnly), "meta.json writable");
+            out.write(QJsonDocument(obj).toJson());
+            out.commit();
+        }
+        Snippet s3 = mgr.loadSnippet(id);
+        CHECK(s3.linkedPdf.isEmpty(), "missing linkedPdf field tolerated (empty)");
+        qDebug() << "PASS: Test 13b - linkedPdf JSON serialization + tolerance";
 
         mgr.deleteSnippet(id);
     }

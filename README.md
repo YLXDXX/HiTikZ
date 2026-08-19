@@ -30,7 +30,8 @@
    - [剪贴板操作](#剪贴板操作)
    - [导入与导出](#导入与导出)
    - [图片管理](#图片管理)
-- [键盘快捷键](#键盘快捷键)
+   - [复制链接](#复制链接)
+ - [键盘快捷键](#键盘快捷键)
 - [预置片段清单](#预置片段清单)
 - [数据存储](#数据存储)
 - [设置面板](#设置面板)
@@ -88,7 +89,7 @@ PDF 预览支持适应整页、适应宽度、适应高度三种缩放模式，�
 
 片段以 tar.gz 格式打包，支持单个、多个或全部片段的导出与导入。支持导入 .tex 文件，自动提取 TikZ 代码（三段式回退）并解析导言区宏包、库与自定义命令，按内容自动选择模板。支持从剪贴板直接粘贴 .tex 源码导入，解析流程同上。
 
-可将预览导出为 .tex、.pdf、.png、.svg 文件，或将 PNG、SVG 复制到剪贴板。工具栏提供「复制代码」「复制文档」「复制 PNG」「复制 SVG」快捷按钮。新增「复制文件」功能，将完整可编译的 .tex 文档与编译 PDF（含片段图片）一同放入剪贴板（命名为 `000.tex` / `000.pdf`），在 Dolphin 文件管理器中直接 Ctrl+V 即可粘贴分享。
+可将预览导出为 .tex、.pdf、.png、.svg 文件，或将 PNG、SVG 复制到剪贴板。工具栏提供「复制代码」「复制文档」「复制 PNG」「复制 SVG」快捷按钮。新增「复制文件」功能，将完整可编译的 .tex 文档与编译 PDF（含片段图片）一同放入剪贴板（命名为 `000.tex` / `000.pdf`），在 Dolphin 文件管理器中直接 Ctrl+V 即可粘贴分享。新增「复制链接」功能，把当前片段编译 PDF 以序号文件名（`0001.pdf`、`0002.pdf`…）链接到指定目录（默认 `~/PicTikZ`），并将 `\includegraphics{~/PicTikZ/0001.pdf}` 复制到剪贴板，直接粘贴进课件等 LaTeX 项目即可引用；片段重新编译后图片自动更新，插图制作与文档写作彻底分离（见[复制链接](#复制链接)）。
 
 ### 数据安全与恢复
 
@@ -266,6 +267,7 @@ PDF 预览依赖 `Qt6::PdfWidgets`，已在构建依赖中包含，无需额外�
 | 复制文档 | 复制含模板头部的完整 LaTeX 文档 |
 | 复制PNG | 复制 300 DPI PNG 到剪贴板 |
 | 复制SVG | 复制 SVG 到剪贴板 |
+| 复制链接 | 将当前片段编译 PDF 链接到图片目录（默认 `~/PicTikZ`，序号命名 `0001.pdf`、`0002.pdf`…），复制 `\includegraphics{...}` 引用命令到剪贴板（见[复制链接](#复制链接)） |
 | 复制文件 | 复制完整可编译 .tex 文档与 PDF 到剪贴板（000.tex / 000.pdf，含片段图片），可在文件管理器中直接粘贴 |
 | 外部PDF | 用设置中配置的外部查看器打开当前片段的编译 PDF（系统需先编译预览） |
 | 适应整页/宽度/高度 | PDF 显示模式（可选中态） |
@@ -354,7 +356,8 @@ PDF 预览依赖 `Qt6::PdfWidgets`，已在构建依赖中包含，无需额外�
   "tikzLibraries": "",
   "compileCommand": "",
   "sortOrder": 0.0,
-  "images": ["a.png", "b.pdf"]
+  "images": ["a.png", "b.pdf"],
+  "linkedPdf": ""
 }
 ```
 
@@ -690,6 +693,7 @@ calc,er,angles,patterns,decorations.pathmorphing,shadows.blur,pgfplots.fillbetwe
 | 复制文档 | 复制含模板头部的完整 LaTeX 文档 |
 | 复制 PNG | 从 PDF 转换 300 DPI PNG 后复制到剪贴板（与复制SVG互斥，防止并发冲突） |
 | 复制 SVG | 从 PDF 转换 SVG 后复制（附带 `image/svg+xml` MIME 类型），转换工具可在设置中切换（与复制PNG互斥，防止并发冲突） |
+| 复制链接 | 将当前片段的预览 PDF 以序号文件名链接到图片目录（默认 `~/PicTikZ`），复制 `\includegraphics` 引用命令到剪贴板（见[复制链接](#复制链接)） |
 | 复制文件 | 生成完整可编译 .tex 文档并复制编译 PDF 与片段图片，以 `000.tex` / `000.pdf` / `a.png`… 文件名通过剪贴板 `text/uri-list` 提供，在 Dolphin 中 Ctrl+V 即可粘贴 |
 
 ### 导入与导出
@@ -743,6 +747,33 @@ TikZ 片段可以附带图片文件（位图如 PNG/JPG/TIF，以及 PDF），�
 - **复制文件**：工具栏「复制文件」除 `000.tex`/`000.pdf` 外同时附带片段图片，粘贴到任意目录后完整可编译
 - **导出为 Tex 文档**：导出 `.tex` 时将图片复制到同一目录，导出文档独立可编译
 - **删除片段**：连同其图片目录一并删除
+
+### 复制链接
+
+在大量制作某个课件（或论文、习题集）的插图时，把每张插图逐一复制、粘贴、重命名进课件 TeX 项目是纯粹的重复劳动。由于生成 TikZ 图片的程序就在本地，「复制链接」直接用链接取代了这些步骤——图片编辑与文档写作彻底分离：
+
+**工作流**：
+
+1. 选中片段并编译预览后，点击工具栏「复制链接」（位于「复制SVG」与「复制文件」之间）
+2. 程序在链接图片目录（默认 `~/PicTikZ`，可在设置面板「路径设置 → 链接图片目录」中修改）内为当前片段的预览 PDF 创建**符号链接**，按序号命名：`0001.pdf`、`0002.pdf`、`0003.pdf`……
+3. 同时向剪贴板写入 LaTeX 引用命令，如 `\includegraphics{~/PicTikZ/0002.pdf}`，直接粘贴进课件文档即可使用
+4. 之后修改该 TikZ 片段并重新编译，课件里的图片**自动更新**——只需重新编译课件文档，无需任何复制粘贴
+
+**命名与重复点击**：
+
+- 链接文件名记录在片段 `meta.json` 的 `linkedPdf` 字段；再次点击「复制链接」时，若链接文件存在则跳过创建，直接复制引用命令
+- 若记录的文件名存在但链接文件已丢失（或失效），点击时自动按原文件名重建
+- 新片段分配序号时自动**填补空缺**：目录中存在 `0001.pdf`、`0003.pdf`、`0004.pdf` 时，下一个新链接是 `0002.pdf` 而非 `0005.pdf`（仅 `<数字>.pdf` 文件占用序号，失效链接同样保留序号）
+- 引用命令中的目录与设置保持一致：默认是 `~/PicTikZ`，修改链接图片目录后，新复制到剪贴板的命令自动使用新目录
+
+**属性对话框**：右键缩略图（或分类树下片段节点）→ 属性，「超链接图片」区域显示该片段是否已创建超链接及对应文件名（含完整路径；链接文件失效或缺失时以警示色提示），并提供「删除超链接文件」按钮——删除链接目录中的文件并清除 `linkedPdf` 字段。未创建超链接的片段该按钮呈灰色禁用状态。
+
+**其他联动**：
+
+- 链接指向片段自身目录中的 `preview.pdf`，每次编译成功都会覆盖该文件，因此链接始终指向最新图片
+- 复制片段不会复制链接（每个副本按需独立分配序号）
+- 导入存档时自动清除 `linkedPdf` 字段（链接目录不随存档打包，避免与目标机器上其他片段的链接冲突）；旧版无该字段的 `meta.json` 不受影响
+- 未保存的新片段需先保存后才能使用「复制链接」（文件名需要写入片段元数据）
 
 ---
 
@@ -847,6 +878,7 @@ TikZ 片段可以附带图片文件（位图如 PNG/JPG/TIF，以及 PDF），�
 
 程序配置通过 `QSettings` 存储，包括：
 - `xelatex/path`, `pdftocairo/path`, `inkscape/path`, `tools/pdfViewer`, `svg/tool`, `paths/texinputs`, `png/dpi`
+- `link/dir` — 「复制链接」的链接图片目录（默认 `~/PicTikZ`）
 - `editor/fontSize` — 代码字体大小
 - `ui/fontSize` — 界面字体大小
 - `behavior/autoCompileOnSave` — 保存后自动编译（默认开启）
@@ -868,6 +900,7 @@ TikZ 片段可以附带图片文件（位图如 PNG/JPG/TIF，以及 PDF），�
 - **外部 PDF 查看器**：配置查看器命令及其启动参数（如 `okular --unique`、`evince`、`xdg-open`），工具栏「外部PDF」按钮使用此配置打开当前编译 PDF
 - SVG 转换工具选择：pdftocairo 或 inkscape
 - **命令搜索路径**：额外的可执行文件目录（多个用冒号分隔）。这些目录会被加入所有子进程的 `PATH`（同时也加入 `TEXINPUTS`），用于查找 `xelatex`/`pdftocairo`/`inkscape` 等命令。**从桌面图标启动、系统 `PATH` 不含 TeX Live 时尤其有用**——例如 TeX Live 用户可填入 `/usr/local/texlive/2025/bin/x86_64-linux`
+- **链接图片目录**：工具栏「复制链接」存放图片链接的目录（默认 `~/PicTikZ`，支持 `~` 展开）。链接文件按序号命名（`0001.pdf`、`0002.pdf`…），复制到剪贴板的 `\includegraphics` 命令使用此处填写的目录，见[复制链接](#复制链接)
 - PNG DPI（72–1200，默认 300）
 - 代码字体大小（8–48，默认 10）
 - 界面字体大小（8–48，默认 10）— 影响左栏分类树、缩略图名称及全局界面字体
@@ -944,6 +977,7 @@ src/
 ├── mainwindow_params.cpp            # 参数化系统
 ├── mainwindow_shortcuts.cpp         # 快捷键与全局热键
 ├── mainwindow_drafts.cpp            # 自动保存与草稿恢复（含标签页隔离的 UI 状态持久化；恢复对话框见 draft_recovery_dialog）
+├── mainwindow_links.cpp             # 「复制链接」：预览 PDF 链接到共享图片目录 + 剪贴板 \includegraphics 命令
 │
 │   # ── 左栏组件（共用 search_panel.h）──
 ├── search_panel.h / search_panel.cpp   # 核心：搜索框、分类树（前缀边界感知，`数学` 不误包含 `数学分析`）、缩略图
@@ -987,7 +1021,8 @@ src/
 ├── settings_dialog.h / .cpp         # 设置面板（路径/行为/快捷键/开机自启动/模板管理/工厂重置）
 ├── autostart_manager.h / .cpp       # XDG 自启动条目管理（写入/移除 ~/.config/autostart/hitikz.desktop，Exec 带 --hidden；旧条目自动迁移）
 ├── draft_recovery_dialog.h / .cpp   # 草稿恢复对话框（勾选恢复 / 全部丢弃（带确认）/ 稍后处理；独立结果码，可单元测试）
-├── snippet_properties_dialog.h / .cpp # 片段属性编辑对话框（含图片管理：导入/粘贴/查看/替换/删除）
+├── snippet_properties_dialog.h / .cpp # 片段属性编辑对话框（含图片管理：导入/粘贴/查看/替换/删除；超链接图片状态与删除）
+├── link_manager.h / .cpp            # 「复制链接」图片链接管理（目录配置、序号分配与空缺填补、符号链接创建/删除、\includegraphics 命令生成）
 ├── kde_global_shortcut.h / .cpp     # KDE KGlobalAccel 全局快捷键（或 QHotkey 回退）
 resources/
 ├── templates/                       # 出厂模板（3 个极简模板）
@@ -1000,7 +1035,8 @@ resources/
         └── snippet.tex
 tests/
 ├── test_snippet_manager.cpp         # CRUD 操作 + ZIP 导入/导出测试
-├── test_snippet_images.cpp          # 图片管理（字母序号命名、增删替换、JSON 容错、存档携带图片、复制文件、编译目录图片拷贝、属性对话框图片列表与剪贴板粘贴）
+├── test_snippet_images.cpp          # 图片管理（字母序号命名、增删替换、JSON 容错、存档携带图片、复制文件、编译目录图片拷贝、属性对话框图片列表与剪贴板粘贴、超链接图片状态与删除）
+├── test_link_manager.cpp            # 复制链接（默认/自定义目录与 ~ 展开、\includegraphics 命令、序号空缺填补、失效链接保留序号、符号链接创建/替换/删除）
 ├── test_latex_compiler.cpp          # 编译 + PNG/SVG 转换测试
 ├── test_search.cpp                  # 模糊搜索算法 + 分类 + 标签过滤测试
 ├── test_packages_libraries.cpp      # 宏包/TikZ库解析与模板注入测试
@@ -1047,6 +1083,7 @@ MainWindow
 │   └── QScrollArea      元数据编辑表单 + 参数控件
 ├── LatexCompiler        编译引擎（xelatex + pdftocairo/inkscape SVG转换 + 嵌套括号解析 + 行号映射 + 自定义命令抽取/注入）
 ├── SnippetManager       数据层（JSON 读写、双字索引搜索、分类缓存、批量操作）
+├── LinkManager          「复制链接」图片链接管理（目录配置、序号空缺填补、符号链接、\includegraphics 命令）
 ├── SettingsDialog       设置面板（路径/快捷键/模板管理/工厂重置）
 └── KdeGlobalShortcut    KDE 全局快捷键（或 QHotkey 回退）
 ```
@@ -1075,17 +1112,18 @@ MainWindow
 
 ## 测试
 
-项目包含十七套自动化测试（通过 CTest 运行）：
+项目包含十八套自动化测试（通过 CTest 运行）：
 
 | 测试 | 内容 |
 |------|------|
-| `test_snippet_manager` | 片段创建/读取/更新/删除，loadCode，renameCategory，compileCommand/sortOrder JSON 序列化，ZIP 导入/导出，reorderSnippets，categoryOrder 保存/加载 |
-| `test_snippet_images` | 图片管理：字母序号命名（a–z、aa–zz）、受支持扩展名检测、图片添加/替换/删除（含序号复用与跳过占用、替换扩展名更新、缺失源文件回退）、meta.json `images` 字段往返与旧版无字段容错、存档导出/导入携带图片、片段间图片文件复制、编译临时目录图片拷贝、属性对话框图片列表/按钮状态（无选中时灰色禁用、选中后启用）/剪贴板图像粘贴与 Ctrl+V 快捷键（9 组测试） |
+| `test_snippet_manager` | 片段创建/读取/更新/删除，loadCode，renameCategory，compileCommand/sortOrder JSON 序列化，linkedPdf 字段往返与旧版无字段容错，ZIP 导入/导出，reorderSnippets，categoryOrder 保存/加载 |
+| `test_snippet_images` | 图片管理：字母序号命名（a–z、aa–zz）、受支持扩展名检测、图片添加/替换/删除（含序号复用与跳过占用、替换扩展名更新、缺失源文件回退）、meta.json `images` 字段往返与旧版无字段容错、存档导出/导入携带图片（linkedPdf 导入时清除）、片段间图片文件复制、编译临时目录图片拷贝、属性对话框图片列表/按钮状态（无选中时灰色禁用、选中后启用）/剪贴板图像粘贴与 Ctrl+V 快捷键/超链接图片状态与删除（10 组测试） |
+| `test_link_manager` | 复制链接：默认/自定义链接目录（`~` 展开、尾斜杠归一、空值回退默认）、`\includegraphics` 命令生成、序号空缺填补（0001/0003/0004→0002）、非序号文件忽略、失效符号链接保留序号、符号链接创建/内容更新可见/覆盖替换/删除与序号释放、缺失源文件失败（5 组测试） |
 | `test_latex_compiler` | xelatex 可用性检测，基本编译，PDF 生成，PNG 转换，SVG 转换，编译日志验证，自定义命令抽取（覆盖 14 类定义命令）、含分隔符参数的 `\def` 与参数后换行的 `\newcommand` 抽取、不完整定义的安全跳过、注释随命令迁移（前置注释块、行尾注释、图内注释保留）、析构回收转换子进程、compileCommand 自定义引擎编译与 lastFullCommand 验证（64+ 项测试） |
 | `test_search` | 精确匹配、子序列匹配、连续加分、中文搜索、标签过滤、分类统计 |
 | `test_packages_libraries` | 宏包字符串解析（含嵌套括号选项），TikZ 库解析，模板注入正确性，往返序列化 |
 | `test_highlighter_regex` | 数学模式 `$...$`、`\(...\)`、`\[...\]` 正则表达式匹配验正 |
-| `test_multitab` | 多标签页功能：创建/切换/关闭标签页、重复打开去重、关闭前未保存检查、编辑器过长行自动换行切换、元数据脏标记检测、切换标签页元数据隔离与标题正确性、UI 库栏改动即时同步到编辑器补全（`circle through` 等）、`$` 行内公式自动配对（插入/包裹选中/跳过闭合/空对退格）、`{|}` 独占行回车三行拆分、`Tab`/`Shift+Tab` 多行块缩进与反缩进、标签过滤器状态管理（标签移除/集合不变/标签栏稳定性）、额外宏包/TikZ库字段的逗号感知分段补全器（含彩色圆点标记与双弹窗强调色断言）、撤销/重做按钮状态管理（零标签页置灰、编辑后启用、撤销/重做到头置灰、跨标签页状态隔离与恢复、代码加载后初始置灰）、模板宏包激活补全（default_circuit 片段端到端激活 circuitikz 库门控形状，含反向门控校验） |
+| `test_multitab` | 多标签页功能：创建/切换/关闭标签页、重复打开去重、关闭前未保存检查、编辑器过长行自动换行切换、元数据脏标记检测、切换标签页元数据隔离与标题正确性、UI 库栏改动即时同步到编辑器补全（`circle through` 等）、`$` 行内公式自动配对（插入/包裹选中/跳过闭合/空对退格）、`{|}` 独占行回车三行拆分、`Tab`/`Shift+Tab` 多行块缩进与反缩进、标签过滤器状态管理（标签移除/集合不变/标签栏稳定性）、额外宏包/TikZ库字段的逗号感知分段补全器（含彩色圆点标记与双弹窗强调色断言）、撤销/重做按钮状态管理（零标签页置灰、编辑后启用、撤销/重做到头置灰、跨标签页状态隔离与恢复、代码加载后初始置灰）、模板宏包激活补全（default_circuit 片段端到端激活 circuitikz 库门控形状，含反向门控校验）、复制链接端到端（首次分配 0001 并记录 linkedPdf、二次点击复用、删除后重建、空缺填补 0002、无预览 PDF 拒绝创建） |
 | `test_draft_recovery` | 草稿文件格式完整性（全字段 JSON 读写往返、空代码过滤、目录扫描） |
 | `test_draft_recovery_dialog` | 草稿恢复对话框：目录加载（损坏/空代码过滤、无名回退）、默认全选/全选/取消全选按钮、全部丢弃按钮功能与结果码、恢复所选/稍后处理逻辑 |
 | `test_autostart` | 开机自启动条目：desktop 文件内容（--hidden、含空格路径引号、KDE 排序提示）、启用/停用/幂等、旧条目迁移（原地补 --hidden、二次迁移零改动、无 Exec 行不改写） |

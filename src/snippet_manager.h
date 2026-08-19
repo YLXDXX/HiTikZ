@@ -22,6 +22,9 @@ struct Snippet {
     QString code;
     // Image files stored alongside the snippet (e.g. "a.png", "b.pdf").
     QStringList images;
+    // File name of the "复制链接" picture link in the shared link directory
+    // (e.g. "0001.pdf"); empty when no link has been created.
+    QString linkedPdf;
     bool isPreset = false;
     double sortOrder = 0.0;
 };

@@ -1,5 +1,6 @@
 #include "snippet_properties_dialog.h"
 #include "snippet_manager.h"
+#include "link_manager.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QFormLayout>
@@ -23,11 +24,15 @@
 
 SnippetPropertiesDialog::SnippetPropertiesDialog(const QString &snippetId,
                                                    SnippetManager *mgr,
-                                                   QWidget *parent)
+                                                   QWidget *parent,
+                                                   LinkManager *links)
     : QDialog(parent), m_snippetId(snippetId), m_snippetMgr(mgr)
 {
     setWindowTitle(QStringLiteral("片段属性"));
     setMinimumSize(480, 640);
+
+    m_linkMgr = links ? links
+                      : new LinkManager(LinkManager::settingDir(), this);
 
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
 
@@ -104,6 +109,22 @@ SnippetPropertiesDialog::SnippetPropertiesDialog(const QString &snippetId,
 
     mainLayout->addWidget(imageGroup);
 
+    // ── Picture link (复制链接) ──────────────────────────────────────────
+    QGroupBox *linkGroup = new QGroupBox(QStringLiteral("超链接图片"));
+    QVBoxLayout *linkLayout = new QVBoxLayout(linkGroup);
+
+    m_linkStatusLabel = new QLabel;
+    m_linkStatusLabel->setWordWrap(true);
+    linkLayout->addWidget(m_linkStatusLabel);
+
+    QHBoxLayout *linkBtnRow = new QHBoxLayout;
+    m_removeLinkBtn = new QPushButton(QStringLiteral("删除超链接文件"));
+    linkBtnRow->addWidget(m_removeLinkBtn);
+    linkBtnRow->addStretch();
+    linkLayout->addLayout(linkBtnRow);
+
+    mainLayout->addWidget(linkGroup);
+
     QHBoxLayout *btnLayout = new QHBoxLayout;
     m_saveBtn = new QPushButton(QStringLiteral("保存"));
     m_deleteBtn = new QPushButton(QStringLiteral("删除片段"));
@@ -130,6 +151,7 @@ SnippetPropertiesDialog::SnippetPropertiesDialog(const QString &snippetId,
     connect(m_replaceImageBtn, &QPushButton::clicked, this, &SnippetPropertiesDialog::onReplaceImage);
     connect(m_removeImageBtn, &QPushButton::clicked, this, &SnippetPropertiesDialog::onRemoveImage);
     connect(m_copyImageNameBtn, &QPushButton::clicked, this, &SnippetPropertiesDialog::onCopyImageName);
+    connect(m_removeLinkBtn, &QPushButton::clicked, this, &SnippetPropertiesDialog::onRemoveLink);
     connect(m_imageList, &QListWidget::itemDoubleClicked, this, [this](QListWidgetItem *) {
         onViewImage();
     });
@@ -173,6 +195,68 @@ void SnippetPropertiesDialog::loadSnippet()
     }
 
     refreshImageList();
+    updateLinkUi();
+}
+
+void SnippetPropertiesDialog::updateLinkUi()
+{
+    const Snippet s = m_snippetMgr->loadSnippet(m_snippetId);
+    if (s.linkedPdf.isEmpty()) {
+        m_linkStatusLabel->setStyleSheet(QStringLiteral("color: gray;"));
+        m_linkStatusLabel->setText(QStringLiteral("未创建超链接（工具栏「复制链接」可为该片段创建）"));
+        m_removeLinkBtn->setEnabled(false);
+        return;
+    }
+
+    m_removeLinkBtn->setEnabled(true);
+    if (m_linkMgr->linkEntryExists(s.linkedPdf)
+        && m_linkMgr->linkTargetExists(s.linkedPdf)) {
+        m_linkStatusLabel->setStyleSheet(QStringLiteral("color: #2e7d32;"));
+        m_linkStatusLabel->setText(QStringLiteral("已创建超链接: %1").arg(
+            m_linkMgr->linkFilePath(s.linkedPdf)));
+    } else if (m_linkMgr->linkEntryExists(s.linkedPdf)) {
+        m_linkStatusLabel->setStyleSheet(QStringLiteral("color: #e65100;"));
+        m_linkStatusLabel->setText(QStringLiteral("超链接文件已失效: %1（点击「复制链接」将重建）")
+            .arg(m_linkMgr->linkFilePath(s.linkedPdf)));
+    } else {
+        m_linkStatusLabel->setStyleSheet(QStringLiteral("color: #c62828;"));
+        m_linkStatusLabel->setText(QStringLiteral("超链接文件缺失: %1（点击「复制链接」将重建）")
+            .arg(m_linkMgr->linkFilePath(s.linkedPdf)));
+    }
+}
+
+bool SnippetPropertiesDialog::deleteLinkFileAndClearField()
+{
+    Snippet s = m_snippetMgr->loadSnippet(m_snippetId);
+    if (s.id.isEmpty() || s.linkedPdf.isEmpty())
+        return false;
+
+    m_linkMgr->removeLink(s.linkedPdf);
+    s.linkedPdf.clear();
+    m_snippetMgr->saveSnippet(s);
+    updateLinkUi();
+    return true;
+}
+
+void SnippetPropertiesDialog::onRemoveLink()
+{
+    Snippet s = m_snippetMgr->loadSnippet(m_snippetId);
+    if (s.id.isEmpty() || s.linkedPdf.isEmpty())
+        return;
+
+    // Only ask for confirmation when the link file actually exists; removing
+    // a stale entry that no longer points anywhere is harmless cleanup.
+    if (m_linkMgr->linkTargetExists(s.linkedPdf)) {
+        const int ret = QMessageBox::question(this, QStringLiteral("删除超链接文件"),
+            QStringLiteral("确定要删除超链接文件 \"%1\" 吗？\n"
+                           "引用它的 LaTeX 文档将无法找到该图片。")
+                .arg(s.linkedPdf),
+            QMessageBox::Yes | QMessageBox::No);
+        if (ret != QMessageBox::Yes)
+            return;
+    }
+
+    deleteLinkFileAndClearField();
 }
 
 void SnippetPropertiesDialog::refreshImageList()

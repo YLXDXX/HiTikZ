@@ -59,6 +59,13 @@ SettingsDialog::SettingsDialog(QWidget *parent)
     pdfViewerEdit->setPlaceholderText(QStringLiteral(
         "外部 PDF 查看器，如 okular、evince、xdg-open，其后可附加参数"));
     formLayout->addRow(QStringLiteral("外部 PDF 查看器:"), pdfViewerEdit);
+    linkDirEdit = new QLineEdit;
+    linkDirEdit->setPlaceholderText(QStringLiteral("~/PicTikZ"));
+    linkDirEdit->setToolTip(QStringLiteral(
+        "工具栏「复制链接」把当前片段的编译 PDF 以序号文件名（0001.pdf、0002.pdf…）"
+        "链接到此目录，并将 \\includegraphics{<目录>/<文件名>} 复制到剪贴板。"
+        "修改目录后，新复制到剪贴板的引用命令会使用新目录。"));
+    formLayout->addRow(QStringLiteral("链接图片目录:"), linkDirEdit);
     formLayout->addRow(QStringLiteral("SVG 转换工具:"), svgToolCombo);
     formLayout->addRow(QStringLiteral("命令搜索路径:"), texInputsEdit);
     formLayout->addRow(QStringLiteral("PNG DPI:"), pngDpiSpin);
@@ -237,6 +244,7 @@ void SettingsDialog::loadSettings()
     pdftocairoPathEdit->setText(settings.value("pdftocairo/path", "pdftocairo").toString());
     inkscapePathEdit->setText(settings.value("inkscape/path", "inkscape").toString());
     pdfViewerEdit->setText(settings.value("tools/pdfViewer", "").toString());
+    linkDirEdit->setText(settings.value("link/dir", "~/PicTikZ").toString());
     svgToolCombo->setCurrentIndex(svgToolCombo->findData(settings.value("svg/tool", "pdftocairo").toString()));
     texInputsEdit->setText(settings.value("paths/texinputs", "").toString());
     pngDpiSpin->setValue(settings.value("png/dpi", 300).toInt());
@@ -263,6 +271,7 @@ void SettingsDialog::saveSettings()
     settings.setValue("pdftocairo/path", pdftocairoPathEdit->text());
     settings.setValue("inkscape/path", inkscapePathEdit->text());
     settings.setValue("tools/pdfViewer", pdfViewerEdit->text());
+    settings.setValue("link/dir", linkDirEdit->text().trimmed());
     settings.setValue("svg/tool", svgToolCombo->currentData().toString());
     settings.setValue("paths/texinputs", texInputsEdit->text());
     settings.setValue("png/dpi", pngDpiSpin->value());

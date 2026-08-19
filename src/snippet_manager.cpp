@@ -278,6 +278,7 @@ QJsonObject SnippetManager::snippetToJson(const Snippet &s) const
     for (const QString &img : s.images)
         imagesArr.append(img);
     obj["images"] = imagesArr;
+    obj["linkedPdf"] = s.linkedPdf;
     return obj;
 }
 
@@ -300,6 +301,8 @@ Snippet SnippetManager::jsonToSnippet(const QJsonObject &obj) const
     QJsonArray imagesArr = obj.value("images").toArray();
     for (const QJsonValue &v : imagesArr)
         s.images.append(v.toString());
+    // Same tolerance for the picture-link field (see "复制链接").
+    s.linkedPdf = obj.value("linkedPdf").toString();
     return s;
 }
 

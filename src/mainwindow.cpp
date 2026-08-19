@@ -381,6 +381,7 @@ void MainWindow::setupUI()
     QAction *copyFullAct = toolBar->addAction(QStringLiteral("复制文档"));
     QAction *copyPngAct = toolBar->addAction(QStringLiteral("复制PNG"));
     QAction *copySvgAct = toolBar->addAction(QStringLiteral("复制SVG"));
+    QAction *copyLinkAct = toolBar->addAction(QStringLiteral("复制链接"));
     QAction *copyFilesAct = toolBar->addAction(QStringLiteral("复制文件"));
     openPdfExternalAct = toolBar->addAction(QStringLiteral("外部PDF"));
 
@@ -1241,6 +1242,7 @@ void MainWindow::setupUI()
 
     connect(copyPngAct, &QAction::triggered, this, copyPngFromCurrentPreview);
     connect(copySvgAct, &QAction::triggered, this, copySvgFromCurrentPreview);
+    connect(copyLinkAct, &QAction::triggered, this, &MainWindow::copyLinkToPicTikZ);
     connect(copyFilesAct, &QAction::triggered, this, copyFiles);
 
     connect(openPdfExternalAct, &QAction::triggered, this, [this]() {
